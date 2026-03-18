@@ -56,52 +56,6 @@ final class Controller extends GenericClass
         return $controller;
     }
 
-    public Stringable $routeName {
-        get {
-            $base = str('api.')
-                ->append($this->apiVersion->toString())
-                ->append('.', $this->entity->plural->lower()->toString());
-
-            if ($this->endpointType === EndpointType::Action) {
-                return $base->append('.actions.', Str::kebab($this->endpointName->toString()));
-            }
-
-            return $base->append('.', $this->endpointName->lower()->toString());
-        }
-    }
-
-    public Stringable $uri {
-        get {
-            $base = str('api/')
-                ->append($this->apiVersion->lower()->toString())
-                ->append('/', $this->entity->plural->lower()->toString());
-
-            if ($this->endpointType === EndpointType::Action) {
-                return $base->append('/{', $this->entity->variableName->toString(), '}/actions/', Str::kebab($this->endpointName->toString()));
-            }
-
-            $endpoint = Endpoints::tryFrom($this->endpointName->lower()->toString());
-
-            if ($endpoint?->isSingleResource()) {
-                return $base->append('/{', $this->entity->variableName->toString(), '}');
-            }
-
-            return $base;
-        }
-    }
-
-    public Stringable $httpMethod {
-        get {
-            if ($this->endpointType === EndpointType::Action) {
-                return str('Method::'.$this->actionMethod->name);
-            }
-
-            $endpoint = Endpoints::from($this->endpointName->lower()->toString());
-
-            return str('Method::'.$endpoint->httpMethod()->name);
-        }
-    }
-
     public bool $isSingleResource {
         get {
             if ($this->endpointType === EndpointType::Action) {
@@ -114,9 +68,8 @@ final class Controller extends GenericClass
         }
     }
 
-    public Stringable $modelBinding {
-        get => str($this->entity->name->toString())
-            ->append(' $', $this->entity->variableName->toString());
+    public Route $route {
+        get => Route::make($this);
     }
 
     public Authorizer $authorizer {

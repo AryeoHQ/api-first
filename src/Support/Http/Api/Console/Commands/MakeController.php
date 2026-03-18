@@ -16,7 +16,6 @@ use Support\Http\Api\Console\Enums\EndpointType;
 use Support\Http\Api\References\Controller;
 use Support\Http\Commands\MakeAuthorizer;
 use Support\Http\Commands\MakeValidator;
-use Support\Routing\Attributes\Route;
 use Support\Routing\Enums\Method;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -35,10 +34,8 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
     use CreatesColocatedTests;
     use GeneratorCommandCompatibility;
     use ResolvesApiVersion;
-
     /** @use RetrievesEntity<Entity> */
     use RetrievesEntity;
-
     use SearchesClasses;
 
     protected $description = 'Create a new API controller endpoint.';
@@ -106,9 +103,9 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
             '{{ routeUri }}',
             '{{ routeMethod }}',
         ], [
-            $this->controller->routeName->toString(),
-            $this->controller->uri->toString(),
-            $this->controller->httpMethod->toString(),
+            $this->controller->route->routeName->toString(),
+            $this->controller->route->uri->toString(),
+            'Method::'.$this->controller->route->method->name,
         ], $stub);
 
         $imports = $this->buildControllerImports();
@@ -126,7 +123,7 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
     private function buildControllerImports(): string
     {
         return collect([
-            'use '.Route::class.';',
+            'use '.$this->controller->route->fqcn.';',
             'use '.Method::class.';',
         ])->when(
             $this->controller->isSingleResource,
@@ -137,16 +134,13 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
 
     private function buildControllerParameters(): string
     {
-        $usesAuthorizerOrValidator = $this->option('authorizer') || $this->option('validator');
-
         return collect()
             ->when($this->option('authorizer'), fn ($p) => $p->push('Authorizer $authorizer'))
             ->when($this->option('validator'), fn ($p) => $p->push('Validator $validator'))
-            ->when(! $usesAuthorizerOrValidator, fn ($p) => $p->push('Request $request'))
             ->when(
                 $this->controller->isSingleResource,
                 fn ($parameters) => $parameters
-                    ->push($this->controller->modelBinding->toString())
+                    ->push($this->controller->entity->name.' $'.$this->controller->entity->variableName)
             )->implode(', ');
     }
 

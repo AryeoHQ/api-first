@@ -74,98 +74,6 @@ final class ControllerTest extends TestCase
     }
 
     #[Test]
-    public function it_resolves_route_name_for_rest(): void
-    {
-        $controller = Controller::make(
-            apiVersion: 'V1',
-            entity: $this->entity,
-            endpointType: EndpointType::Rest,
-            endpointName: 'index',
-        );
-
-        $this->assertSame('api.V1.orders.index', $controller->routeName->toString());
-    }
-
-    #[Test]
-    public function it_resolves_route_name_for_action(): void
-    {
-        $controller = Controller::make(
-            apiVersion: 'V1',
-            entity: $this->entity,
-            endpointType: EndpointType::Action,
-            endpointName: 'PayInvoice',
-        );
-
-        $this->assertSame('api.V1.orders.actions.pay-invoice', $controller->routeName->toString());
-    }
-
-    #[Test]
-    public function it_resolves_uri_for_rest_collection(): void
-    {
-        $controller = Controller::make(
-            apiVersion: 'V1',
-            entity: $this->entity,
-            endpointType: EndpointType::Rest,
-            endpointName: 'index',
-        );
-
-        $this->assertSame('api/v1/orders', $controller->uri->toString());
-    }
-
-    #[Test]
-    public function it_resolves_uri_for_rest_single_resource(): void
-    {
-        $controller = Controller::make(
-            apiVersion: 'V1',
-            entity: $this->entity,
-            endpointType: EndpointType::Rest,
-            endpointName: 'show',
-        );
-
-        $this->assertSame('api/v1/orders/{order}', $controller->uri->toString());
-    }
-
-    #[Test]
-    public function it_resolves_uri_for_action(): void
-    {
-        $controller = Controller::make(
-            apiVersion: 'V1',
-            entity: $this->entity,
-            endpointType: EndpointType::Action,
-            endpointName: 'PayInvoice',
-        );
-
-        $this->assertSame('api/v1/orders/{order}/actions/pay-invoice', $controller->uri->toString());
-    }
-
-    #[Test]
-    public function it_resolves_http_method_for_rest(): void
-    {
-        $controller = Controller::make(
-            apiVersion: 'V1',
-            entity: $this->entity,
-            endpointType: EndpointType::Rest,
-            endpointName: 'index',
-        );
-
-        $this->assertSame('Method::Get', $controller->httpMethod->toString());
-    }
-
-    #[Test]
-    public function it_resolves_http_method_for_action(): void
-    {
-        $controller = Controller::make(
-            apiVersion: 'V1',
-            entity: $this->entity,
-            endpointType: EndpointType::Action,
-            endpointName: 'PayInvoice',
-            actionMethod: ActionMethod::Get,
-        );
-
-        $this->assertSame('Method::Get', $controller->httpMethod->toString());
-    }
-
-    #[Test]
     public function it_identifies_single_resource_endpoints(): void
     {
         $show = Controller::make('V1', $this->entity, EndpointType::Rest, 'show');
@@ -178,16 +86,16 @@ final class ControllerTest extends TestCase
     }
 
     #[Test]
-    public function it_resolves_model_binding(): void
+    public function it_provides_route_companion(): void
     {
         $controller = Controller::make(
             apiVersion: 'V1',
             entity: $this->entity,
             endpointType: EndpointType::Rest,
-            endpointName: 'show',
+            endpointName: 'index',
         );
 
-        $this->assertSame('Order $order', $controller->modelBinding->toString());
+        $this->assertSame('\\Support\\Routing\\Attributes\\Route', $controller->route->fqcn->toString());
     }
 
     #[Test]

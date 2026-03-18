@@ -94,9 +94,9 @@ class MakeControllerTest extends TestCase
 
         $contents = file_get_contents($this->controller->filePath->toString());
 
-        $this->assertStringContainsString($this->controller->routeName->toString(), $contents);
-        $this->assertStringContainsString($this->controller->uri->toString(), $contents);
-        $this->assertStringContainsString($this->controller->httpMethod->toString(), $contents);
+        $this->assertStringContainsString($this->controller->route->routeName->toString(), $contents);
+        $this->assertStringContainsString($this->controller->route->uri->toString(), $contents);
+        $this->assertStringContainsString('Method::'.$this->controller->route->method->name, $contents);
     }
 
     #[Test]
@@ -121,7 +121,7 @@ class MakeControllerTest extends TestCase
         $contents = file_get_contents($controller->filePath->toString());
 
         $this->assertStringContainsString($controller->entity->fqcn->toString(), $contents);
-        $this->assertStringContainsString($controller->modelBinding->toString(), $contents);
+        $this->assertStringContainsString($controller->entity->name.' $'.$controller->entity->variableName, $contents);
         $this->assertStringContainsString('Authorizer $authorizer', $contents);
         $this->assertStringContainsString('Validator $validator', $contents);
     }
