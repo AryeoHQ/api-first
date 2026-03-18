@@ -1,0 +1,19 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Support\Http\Api\Resources\Json\PaginatedResourceResponse\PagingInformation;
+
+use Illuminate\Http\Request;
+use Support\Http\Requests\Contracts\CastableData;
+
+final class Sort
+{
+    public function __invoke(Request $request): mixed
+    {
+        /** @var ?CastableData $castable */
+        $castable = app()->bound(CastableData::class) ? app(CastableData::class) : null;
+
+        return $castable?->sort ?? $request->query('sort'); // @phpstan-ignore property.notFound, nullsafe.neverNull
+    }
+}

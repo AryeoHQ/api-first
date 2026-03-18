@@ -1,0 +1,21 @@
+services:
+    -
+        class: Tooling\Http\Api\PhpStan\ControllerIsFinal
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\Http\Api\PhpStan\ControllerHasRouteAttribute
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\Http\Api\PhpStan\RouteAttributeOnlyOnInvoke
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\Http\Api\PhpStan\FormRequestIsFinal
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\Http\Api\PhpStan\SingleCastableDataParameter
+        tags:
+            - phpstan.rules.rule

@@ -1,0 +1,18 @@
+<?php
+
+namespace {{ namespace }};
+
+{{ imports }}
+
+final class Controller
+{
+    #[Route(
+        name: '{{ routeName }}',
+        uri: '{{ routeUri }}',
+        methods: {{ routeMethod }},
+    )]
+    public function __invoke({{ parameters }})
+    {
+        //
+    }
+}
