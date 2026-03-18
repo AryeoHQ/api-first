@@ -14,6 +14,7 @@ use Support\Http\Api\Console\Enums\ActionMethod;
 use Support\Http\Api\Console\Enums\Endpoints;
 use Support\Http\Api\Console\Enums\EndpointType;
 use Support\Http\Api\References\Controller;
+use Support\Http\Api\References\Route;
 use Support\Http\Commands\MakeAuthorizer;
 use Support\Http\Commands\MakeValidator;
 use Support\Routing\Enums\Method;
@@ -34,8 +35,10 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
     use CreatesColocatedTests;
     use GeneratorCommandCompatibility;
     use ResolvesApiVersion;
+
     /** @use RetrievesEntity<Entity> */
     use RetrievesEntity;
+
     use SearchesClasses;
 
     protected $description = 'Create a new API controller endpoint.';
@@ -213,19 +216,17 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
         ];
     }
 
-    private function buildController(
-        Entity $entity,
-        EndpointType $endpointType,
-        string $endpointName,
-        ActionMethod $actionMethod = ActionMethod::Post,
-    ): Controller {
-        return Controller::make(
+    private function buildController(Entity $entity, EndpointType $endpointType, string $endpointName, ActionMethod $actionMethod = ActionMethod::Post): Controller
+    {
+        $route = Route::make(
             apiVersion: $this->apiVersion,
             entity: $entity,
             endpointType: $endpointType,
             endpointName: $endpointName,
             actionMethod: $actionMethod,
         );
+
+        return Controller::make($route);
     }
 
     protected function getArguments(): array

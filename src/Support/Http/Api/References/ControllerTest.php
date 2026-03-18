@@ -22,10 +22,7 @@ final class ControllerTest extends TestCase
     public function it_resolves_namespace_for_rest_endpoint(): void
     {
         $controller = Controller::make(
-            apiVersion: 'V1',
-            entity: $this->entity,
-            endpointType: EndpointType::Rest,
-            endpointName: 'index',
+            Route::make('V1', $this->entity, EndpointType::Rest, 'index'),
         );
 
         $this->assertSame('\\Workbench\\App\\Http\\Api\\V1\\Orders\\Index', $controller->namespace->toString());
@@ -36,11 +33,7 @@ final class ControllerTest extends TestCase
     public function it_resolves_namespace_for_action_endpoint(): void
     {
         $controller = Controller::make(
-            apiVersion: 'V1',
-            entity: $this->entity,
-            endpointType: EndpointType::Action,
-            endpointName: 'PayInvoice',
-            actionMethod: ActionMethod::Post,
+            Route::make('V1', $this->entity, EndpointType::Action, 'PayInvoice', ActionMethod::Post),
         );
 
         $this->assertSame('\\Workbench\\App\\Http\\Api\\V1\\Orders\\Actions\\PayInvoice', $controller->namespace->toString());
@@ -51,10 +44,7 @@ final class ControllerTest extends TestCase
     public function it_resolves_file_path(): void
     {
         $controller = Controller::make(
-            apiVersion: 'V1',
-            entity: $this->entity,
-            endpointType: EndpointType::Rest,
-            endpointName: 'index',
+            Route::make('V1', $this->entity, EndpointType::Rest, 'index'),
         );
 
         $this->assertStringEndsWith('workbench/app/Http/Api/V1/Orders/Index/Controller.php', $controller->filePath->toString());
@@ -64,10 +54,7 @@ final class ControllerTest extends TestCase
     public function it_resolves_directory(): void
     {
         $controller = Controller::make(
-            apiVersion: 'V1',
-            entity: $this->entity,
-            endpointType: EndpointType::Rest,
-            endpointName: 'index',
+            Route::make('V1', $this->entity, EndpointType::Rest, 'index'),
         );
 
         $this->assertStringEndsWith('workbench/app/Http/Api/V1/Orders/Index', $controller->directory->toString());
@@ -76,9 +63,9 @@ final class ControllerTest extends TestCase
     #[Test]
     public function it_identifies_single_resource_endpoints(): void
     {
-        $show = Controller::make('V1', $this->entity, EndpointType::Rest, 'show');
-        $index = Controller::make('V1', $this->entity, EndpointType::Rest, 'index');
-        $action = Controller::make('V1', $this->entity, EndpointType::Action, 'Cancel');
+        $show = Controller::make(Route::make('V1', $this->entity, EndpointType::Rest, 'show'));
+        $index = Controller::make(Route::make('V1', $this->entity, EndpointType::Rest, 'index'));
+        $action = Controller::make(Route::make('V1', $this->entity, EndpointType::Action, 'Cancel'));
 
         $this->assertTrue($show->isSingleResource);
         $this->assertFalse($index->isSingleResource);
@@ -89,10 +76,7 @@ final class ControllerTest extends TestCase
     public function it_provides_route_companion(): void
     {
         $controller = Controller::make(
-            apiVersion: 'V1',
-            entity: $this->entity,
-            endpointType: EndpointType::Rest,
-            endpointName: 'index',
+            Route::make('V1', $this->entity, EndpointType::Rest, 'index'),
         );
 
         $this->assertSame('\\Support\\Routing\\Attributes\\Route', $controller->route->fqcn->toString());
@@ -102,10 +86,7 @@ final class ControllerTest extends TestCase
     public function it_provides_test_companion(): void
     {
         $controller = Controller::make(
-            apiVersion: 'V1',
-            entity: $this->entity,
-            endpointType: EndpointType::Rest,
-            endpointName: 'index',
+            Route::make('V1', $this->entity, EndpointType::Rest, 'index'),
         );
 
         $this->assertSame('\\Workbench\\App\\Http\\Api\\V1\\Orders\\Index\\ControllerTest', $controller->test->fqcn->toString());
@@ -116,10 +97,7 @@ final class ControllerTest extends TestCase
     public function it_provides_authorizer_companion(): void
     {
         $controller = Controller::make(
-            apiVersion: 'V1',
-            entity: $this->entity,
-            endpointType: EndpointType::Rest,
-            endpointName: 'index',
+            Route::make('V1', $this->entity, EndpointType::Rest, 'index'),
         );
 
         $this->assertSame('\\Workbench\\App\\Http\\Api\\V1\\Orders\\Index\\Authorizer', $controller->authorizer->fqcn->toString());
@@ -130,10 +108,7 @@ final class ControllerTest extends TestCase
     public function it_provides_validator_companion(): void
     {
         $controller = Controller::make(
-            apiVersion: 'V1',
-            entity: $this->entity,
-            endpointType: EndpointType::Rest,
-            endpointName: 'index',
+            Route::make('V1', $this->entity, EndpointType::Rest, 'index'),
         );
 
         $this->assertSame('\\Workbench\\App\\Http\\Api\\V1\\Orders\\Index\\Validator', $controller->validator->fqcn->toString());

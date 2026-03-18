@@ -25,18 +25,18 @@ final class Route extends GenericClass
 
     public ActionMethod $actionMethod;
 
-    public static function make(Controller $controller): self
+    public static function make(Stringable|string $apiVersion, Entity $entity, EndpointType $endpointType, Stringable|string $endpointName, ActionMethod $actionMethod = ActionMethod::Post): self
     {
         $route = new self(
             name: 'Route',
             baseNamespace: 'Support\\Routing\\Attributes',
         );
 
-        $route->apiVersion = $controller->apiVersion;
-        $route->entity = $controller->entity;
-        $route->endpointType = $controller->endpointType;
-        $route->endpointName = $controller->endpointName;
-        $route->actionMethod = $controller->actionMethod;
+        $route->apiVersion = str($apiVersion);
+        $route->entity = $entity;
+        $route->endpointType = $endpointType;
+        $route->endpointName = str($endpointName);
+        $route->actionMethod = $actionMethod;
 
         return $route;
     }

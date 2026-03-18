@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Support\Entities\References\Entity;
 use Support\Http\Api\Console\Enums\EndpointType;
 use Support\Http\Api\References\Controller;
+use Support\Http\Api\References\Route;
 use Tests\TestCase;
 use Tooling\GeneratorCommands\References\Contracts\Reference;
 use Tooling\GeneratorCommands\Testing\Concerns\CleansUpGeneratorCommands;
@@ -26,10 +27,7 @@ class MakeControllerTest extends TestCase
 
     private Controller $controller {
         get => Controller::make(
-            apiVersion: 'V1',
-            entity: $this->entity,
-            endpointType: EndpointType::Rest,
-            endpointName: 'index',
+            Route::make('V1', $this->entity, EndpointType::Rest, 'index'),
         );
     }
 
@@ -112,10 +110,7 @@ class MakeControllerTest extends TestCase
         $this->artisan($this->command, $input)->assertSuccessful();
 
         $controller = Controller::make(
-            apiVersion: 'V1',
-            entity: $this->entity,
-            endpointType: EndpointType::Rest,
-            endpointName: 'show',
+            Route::make('V1', $this->entity, EndpointType::Rest, 'show'),
         );
 
         $contents = file_get_contents($controller->filePath->toString());

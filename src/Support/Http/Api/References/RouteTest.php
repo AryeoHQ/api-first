@@ -93,14 +93,12 @@ final class RouteTest extends TestCase
         string $endpointName,
         ActionMethod $actionMethod = ActionMethod::Post,
     ): Route {
-        $controller = Controller::make(
+        return Route::make(
             apiVersion: 'V1',
             entity: $this->entity,
             endpointType: $endpointType,
             endpointName: $endpointName,
             actionMethod: $actionMethod,
         );
-
-        return Route::make($controller);
     }
 }
