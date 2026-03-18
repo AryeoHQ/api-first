@@ -22,15 +22,11 @@ final class Controller extends GenericClass
 
     public static function make(Route $route): self
     {
-        $subdirectory = $route->endpointType === EndpointType::Action
-            ? str('Actions')->append('\\', Str::studly($route->endpointName->toString()))
-            : $route->endpointName->ucfirst();
-
         $namespace = $route->entity->baseNamespace
             ->append('\\Http\\Api\\')
             ->append($route->apiVersion->toString())
             ->append('\\', $route->entity->plural->toString())
-            ->append('\\', $subdirectory->toString());
+            ->append('\\', Str::studly($route->endpointName->toString()));
 
         $controller = new self(name: 'Controller', baseNamespace: $namespace);
         $controller->route = $route;

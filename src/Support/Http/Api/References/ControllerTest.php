@@ -36,8 +36,8 @@ final class ControllerTest extends TestCase
             Route::make('V1', $this->entity, EndpointType::Action, 'PayInvoice', ActionMethod::Post),
         );
 
-        $this->assertSame('\\Workbench\\App\\Http\\Api\\V1\\Orders\\Actions\\PayInvoice', $controller->namespace->toString());
-        $this->assertSame('\\Workbench\\App\\Http\\Api\\V1\\Orders\\Actions\\PayInvoice\\Controller', $controller->fqcn->toString());
+        $this->assertSame('\\Workbench\\App\\Http\\Api\\V1\\Orders\\PayInvoice', $controller->namespace->toString());
+        $this->assertSame('\\Workbench\\App\\Http\\Api\\V1\\Orders\\PayInvoice\\Controller', $controller->fqcn->toString());
     }
 
     #[Test]
