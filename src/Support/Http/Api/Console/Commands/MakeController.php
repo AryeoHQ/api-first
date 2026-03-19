@@ -4,29 +4,29 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Console\Commands;
 
-use Support\Routing\Enums\Method;
-use Illuminate\Support\Stringable;
-use Support\Http\Api\References\Route;
-use Support\Entities\References\Entity;
 use Illuminate\Console\GeneratorCommand;
-use Support\Http\Commands\MakeValidator;
-use Support\Http\Commands\MakeAuthorizer;
-use Support\Http\Api\References\Controller;
+use Illuminate\Routing\Console\ControllerMakeCommand;
+use Illuminate\Support\Stringable;
+use Support\Entities\Console\Concerns\RetrievesEntity;
+use Support\Entities\References\Entity;
 use Support\Http\Api\Console\Concerns\GeneratesAction;
 use Support\Http\Api\Console\Concerns\GeneratesRest;
-use Support\Http\Api\Console\Enums\Endpoint;
-use Support\Http\Api\Console\Enums\ActionMethod;
-use Support\Http\Api\Console\Enums\EndpointType;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Input\InputInterface;
-use Illuminate\Routing\Console\ControllerMakeCommand;
-use Symfony\Component\Console\Output\OutputInterface;
-use Support\Entities\Console\Concerns\RetrievesEntity;
-use Tooling\GeneratorCommands\Contracts\GeneratesFile;
-use Tooling\GeneratorCommands\Concerns\SearchesClasses;
 use Support\Http\Api\Console\Concerns\ResolvesApiVersion;
+use Support\Http\Api\Console\Enums\ActionMethod;
+use Support\Http\Api\Console\Enums\Endpoint;
+use Support\Http\Api\Console\Enums\EndpointType;
+use Support\Http\Api\References\Controller;
+use Support\Http\Api\References\Route;
+use Support\Http\Commands\MakeAuthorizer;
+use Support\Http\Commands\MakeValidator;
+use Support\Routing\Enums\Method;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
 use Tooling\GeneratorCommands\Concerns\CreatesColocatedTests;
 use Tooling\GeneratorCommands\Concerns\GeneratorCommandCompatibility;
+use Tooling\GeneratorCommands\Concerns\SearchesClasses;
+use Tooling\GeneratorCommands\Contracts\GeneratesFile;
 
 class MakeController extends ControllerMakeCommand implements GeneratesFile
 {
