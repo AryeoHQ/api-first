@@ -4,35 +4,35 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Console\Commands;
 
-use Illuminate\Console\GeneratorCommand;
-use Illuminate\Routing\Console\ControllerMakeCommand;
-use Illuminate\Support\Stringable;
-use Support\Entities\Console\Concerns\RetrievesEntity;
-use Support\Entities\References\Entity;
-use Support\Http\Api\Console\Concerns\ResolvesApiVersion;
-use Support\Http\Api\Console\Enums\ActionMethod;
-use Support\Http\Api\Console\Enums\Endpoints;
-use Support\Http\Api\Console\Enums\EndpointType;
-use Support\Http\Api\References\Controller;
-use Support\Http\Api\References\Route;
-use Support\Http\Commands\MakeAuthorizer;
-use Support\Http\Commands\MakeValidator;
 use Support\Routing\Enums\Method;
-use Symfony\Component\Console\Input\InputInterface;
+use Illuminate\Support\Stringable;
+use Support\Http\Api\References\Route;
+use Support\Entities\References\Entity;
+use Illuminate\Console\GeneratorCommand;
+use Support\Http\Commands\MakeValidator;
+use Support\Http\Commands\MakeAuthorizer;
+use Support\Http\Api\References\Controller;
+use Support\Http\Api\Console\Concerns\GeneratesAction;
+use Support\Http\Api\Console\Concerns\GeneratesRest;
+use Support\Http\Api\Console\Enums\Endpoint;
+use Support\Http\Api\Console\Enums\ActionMethod;
+use Support\Http\Api\Console\Enums\EndpointType;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Input\InputInterface;
+use Illuminate\Routing\Console\ControllerMakeCommand;
 use Symfony\Component\Console\Output\OutputInterface;
+use Support\Entities\Console\Concerns\RetrievesEntity;
+use Tooling\GeneratorCommands\Contracts\GeneratesFile;
+use Tooling\GeneratorCommands\Concerns\SearchesClasses;
+use Support\Http\Api\Console\Concerns\ResolvesApiVersion;
 use Tooling\GeneratorCommands\Concerns\CreatesColocatedTests;
 use Tooling\GeneratorCommands\Concerns\GeneratorCommandCompatibility;
-use Tooling\GeneratorCommands\Concerns\SearchesClasses;
-use Tooling\GeneratorCommands\Contracts\GeneratesFile;
-
-use function Laravel\Prompts\multiselect;
-use function Laravel\Prompts\select;
-use function Laravel\Prompts\text;
 
 class MakeController extends ControllerMakeCommand implements GeneratesFile
 {
     use CreatesColocatedTests;
+    use GeneratesAction;
+    use GeneratesRest;
     use GeneratorCommandCompatibility;
     use ResolvesApiVersion;
 
@@ -61,36 +61,29 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
         get => str($this->option('entity'));
     }
 
-    /** @var array<int, Controller> */
-    private array $controllers = [];
-
     public function handle()
     {
         $this->resolveApiVersion();
         $this->resolveEntity();
-        $this->resolveControllers();
+        $this->resolveController();
 
-        foreach ($this->controllers as $controller) {
-            $this->controller = $controller;
+        // Does not call parent::handle() to skip base command's operations
+        GeneratorCommand::handle();
 
-            // Does not call parent::handle() to skip base command's operations
-            GeneratorCommand::handle();
+        if ($this->option('authorizer')) {
+            $this->call(MakeAuthorizer::class, [
+                'name' => 'Authorizer',
+                '--namespace' => $this->controller->namespace->ltrim('\\')->toString(),
+                '--force' => $this->option('force'),
+            ]);
+        }
 
-            if ($this->option('authorizer')) {
-                $this->call(MakeAuthorizer::class, [
-                    'name' => 'Authorizer',
-                    '--namespace' => $controller->namespace->ltrim('\\')->toString(),
-                    '--force' => $this->option('force'),
-                ]);
-            }
-
-            if ($this->option('validator')) {
-                $this->call(MakeValidator::class, [
-                    'name' => 'Validator',
-                    '--namespace' => $controller->namespace->ltrim('\\')->toString(),
-                    '--force' => $this->option('force'),
-                ]);
-            }
+        if ($this->option('validator')) {
+            $this->call(MakeValidator::class, [
+                'name' => 'Validator',
+                '--namespace' => $this->controller->namespace->ltrim('\\')->toString(),
+                '--force' => $this->option('force'),
+            ]);
         }
 
         return self::SUCCESS; // @phpstan-ignore return.type
@@ -147,82 +140,38 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
             )->implode(', ');
     }
 
-    private function resolveControllers(): void
+    private function resolveController(): void
     {
         $endpointType = $this->resolveEndpointType();
 
-        if ($endpointType === EndpointType::Action) {
-            $this->resolveActionController($endpointType);
-
-            return;
-        }
-
-        $this->resolveRestControllers($endpointType);
+        $this->controller = match ($endpointType) {
+            EndpointType::Action => $this->resolveActionController($endpointType),
+            EndpointType::Rest => $this->resolveRestController($endpointType),
+        };
     }
 
     private function resolveEndpointType(): EndpointType
     {
-        $typeOption = $this->option('type');
-
-        if ($typeOption !== null) {
-            return EndpointType::from($typeOption);
-        }
-
-        return EndpointType::from(select(
-            label: 'What type of endpoint would you like to create?',
-            options: array_column(EndpointType::cases(), 'value'),
-            required: true,
-        ));
-    }
-
-    private function resolveRestControllers(EndpointType $endpointType): void
-    {
-        $endpointOption = $this->option('endpoint');
-
-        if ($endpointOption !== null) {
-            $this->controllers = [
-                $this->buildController($this->entity, $endpointType, $endpointOption),
-            ];
-
-            return;
-        }
-
-        $selected = multiselect(
-            label: 'What endpoints would you like to create?',
-            options: array_column(Endpoints::cases(), 'value'),
-            scroll: count(Endpoints::cases()),
-            required: true,
-        );
-
-        $this->controllers = array_map(
-            fn (string $name): Controller => $this->buildController($this->entity, $endpointType, $name),
-            $selected,
+        return rescue(
+            fn () => EndpointType::from($this->option('type')),
+            fn () => EndpointType::from(
+                \Laravel\Prompts\select(
+                    label: 'What type of endpoint would you like to create?',
+                    options: array_column(EndpointType::cases(), 'value'),
+                    required: true,
+                )
+            ),
+            false,
         );
     }
 
-    private function resolveActionController(EndpointType $endpointType): void
-    {
-        $actionName = $this->option('action') ?? text(
-            label: 'What is the name of the action? (ie: PayInvoice, Download, etc.)',
-            required: true,
-        );
-
-        $actionMethod = $this->option('action-method')
-            ? ActionMethod::from($this->option('action-method'))
-            : ActionMethod::Post;
-
-        $this->controllers = [
-            $this->buildController($this->entity, $endpointType, $actionName, $actionMethod),
-        ];
-    }
-
-    private function buildController(Entity $entity, EndpointType $endpointType, string $endpointName, ActionMethod $actionMethod = ActionMethod::Post): Controller
+    private function buildController(Entity $entity, EndpointType $endpointType, Endpoint|Stringable $endpoint, ActionMethod $actionMethod = ActionMethod::Post): Controller
     {
         $route = Route::make(
             apiVersion: $this->apiVersion,
             entity: $entity,
             endpointType: $endpointType,
-            endpointName: $endpointName,
+            endpointName: $endpoint instanceof Endpoint ? $endpoint->value : $endpoint,
             actionMethod: $actionMethod,
         );
 
@@ -241,9 +190,8 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
             ...$this->getApiVersionInputOptions(),
             new InputOption('entity', null, InputOption::VALUE_OPTIONAL, 'The entity FQCN (e.g. App\\Entities\\Posts\\Post).'),
             new InputOption('type', null, InputOption::VALUE_OPTIONAL, 'The endpoint type (Rest or Action).'),
-            new InputOption('endpoint', null, InputOption::VALUE_OPTIONAL, 'The endpoint name (e.g. index, store).'),
-            new InputOption('action', null, InputOption::VALUE_OPTIONAL, 'The action name (e.g. PayInvoice).'),
-            new InputOption('action-method', null, InputOption::VALUE_OPTIONAL, 'The action HTTP method (GET or POST).'),
+            ...$this->getRestInputOptions(),
+            ...$this->getActionInputOptions(),
             new InputOption('authorizer', null, InputOption::VALUE_NEGATABLE, 'Generate an Authorizer class.', true),
             new InputOption('validator', null, InputOption::VALUE_NEGATABLE, 'Generate a Validator class.', true),
             new InputOption('force', null, InputOption::VALUE_NONE, 'Create the class even if it already exists.'),

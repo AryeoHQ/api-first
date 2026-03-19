@@ -6,7 +6,7 @@ namespace Support\Http\Api\Console\Enums;
 
 use Support\Routing\Enums\Method;
 
-enum Endpoints: string
+enum Endpoint: string
 {
     case Index = 'index';
     case Store = 'store';

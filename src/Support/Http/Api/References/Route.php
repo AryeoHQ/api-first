@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Stringable;
 use Support\Entities\References\Entity;
 use Support\Http\Api\Console\Enums\ActionMethod;
-use Support\Http\Api\Console\Enums\Endpoints;
+use Support\Http\Api\Console\Enums\Endpoint;
 use Support\Http\Api\Console\Enums\EndpointType;
 use Support\Routing\Enums\Method;
 use Tooling\GeneratorCommands\References\GenericClass;
@@ -65,7 +65,7 @@ final class Route extends GenericClass
                 return $base->append('/{', $this->entity->variableName->toString(), '}/actions/', Str::kebab($this->endpointName->toString()));
             }
 
-            $endpoint = Endpoints::tryFrom($this->endpointName->lower()->toString());
+            $endpoint = Endpoint::tryFrom($this->endpointName->lower()->toString());
 
             if ($endpoint?->isSingleResource()) {
                 return $base->append('/{', $this->entity->variableName->toString(), '}');
@@ -81,7 +81,7 @@ final class Route extends GenericClass
                 return Method::from($this->actionMethod->value);
             }
 
-            return Endpoints::from($this->endpointName->lower()->toString())->httpMethod();
+            return Endpoint::from($this->endpointName->lower()->toString())->httpMethod();
         }
     }
 }
