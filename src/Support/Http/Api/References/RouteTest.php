@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Support\Entities\References\Entity;
 use Support\Http\Api\Console\Enums\ActionMethod;
 use Support\Http\Api\Console\Enums\EndpointType;
+use Support\Http\Api\Console\Enums\Scope;
 use Support\Routing\Enums\Method;
 use Tests\TestCase;
 
@@ -46,7 +47,7 @@ final class RouteTest extends TestCase
     #[Test]
     public function it_resolves_uri_for_rest_collection(): void
     {
-        $route = $this->makeRoute(EndpointType::Rest, 'index');
+        $route = $this->makeRoute(EndpointType::Rest, 'index', scope: Scope::Resource);
 
         $this->assertSame('api/v1/orders', $route->uri->toString());
     }
@@ -65,6 +66,14 @@ final class RouteTest extends TestCase
         $route = $this->makeRoute(EndpointType::Action, 'PayInvoice');
 
         $this->assertSame('api/v1/orders/{order}/actions/pay-invoice', $route->uri->toString());
+    }
+
+    #[Test]
+    public function it_resolves_uri_for_collection_scoped_action(): void
+    {
+        $route = $this->makeRoute(EndpointType::Action, 'ExportOrders', scope: Scope::Resource);
+
+        $this->assertSame('api/v1/orders/actions/export-orders', $route->uri->toString());
     }
 
     #[Test]
@@ -92,6 +101,7 @@ final class RouteTest extends TestCase
         EndpointType $endpointType,
         string $endpointName,
         ActionMethod $actionMethod = ActionMethod::Post,
+        Scope $scope = Scope::Instance,
     ): Route {
         return Route::make(
             apiVersion: 'V1',
@@ -99,6 +109,7 @@ final class RouteTest extends TestCase
             endpointType: $endpointType,
             endpointName: $endpointName,
             actionMethod: $actionMethod,
+            scope: $scope,
         );
     }
 }

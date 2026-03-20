@@ -6,8 +6,7 @@ namespace Support\Http\Api\References;
 
 use Illuminate\Support\Str;
 use Support\Entities\References\Entity;
-use Support\Http\Api\Console\Enums\Endpoint;
-use Support\Http\Api\Console\Enums\EndpointType;
+use Support\Http\Api\Console\Enums\Scope;
 use Support\Http\Commands\References\Authorizer;
 use Support\Http\Commands\References\Validator;
 use Tooling\GeneratorCommands\References\GenericClass;
@@ -34,16 +33,8 @@ final class Controller extends GenericClass
         return $controller;
     }
 
-    public bool $isSingleResource {
-        get {
-            if ($this->route->endpointType === EndpointType::Action) {
-                return true;
-            }
-
-            $endpoint = Endpoint::tryFrom($this->route->endpointName->lower()->toString());
-
-            return $endpoint?->isSingleResource() ?? false;
-        }
+    public Scope $scope {
+        get => $this->route->scope;
     }
 
     public Authorizer $authorizer {

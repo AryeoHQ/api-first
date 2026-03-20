@@ -25,8 +25,11 @@ enum Endpoint: string
         };
     }
 
-    public function isSingleResource(): bool
+    public function scope(): Scope
     {
-        return in_array($this, [self::Show, self::Update, self::Delete], true);
+        return match ($this) {
+            self::Show, self::Update, self::Delete => Scope::Instance,
+            self::Index, self::Store, self::Search => Scope::Resource,
+        };
     }
 }

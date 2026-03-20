@@ -10,6 +10,7 @@ use Support\Entities\References\Entity;
 use Support\Http\Api\Console\Enums\ActionMethod;
 use Support\Http\Api\Console\Enums\Endpoint;
 use Support\Http\Api\Console\Enums\EndpointType;
+use Support\Http\Api\Console\Enums\Scope;
 use Support\Routing\Enums\Method;
 use Tooling\GeneratorCommands\References\GenericClass;
 
@@ -25,7 +26,9 @@ final class Route extends GenericClass
 
     public ActionMethod $actionMethod;
 
-    public static function make(Stringable|string $apiVersion, Entity $entity, EndpointType $endpointType, Stringable|string $endpointName, ActionMethod $actionMethod = ActionMethod::Post): self
+    public Scope $scope;
+
+    public static function make(Stringable|string $apiVersion, Entity $entity, EndpointType $endpointType, Stringable|string $endpointName, ActionMethod $actionMethod = ActionMethod::Post, Scope $scope = Scope::Instance): self
     {
         $route = new self(
             name: 'Route',
@@ -37,6 +40,7 @@ final class Route extends GenericClass
         $route->endpointType = $endpointType;
         $route->endpointName = str($endpointName);
         $route->actionMethod = $actionMethod;
+        $route->scope = $scope;
 
         return $route;
     }
@@ -62,16 +66,16 @@ final class Route extends GenericClass
                 ->append('/', $this->entity->plural->lower()->toString());
 
             if ($this->endpointType === EndpointType::Action) {
-                return $base->append('/{', $this->entity->variableName->toString(), '}/actions/', Str::kebab($this->endpointName->toString()));
+                $action = str('/actions/')->append(Str::kebab($this->endpointName->toString()));
+
+                return $this->scope === Scope::Instance
+                    ? $base->append('/{', $this->entity->variableName->toString(), '}', $action->toString())
+                    : $base->append($action->toString());
             }
 
-            $endpoint = Endpoint::tryFrom($this->endpointName->lower()->toString());
-
-            if ($endpoint?->isSingleResource()) {
-                return $base->append('/{', $this->entity->variableName->toString(), '}');
-            }
-
-            return $base;
+            return $this->scope === Scope::Instance
+                ? $base->append('/{', $this->entity->variableName->toString(), '}')
+                : $base;
         }
     }
 

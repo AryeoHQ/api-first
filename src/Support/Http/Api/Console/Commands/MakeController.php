@@ -15,6 +15,7 @@ use Support\Http\Api\Console\Concerns\ResolvesApiVersion;
 use Support\Http\Api\Console\Enums\ActionMethod;
 use Support\Http\Api\Console\Enums\Endpoint;
 use Support\Http\Api\Console\Enums\EndpointType;
+use Support\Http\Api\Console\Enums\Scope;
 use Support\Http\Api\References\Controller;
 use Support\Http\Api\References\Route;
 use Support\Http\Commands\MakeAuthorizer;
@@ -122,7 +123,7 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
             'use '.$this->controller->route->fqcn.';',
             'use '.Method::class.';',
         ])->when(
-            $this->controller->isSingleResource,
+            $this->controller->scope === Scope::Instance,
             fn ($imports) => $imports
                 ->push('use '.$this->controller->entity->fqcn.';')
         )->sort()->values()->implode("\n");
@@ -134,7 +135,7 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
             ->when($this->option('authorizer'), fn ($p) => $p->push('Authorizer $authorizer'))
             ->when($this->option('validator'), fn ($p) => $p->push('Validator $validator'))
             ->when(
-                $this->controller->isSingleResource,
+                $this->controller->scope === Scope::Instance,
                 fn ($parameters) => $parameters
                     ->push($this->controller->entity->name.' $'.$this->controller->entity->variableName)
             )->implode(', ');
@@ -165,7 +166,7 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
         );
     }
 
-    private function buildController(Entity $entity, EndpointType $endpointType, Endpoint|Stringable $endpoint, ActionMethod $actionMethod = ActionMethod::Post): Controller
+    private function buildController(Entity $entity, EndpointType $endpointType, Endpoint|Stringable $endpoint, ActionMethod $actionMethod = ActionMethod::Post, Scope $scope = Scope::Instance): Controller
     {
         $route = Route::make(
             apiVersion: $this->apiVersion,
@@ -173,6 +174,7 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
             endpointType: $endpointType,
             endpointName: $endpoint instanceof Endpoint ? $endpoint->value : $endpoint,
             actionMethod: $actionMethod,
+            scope: $scope,
         );
 
         return Controller::make($route);
@@ -190,8 +192,6 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
             ...$this->getApiVersionInputOptions(),
             new InputOption('entity', null, InputOption::VALUE_OPTIONAL, 'The entity FQCN (e.g. App\\Entities\\Posts\\Post).'),
             new InputOption('type', null, InputOption::VALUE_OPTIONAL, 'The endpoint type (Rest or Action).'),
-            ...$this->getRestInputOptions(),
-            ...$this->getActionInputOptions(),
             new InputOption('authorizer', null, InputOption::VALUE_NEGATABLE, 'Generate an Authorizer class.', true),
             new InputOption('validator', null, InputOption::VALUE_NEGATABLE, 'Generate a Validator class.', true),
             new InputOption('force', null, InputOption::VALUE_NONE, 'Create the class even if it already exists.'),

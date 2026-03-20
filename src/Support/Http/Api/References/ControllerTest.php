@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Support\Entities\References\Entity;
 use Support\Http\Api\Console\Enums\ActionMethod;
 use Support\Http\Api\Console\Enums\EndpointType;
+use Support\Http\Api\Console\Enums\Scope;
 use Tests\TestCase;
 
 #[CoversClass(Controller::class)]
@@ -61,15 +62,17 @@ final class ControllerTest extends TestCase
     }
 
     #[Test]
-    public function it_identifies_single_resource_endpoints(): void
+    public function it_exposes_scope(): void
     {
-        $show = Controller::make(Route::make('V1', $this->entity, EndpointType::Rest, 'show'));
-        $index = Controller::make(Route::make('V1', $this->entity, EndpointType::Rest, 'index'));
-        $action = Controller::make(Route::make('V1', $this->entity, EndpointType::Action, 'Cancel'));
+        $show = Controller::make(Route::make('V1', $this->entity, EndpointType::Rest, 'show', scope: Scope::Instance));
+        $index = Controller::make(Route::make('V1', $this->entity, EndpointType::Rest, 'index', scope: Scope::Resource));
+        $instanceAction = Controller::make(Route::make('V1', $this->entity, EndpointType::Action, 'Cancel', scope: Scope::Instance));
+        $resourceAction = Controller::make(Route::make('V1', $this->entity, EndpointType::Action, 'Export', scope: Scope::Resource));
 
-        $this->assertTrue($show->isSingleResource);
-        $this->assertFalse($index->isSingleResource);
-        $this->assertTrue($action->isSingleResource);
+        $this->assertSame(Scope::Instance, $show->scope);
+        $this->assertSame(Scope::Resource, $index->scope);
+        $this->assertSame(Scope::Instance, $instanceAction->scope);
+        $this->assertSame(Scope::Resource, $resourceAction->scope);
     }
 
     #[Test]
