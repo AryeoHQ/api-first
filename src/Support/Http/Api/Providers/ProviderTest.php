@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Support\Http\Api\Providers;
 
 use Illuminate\Http\Request;
+use Illuminate\Pagination\Cursor;
+use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Routing\Route;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -57,5 +59,29 @@ final class ProviderTest extends TestCase
         $resolved = app(CastableData::class);
 
         $this->assertNull($resolved);
+    }
+
+    #[Test]
+    public function it_resolves_cursor_from_paging_cursor_query_parameter(): void
+    {
+        $request = Request::create('/test', 'GET', [
+            'paging' => ['cursor' => 'eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0'],
+        ]);
+
+        $this->app->instance('request', $request);
+
+        $cursor = CursorPaginator::resolveCurrentCursor();
+
+        $this->assertInstanceOf(Cursor::class, $cursor);
+    }
+
+    #[Test]
+    public function it_resolves_null_cursor_when_paging_cursor_is_absent(): void
+    {
+        $this->app->instance('request', Request::create('/test', 'GET'));
+
+        $cursor = CursorPaginator::resolveCurrentCursor();
+
+        $this->assertNull($cursor);
     }
 }

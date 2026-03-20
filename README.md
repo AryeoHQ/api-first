@@ -134,20 +134,48 @@ Paginated response:
 }
 ```
 
-Non-paginated response:
+Non-paginated response (no `filters` or `sort` in request):
+
+```json
+{
+    "data": { "id": "...", "resource_type": "vendor.job" }
+}
+```
+
+Non-paginated response (with `filters` and `sort` in request):
 
 ```json
 {
     "data": { "id": "...", "resource_type": "vendor.job" },
     "meta": {
-        "paging": null,
-        "filters": null,
-        "sort": null
+        "filters": {
+            "status": "draft"
+        },
+        "sort": "-created_at"
     }
 }
 ```
 
-Pagination metadata is applied globally to all `JsonResource` collections via the `PagingInformation` mixin — no per-resource configuration is needed. For non-paginated responses, resource classes should use the `HasResponseMeta` trait.
+Pagination metadata is applied globally to all `JsonResource` collections via the `PagingInformation` mixin — no per-resource configuration is needed.
+
+The package registers an `api-first` middleware group containing `AppendFilters` and `AppendSort`. These middleware inject `meta.filters` and `meta.sort` into any JSON response when the request contains `filters` or `sort` parameters, respectively. To activate them, add the group to your routes or append it to an existing middleware group:
+
+```php
+// In bootstrap/app.php
+->withMiddleware(function (Middleware $middleware) {
+    $middleware->appendToGroup('api', [
+        'api-first',
+    ]);
+})
+```
+
+Or apply it directly to routes:
+
+```php
+Route::middleware('api-first')->group(function () {
+    // ...
+});
+```
 
 **Paging** is `null` when the response has no cursors. When cursors are present, it includes `before`, `before_url`, `after`, `after_url`, and `size`.
 

@@ -6,12 +6,9 @@ namespace Tests\Fixtures\Support\Http\Api\Resources\Json;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Support\Http\Api\Resources\Json\HasResponseMeta;
 
 class ExampleResource extends JsonResource
 {
-    use HasResponseMeta;
-
     /**
      * @param  Request  $request
      * @return array<string, mixed>
