@@ -1,7 +1,6 @@
 <?php
 
 use ShipMonk\ComposerDependencyAnalyser\Config\Configuration;
-use ShipMonk\ComposerDependencyAnalyser\Config\ErrorType;
 
 $config = new Configuration;
 

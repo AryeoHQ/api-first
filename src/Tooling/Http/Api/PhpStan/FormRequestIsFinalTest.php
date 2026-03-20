@@ -33,7 +33,7 @@ class FormRequestIsFinalTest extends RuleTestCase
         $this->analyse([$this->getFixturePath('Http/Api/PhpStan/RequestNotFinal.php')], [
             [
                 'Form requests must be final.',
-                7,
+                8,
             ],
         ]);
     }

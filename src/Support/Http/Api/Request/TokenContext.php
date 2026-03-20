@@ -6,8 +6,9 @@ namespace Support\Http\Api\Request;
 
 use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Http\Request;
 
-/** @mixin \Illuminate\Http\Request */
+/** @mixin Request */
 class TokenContext
 {
     /** @return Closure(): (Authenticatable|null) */

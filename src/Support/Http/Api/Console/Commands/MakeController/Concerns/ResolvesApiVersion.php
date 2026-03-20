@@ -4,15 +4,17 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Console\Commands\MakeController\Concerns;
 
+use Illuminate\Console\GeneratorCommand;
 use Illuminate\Support\Str;
 use Illuminate\Support\Stringable;
 use Tooling\Composer\Composer;
+use Tooling\GeneratorCommands\Concerns\SearchesClasses;
 
 use function Laravel\Prompts\select;
 
 /**
- * @mixin \Illuminate\Console\GeneratorCommand
- * @mixin \Tooling\GeneratorCommands\Concerns\SearchesClasses
+ * @mixin GeneratorCommand
+ * @mixin SearchesClasses
  */
 trait ResolvesApiVersion
 {

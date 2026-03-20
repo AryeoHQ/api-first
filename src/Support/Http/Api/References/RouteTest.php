@@ -82,7 +82,7 @@ final class RouteTest extends TestCase
         $this->assertSame(Method::Get, $this->makeRoute(EndpointType::Rest, 'index')->method);
         $this->assertSame(Method::Post, $this->makeRoute(EndpointType::Rest, 'store')->method);
         $this->assertSame(Method::Get, $this->makeRoute(EndpointType::Rest, 'show')->method);
-        $this->assertSame(Method::Put, $this->makeRoute(EndpointType::Rest, 'update')->method);
+        $this->assertSame(Method::Patch, $this->makeRoute(EndpointType::Rest, 'update')->method);
         $this->assertSame(Method::Delete, $this->makeRoute(EndpointType::Rest, 'delete')->method);
         $this->assertSame(Method::Post, $this->makeRoute(EndpointType::Rest, 'search')->method);
     }

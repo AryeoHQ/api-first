@@ -9,9 +9,10 @@ use Support\Http\Api\Console\Enums\Endpoint;
 use Support\Http\Api\Console\Enums\EndpointType;
 use Support\Http\Api\References\Controller;
 use Support\Http\Api\References\Route;
+use Tests\TestCase;
 
 /**
- * @mixin \Tests\TestCase
+ * @mixin TestCase
  */
 trait GeneratesRestTestCases
 {
