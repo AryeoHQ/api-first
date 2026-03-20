@@ -106,41 +106,58 @@ Non-standard actions follow the pattern:
 
 ## Standardized Responses
 
-### Pagination
+### Response Envelope
 
-Paginated responses automatically include structured `paging`, `filter`, and `sort` metadata. This is applied globally to all `JsonResource` collections — no per-resource configuration is needed.
+All responses include a `meta` object alongside `data`. For paginated responses, `meta` contains `paging`, `filters`, and `sort`. For non-paginated responses (show, store, update, destroy), all three are `null`.
 
-A paginated response looks like:
+Paginated response:
 
 ```json
 {
     "data": [
         { "id": "...", "resource_type": "vendor.job" }
     ],
-    "paging": {
-        "before": "YJApTcN4PAgEXP9mRvaQ==",
-        "before_url": "https://example.com/api/v1/jobs?paging[cursor]=YJApTcN4PAgEXP9mRvaQ",
-        "after": "F3g_cWwV8hu3zMLlHdAw",
-        "after_url": "https://example.com/api/v1/jobs?paging[cursor]=F3g_cWwV8hu3zMLlHdAw",
-        "size": 10
-    },
-    "filter": {
-        "status": "draft",
-        "created_at": "2025-01-01.."
-    },
-    "sort": "-created_at"
+    "meta": {
+        "paging": {
+            "before": "YJApTcN4PAgEXP9mRvaQ",
+            "before_url": "https://example.com/api/v1/jobs?paging[cursor]=YJApTcN4PAgEXP9mRvaQ",
+            "after": "F3g_cWwV8hu3zMLlHdAw",
+            "after_url": "https://example.com/api/v1/jobs?paging[cursor]=F3g_cWwV8hu3zMLlHdAw",
+            "size": 10
+        },
+        "filters": {
+            "status": "draft",
+            "created_at": "2025-01-01.."
+        },
+        "sort": "-created_at"
+    }
 }
 ```
 
-**Paging** is `null` when the response is not paginated (e.g., a `show` action). When cursors are present, it includes `before`, `before_url`, `after`, `after_url`, and `size`.
+Non-paginated response:
 
-**Filter** reflects the filters applied to the request. When the endpoint's form request implements `CastableData` (from `aryeo/request-casts`), filter values are returned with their cast types (e.g., `"1"` → `true` for a boolean cast). Otherwise, raw input values are returned. Omitted entirely when no filters are present.
+```json
+{
+    "data": { "id": "...", "resource_type": "vendor.job" },
+    "meta": {
+        "paging": null,
+        "filters": null,
+        "sort": null
+    }
+}
+```
 
-**Sort** reflects the sort applied to the request, resolved from cast data when available. Omitted entirely when no sort is present.
+Pagination metadata is applied globally to all `JsonResource` collections via the `PagingInformation` mixin — no per-resource configuration is needed. For non-paginated responses, resource classes should use the `HasResponseMeta` trait.
+
+**Paging** is `null` when the response has no cursors. When cursors are present, it includes `before`, `before_url`, `after`, `after_url`, and `size`.
+
+**Filters** reflects the filters applied to the request. When the endpoint's form request implements `CastableData` (from `aryeo/request-casts`), filter values are returned with their cast types (e.g., `"1"` → `true` for a boolean cast). Otherwise, raw input values are returned. `null` when no filters are present.
+
+**Sort** reflects the sort applied to the request, resolved from cast data when available. `null` when no sort is present.
 
 ### Scoped CastableData Binding
 
-The package registers a scoped container binding for `CastableData`. On each request, it inspects the current route's controller parameters for a `CastableData` implementation, resolves the first match, and caches it for the request lifecycle. This is what allows the `filter` and `sort` resolvers to access cast values without coupling to a specific form request.
+The package registers a scoped container binding for `CastableData`. On each request, it inspects the current route's controller parameters for a `CastableData` implementation, resolves the first match, and caches it for the request lifecycle. This is what allows the `filters` and `sort` resolvers to access cast values without coupling to a specific form request.
 
 Controllers are limited to a single `CastableData` parameter — this is enforced by a PHPStan rule (see below).
 

@@ -18,7 +18,7 @@ final class TokenContextTest extends TestCase
     {
         $request = Request::create('/test');
 
-        $this->assertNull($request->actor());
+        $this->assertNull($request->actor()); // @phpstan-ignore method.notFound
     }
 
     #[Test]
@@ -26,7 +26,7 @@ final class TokenContextTest extends TestCase
     {
         $request = Request::create('/test');
 
-        $this->assertNull($request->subject());
+        $this->assertNull($request->subject()); // @phpstan-ignore method.notFound
     }
 
     #[Test]
@@ -36,7 +36,7 @@ final class TokenContextTest extends TestCase
         $user = new User;
         $request->setUserResolver(fn () => $user);
 
-        $this->assertSame($user, $request->actor());
+        $this->assertSame($user, $request->actor()); // @phpstan-ignore method.notFound
     }
 
     #[Test]
@@ -46,6 +46,6 @@ final class TokenContextTest extends TestCase
         $user = new User;
         $request->setUserResolver(fn () => $user);
 
-        $this->assertSame($user, $request->subject());
+        $this->assertSame($user, $request->subject()); // @phpstan-ignore method.notFound
     }
 }

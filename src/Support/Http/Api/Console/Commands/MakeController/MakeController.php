@@ -87,7 +87,7 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
             ]);
         }
 
-        return self::SUCCESS;
+        return self::SUCCESS; // @phpstan-ignore return.type
     }
 
     protected function buildClass($name)

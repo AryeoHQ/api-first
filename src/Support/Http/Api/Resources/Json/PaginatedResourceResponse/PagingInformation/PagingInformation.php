@@ -20,9 +20,11 @@ class PagingInformation
             $resolvedSort = $sort($request);
 
             return [
-                'paging' => $paging($paginated),
-                ...($resolvedFilters ? ['filter' => $resolvedFilters] : []),
-                ...($resolvedSort !== null ? ['sort' => $resolvedSort] : []),
+                'meta' => [
+                    'paging' => $paging($paginated),
+                    'filters' => $resolvedFilters !== [] ? $resolvedFilters : null,
+                    'sort' => $resolvedSort,
+                ],
             ];
         };
     }

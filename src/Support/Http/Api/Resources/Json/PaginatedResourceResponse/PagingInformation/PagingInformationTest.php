@@ -29,12 +29,16 @@ final class PagingInformationTest extends TestCase
         );
 
         $this->assertSame([
-            'paging' => [
-                'before' => 'abc',
-                'before_url' => null,
-                'after' => 'def',
-                'after_url' => null,
-                'size' => null,
+            'meta' => [
+                'paging' => [
+                    'before' => 'abc',
+                    'before_url' => null,
+                    'after' => 'def',
+                    'after_url' => null,
+                    'size' => null,
+                ],
+                'filters' => null,
+                'sort' => null,
             ],
         ], $result);
     }
@@ -51,7 +55,11 @@ final class PagingInformationTest extends TestCase
         );
 
         $this->assertSame([
-            'paging' => null,
+            'meta' => [
+                'paging' => null,
+                'filters' => null,
+                'sort' => null,
+            ],
         ], $result);
     }
 
@@ -70,7 +78,11 @@ final class PagingInformationTest extends TestCase
             'data' => [
                 ['id' => 1],
             ],
-            'paging' => null,
+            'meta' => [
+                'paging' => null,
+                'filters' => null,
+                'sort' => null,
+            ],
         ], $response->getData(assoc: true));
     }
 
@@ -96,16 +108,19 @@ final class PagingInformationTest extends TestCase
         );
 
         $this->assertSame([
-            'paging' => [
-                'before' => 'abc',
-                'before_url' => null,
-                'after' => 'def',
-                'after_url' => null,
-                'size' => null,
-            ],
-            'filter' => [
-                'is_active' => true,
-                'count' => 5,
+            'meta' => [
+                'paging' => [
+                    'before' => 'abc',
+                    'before_url' => null,
+                    'after' => 'def',
+                    'after_url' => null,
+                    'size' => null,
+                ],
+                'filters' => [
+                    'is_active' => true,
+                    'count' => 5,
+                ],
+                'sort' => null,
             ],
         ], $result);
     }
@@ -129,21 +144,24 @@ final class PagingInformationTest extends TestCase
         );
 
         $this->assertSame([
-            'paging' => [
-                'before' => 'abc',
-                'before_url' => null,
-                'after' => 'def',
-                'after_url' => null,
-                'size' => null,
-            ],
-            'filter' => [
-                'status' => 'active',
+            'meta' => [
+                'paging' => [
+                    'before' => 'abc',
+                    'before_url' => null,
+                    'after' => 'def',
+                    'after_url' => null,
+                    'size' => null,
+                ],
+                'filters' => [
+                    'status' => 'active',
+                ],
+                'sort' => null,
             ],
         ], $result);
     }
 
     #[Test]
-    public function it_omits_filter_key_when_no_filters_present(): void
+    public function it_returns_null_filters_when_no_filters_present(): void
     {
         $request = Request::create('/test', 'GET');
 
@@ -158,11 +176,11 @@ final class PagingInformationTest extends TestCase
             [],
         );
 
-        $this->assertArrayNotHasKey('filter', $result);
+        $this->assertNull($result['meta']['filters']);
     }
 
     #[Test]
-    public function it_handles_no_route_context_gracefully(): void
+    public function it_returns_null_filters_when_no_route_context(): void
     {
         $closure = (new PagingInformation)->paginationInformation();
 
@@ -172,6 +190,6 @@ final class PagingInformationTest extends TestCase
             [],
         );
 
-        $this->assertArrayNotHasKey('filter', $result);
+        $this->assertNull($result['meta']['filters']);
     }
 }
