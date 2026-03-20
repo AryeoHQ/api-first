@@ -20,7 +20,7 @@ enum Endpoint: string
         return match ($this) {
             self::Index, self::Show => Method::Get,
             self::Store, self::Search => Method::Post,
-            self::Update => Method::Put,
+            self::Update => Method::Patch,
             self::Delete => Method::Delete,
         };
     }
