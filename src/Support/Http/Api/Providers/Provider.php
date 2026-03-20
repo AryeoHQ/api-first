@@ -43,7 +43,7 @@ class Provider extends ServiceProvider
                     continue;
                 }
 
-                return app()->make($type->getName());
+                return resolve($type->getName());
             }
 
             return null;
