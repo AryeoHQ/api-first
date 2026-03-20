@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Support\Http\Api\Console\Concerns;
+namespace Support\Http\Api\Console\Commands\MakeController\Concerns;
 
 use Support\Http\Api\Console\Enums\Endpoint;
 use Support\Http\Api\Console\Enums\EndpointType;

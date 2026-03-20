@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\ServiceProvider;
 use ReflectionNamedType;
-use Support\Http\Api\Console\Commands\MakeController;
+use Support\Http\Api\Console\Commands\MakeController\MakeController;
 use Support\Http\Api\Request\TokenContext;
 use Support\Http\Api\Resources\Json\PaginatedResourceResponse\PagingInformation\PagingInformation;
 use Support\Http\Requests\Contracts\CastableData;

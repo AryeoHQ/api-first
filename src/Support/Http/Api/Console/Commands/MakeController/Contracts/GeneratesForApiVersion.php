@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Support\Http\Api\Console\Contracts;
+namespace Support\Http\Api\Console\Commands\MakeController\Contracts;
 
 use Illuminate\Support\Stringable;
 
