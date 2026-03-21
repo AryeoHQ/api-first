@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use ReflectionNamedType;
 use Support\Http\Api\Console\Commands\MakeController\MakeController;
+use Support\Http\Api\Console\Commands\MakeResource\MakeResource;
 use Support\Http\Api\Request\TokenContext;
 use Support\Http\Api\Resources\Json\Middleware\AppendFilters;
 use Support\Http\Api\Resources\Json\Middleware\AppendSort;
@@ -49,13 +50,17 @@ class Provider extends ServiceProvider
             return null;
         });
 
-        $this->commands([
-            MakeController::class,
-        ]);
-
         Route::middlewareGroup('api-first', [
             AppendFilters::class,
             AppendSort::class,
+        ]);
+    }
+
+    public function boot(): void
+    {
+        $this->commands([
+            MakeController::class,
+            MakeResource::class,
         ]);
     }
 }
