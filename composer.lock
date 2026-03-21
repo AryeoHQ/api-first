@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "642b86c70a08d26525e591922b625d0d",
+    "content-hash": "45226965b8204c170a31ceff50fedad7",
     "packages": [
         {
             "name": "aryeo/api-resource-schema",
-            "version": "0.0.9",
+            "version": "dev-improve-building-schema-event",
             "source": {
                 "type": "git",
                 "url": "https://github.com/AryeoHQ/api-resource-schema.git",
-                "reference": "0c552163492d65ceae2c7fcbf7b97f33bcbea6d0"
+                "reference": "e0b0d9323126404e98c1557cdd91c39e06b6018d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/api-resource-schema/zipball/0c552163492d65ceae2c7fcbf7b97f33bcbea6d0",
-                "reference": "0c552163492d65ceae2c7fcbf7b97f33bcbea6d0",
+                "url": "https://api.github.com/repos/AryeoHQ/api-resource-schema/zipball/e0b0d9323126404e98c1557cdd91c39e06b6018d",
+                "reference": "e0b0d9323126404e98c1557cdd91c39e06b6018d",
                 "shasum": ""
             },
             "require": {
@@ -74,10 +74,10 @@
                 }
             ],
             "support": {
-                "source": "https://github.com/AryeoHQ/api-resource-schema/tree/0.0.9",
+                "source": "https://github.com/AryeoHQ/api-resource-schema/tree/improve-building-schema-event",
                 "issues": "https://github.com/AryeoHQ/api-resource-schema/issues"
             },
-            "time": "2026-03-21T04:01:57+00:00"
+            "time": "2026-03-21T21:39:28+00:00"
         },
         {
             "name": "aryeo/attribute-routing",
@@ -12155,7 +12155,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "aryeo/api-resource-schema": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {},

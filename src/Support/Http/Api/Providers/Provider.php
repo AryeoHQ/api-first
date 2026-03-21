@@ -8,16 +8,19 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use ReflectionNamedType;
 use Support\Http\Api\Console\Commands\MakeController\MakeController;
+use Support\Http\Api\Console\Commands\MakeResource\Listeners\InjectSchemaProperties;
 use Support\Http\Api\Console\Commands\MakeResource\MakeResource;
 use Support\Http\Api\Request\TokenContext;
 use Support\Http\Api\Resources\Json\Middleware\AppendFilters;
 use Support\Http\Api\Resources\Json\Middleware\AppendSort;
 use Support\Http\Api\Resources\Json\PaginatedResourceResponse\PagingInformation\PagingInformation;
 use Support\Http\Requests\Contracts\CastableData;
+use Support\Http\Resources\Schemas\Console\Commands\MakeResource\Events\BuildingSchema;
 
 class Provider extends ServiceProvider
 {
@@ -58,6 +61,8 @@ class Provider extends ServiceProvider
 
     public function boot(): void
     {
+        Event::listen(BuildingSchema::class, InjectSchemaProperties::class);
+
         $this->commands([
             MakeController::class,
             MakeResource::class,
