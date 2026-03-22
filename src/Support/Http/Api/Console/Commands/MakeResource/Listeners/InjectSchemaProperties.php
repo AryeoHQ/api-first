@@ -10,6 +10,9 @@ class InjectSchemaProperties
 {
     public function handle(BuildingSchema $event): void
     {
+        $resourceType = str(class_basename($event->fqcn->toString()))->snake();
+
         $event->properties->push('public string $id { get => $this->resource->getKey(); }');
+        $event->properties->push('public string $resourceType = "'.$resourceType.'";');
     }
 }

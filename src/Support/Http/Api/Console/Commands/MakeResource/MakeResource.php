@@ -15,8 +15,10 @@ use Tooling\GeneratorCommands\Concerns\SearchesClasses;
 class MakeResource extends Command
 {
     use ResolvesApiVersion;
+
     /** @use RetrievesEntity<Entity> */
     use RetrievesEntity;
+
     use SearchesClasses;
 
     protected $name = 'make:resource';

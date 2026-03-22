@@ -62,9 +62,16 @@ final class MakeResourceTest extends TestCase
         $this->artisan(MakeResource::class, $this->baselineInput)
             ->assertSuccessful();
 
+        $contents = file_get_contents($this->reference->filePath->toString());
+
         $this->assertStringContainsString(
             'public string $id { get => $this->resource->getKey(); }',
-            file_get_contents($this->reference->filePath->toString()),
+            $contents,
+        );
+
+        $this->assertStringContainsString(
+            "public string \$resourceType = 'banana';",
+            $contents,
         );
     }
 
