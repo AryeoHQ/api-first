@@ -19,3 +19,11 @@ services:
         class: Tooling\Http\Api\PhpStan\SingleCastableDataParameter
         tags:
             - phpstan.rules.rule
+    -
+        class: Tooling\Http\Api\PhpStan\SchemaMustHaveId
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\Http\Api\PhpStan\SchemaMustHaveResourceType
+        tags:
+            - phpstan.rules.rule
