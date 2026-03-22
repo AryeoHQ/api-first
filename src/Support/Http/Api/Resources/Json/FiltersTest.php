@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Support\Http\Api\Resources\Json\PaginatedResourceResponse\PagingInformation;
+namespace Support\Http\Api\Resources\Json;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
@@ -12,14 +12,14 @@ use Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceResponse\Cas
 use Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceResponse\PlainController;
 use Tests\TestCase;
 
-#[CoversClass(Sort::class)]
-final class SortTest extends TestCase
+#[CoversClass(Filters::class)]
+final class FiltersTest extends TestCase
 {
     #[Test]
-    public function it_returns_sort_value_from_castable_data(): void
+    public function it_returns_cast_filter_values_from_castable_data(): void
     {
         $request = Request::create('/test', 'GET', [
-            'sort' => '-created_at',
+            'filters' => ['is_active' => '1', 'count' => '5'],
         ]);
 
         $route = new Route('GET', '/test', ['uses' => CastableController::class.'@index']);
@@ -28,16 +28,19 @@ final class SortTest extends TestCase
 
         $this->app->instance('request', $request);
 
-        $result = (new Sort)($request);
+        $result = (new Filters)($request);
 
-        $this->assertSame('-created_at', $result);
+        $this->assertSame([
+            'is_active' => true,
+            'count' => 5,
+        ], $result);
     }
 
     #[Test]
-    public function it_returns_raw_sort_from_query_when_no_castable_data(): void
+    public function it_returns_raw_filter_values_from_plain_form_request(): void
     {
         $request = Request::create('/test', 'GET', [
-            'sort' => '-updated_at',
+            'filters' => ['status' => 'active'],
         ]);
 
         $route = new Route('GET', '/test', ['uses' => PlainController::class.'@index']);
@@ -45,20 +48,20 @@ final class SortTest extends TestCase
 
         $this->app->instance('request', $request);
 
-        $result = (new Sort)($request);
+        $result = (new Filters)($request);
 
-        $this->assertSame('-updated_at', $result);
+        $this->assertSame(['status' => 'active'], $result);
     }
 
     #[Test]
-    public function it_returns_null_when_no_sort_present(): void
+    public function it_returns_empty_array_when_no_filters_present(): void
     {
         $request = Request::create('/test', 'GET');
 
         $this->app->instance('request', $request);
 
-        $result = (new Sort)($request);
+        $result = (new Filters)($request);
 
-        $this->assertNull($result);
+        $this->assertSame([], $result);
     }
 }

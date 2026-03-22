@@ -7,7 +7,7 @@ namespace Support\Http\Api\Resources\Json\Middleware;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Support\Http\Api\Resources\Json\PaginatedResourceResponse\PagingInformation\Filters;
+use Support\Http\Api\Resources\Json\Filters;
 use Symfony\Component\HttpFoundation\Response;
 
 final class AppendFilters

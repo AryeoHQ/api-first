@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Support\Http\Api\Resources\Json\PaginatedResourceResponse\PagingInformation;
+namespace Support\Http\Api\Resources\Json;
 
 use Illuminate\Http\Request;
 use Support\Http\Requests\Contracts\CastableData;
