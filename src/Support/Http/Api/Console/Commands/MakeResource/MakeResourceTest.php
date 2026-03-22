@@ -22,7 +22,7 @@ final class MakeResourceTest extends TestCase
     }
 
     public Schema $reference {
-        get => new Schema(name: 'Banana', baseNamespace: 'Workbench\\App\\Http\\Api\\V1\\Schemas\\Bananas');
+        get => new Schema(name: 'Banana', baseNamespace: 'Workbench\\App\\Http\\Api\\V1\\Bananas');
     }
 
     /** @var array<string, mixed> */
@@ -78,6 +78,26 @@ final class MakeResourceTest extends TestCase
             ...$this->baselineInput,
             '--force' => true,
         ])->assertSuccessful();
+
+        $this->assertFileExists($this->reference->filePath->toString());
+    }
+
+    #[Test]
+    public function it_prompts_for_api_version_and_entity_when_options_are_not_provided(): void
+    {
+        $this->artisan(MakeResource::class, ['--force' => true])
+            ->expectsChoice(
+                'What is the API version?',
+                'V1',
+                ['V1', MakeResource::NEW_API_VERSION_OPTION],
+            )
+            ->expectsSearch(
+                'Which entity?',
+                $this->entityFqcn,
+                'Banana',
+                [$this->entityFqcn],
+            )
+            ->assertSuccessful();
 
         $this->assertFileExists($this->reference->filePath->toString());
     }

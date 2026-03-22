@@ -36,7 +36,7 @@
         }
     },
     "require": {
-        "aryeo/api-resource-schema": "dev-improve-building-schema-event",
+        "aryeo/api-resource-schema": "0.0.10",
         "laravel/framework": "^12.37",
         "laravel/prompts": "^0.3.8",
         "nikic/php-parser": "^5.7",

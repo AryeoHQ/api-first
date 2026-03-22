@@ -15,10 +15,8 @@ use Tooling\GeneratorCommands\Concerns\SearchesClasses;
 class MakeResource extends Command
 {
     use ResolvesApiVersion;
-
     /** @use RetrievesEntity<Entity> */
     use RetrievesEntity;
-
     use SearchesClasses;
 
     protected $name = 'make:resource';
@@ -32,21 +30,17 @@ class MakeResource extends Command
 
         $namespace = $this->entity->baseNamespace
             ->ltrim('\\')
-            ->append('\\Http\\Api\\', $this->apiVersion->toString(), '\\Schemas\\', $this->entity->plural->toString())
+            ->append('\\Http\\Api\\', $this->apiVersion->toString(), '\\', $this->entity->plural->toString())
             ->toString();
 
-        $arguments = [
-            'name' => $this->entity->name->toString(),
-            '--namespace' => $namespace,
-        ];
-
-        if ($this->option('force')) {
-            $arguments['--force'] = true;
-        }
-
-        $this->call(UpstreamMakeResource::class, $arguments);
-
-        return self::SUCCESS;
+        return $this->call(
+            UpstreamMakeResource::class,
+            [
+                'name' => $this->entity->name->toString(),
+                '--namespace' => $namespace,
+                '--force' => $this->option('force'),
+            ]
+        );
     }
 
     /** @return array<int, InputOption> */
