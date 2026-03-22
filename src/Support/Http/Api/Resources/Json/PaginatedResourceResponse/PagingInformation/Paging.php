@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Resources\Json\PaginatedResourceResponse\PagingInformation;
 
+use Illuminate\Support\Uri;
+
 final class Paging
 {
     /**
@@ -34,16 +36,13 @@ final class Paging
             return null;
         }
 
-        $parsed = parse_url($url);
-        parse_str($parsed['query'] ?? '', $query);
+        $uri = Uri::of($url);
 
-        if (array_key_exists('cursor', $query)) {
-            $query['paging']['cursor'] = $query['cursor'];
-            unset($query['cursor']);
-        }
-
-        $base = $parsed['scheme'].'://'.$parsed['host'].($parsed['path'] ?? '');
-
-        return $base.'?'.http_build_query($query);
+        return (string) $uri->when(
+            $uri->query()->get('cursor'),
+            fn (Uri $uri, string $cursor) => $uri
+                ->withoutQuery('cursor')
+                ->withQuery(['paging' => ['cursor' => $cursor]])
+        );
     }
 }
