@@ -47,45 +47,36 @@ final class Route extends GenericClass
 
     public Stringable $routeName {
         get {
-            $base = str('api.')
-                ->append($this->apiVersion->toString())
-                ->append('.', $this->entity->plural->lower()->toString());
+            $base = str('api.')->append($this->apiVersion->toString())->append('.', $this->entity->plural->lower()->toString());
 
-            if ($this->endpointType === EndpointType::Action) {
-                return $base->append('.actions.', Str::kebab($this->endpointName->toString()));
-            }
-
-            return $base->append('.', $this->endpointName->lower()->toString());
+            return match ($this->endpointType) {
+                EndpointType::Action => $base->append('.actions.', Str::kebab($this->endpointName->toString())),
+                EndpointType::Rest => $base->append('.', $this->endpointName->lower()->toString()),
+            };
         }
     }
 
     public Stringable $uri {
         get {
-            $base = str('api/')
-                ->append($this->apiVersion->lower()->toString())
-                ->append('/', $this->entity->plural->lower()->toString());
+            $base = str('api/')->append($this->apiVersion->lower()->toString())->append('/', $this->entity->plural->lower()->toString());
 
-            if ($this->endpointType === EndpointType::Action) {
-                $action = str('/actions/')->append(Str::kebab($this->endpointName->toString()));
-
-                return $this->scope === Scope::Instance
-                    ? $base->append('/{', $this->entity->variableName->toString(), '}', $action->toString())
-                    : $base->append($action->toString());
-            }
-
-            return $this->scope === Scope::Instance
-                ? $base->append('/{', $this->entity->variableName->toString(), '}')
-                : $base;
+            return match ($this->endpointType) {
+                EndpointType::Action => match ($this->scope) {
+                    Scope::Instance => $base->append('/{', $this->entity->variableName->toString(), '}/actions/', Str::kebab($this->endpointName->toString())),
+                    Scope::Resource => $base->append('/actions/', Str::kebab($this->endpointName->toString())),
+                },
+                EndpointType::Rest => match ($this->scope) {
+                    Scope::Instance => $base->append('/{', $this->entity->variableName->toString(), '}'),
+                    Scope::Resource => $base,
+                },
+            };
         }
     }
 
     public Method $method {
-        get {
-            if ($this->endpointType === EndpointType::Action) {
-                return Method::from($this->actionMethod->value);
-            }
-
-            return Endpoint::from($this->endpointName->lower()->toString())->method();
-        }
+        get => match ($this->endpointType) {
+            EndpointType::Action => Method::from($this->actionMethod->value),
+            EndpointType::Rest => Endpoint::from($this->endpointName->lower()->toString())->method(),
+        };
     }
 }
