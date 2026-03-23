@@ -60,17 +60,16 @@ final class MakeResourceTest extends TestCase
     #[Test]
     public function it_generates_a_schema(): void
     {
-        $this->artisan(MakeResource::class, $this->baselineInput)
-            ->assertSuccessful();
+        $this->artisan(MakeResource::class, $this->baselineInput)->assertSuccessful();
 
         $this->assertFileExists($this->reference->filePath->toString());
 
-        $contents = file_get_contents($this->reference->filePath->toString());
-
-        $this->assertStringContainsString(
-            'namespace '.$this->reference->namespace->after('\\').';',
-            $contents,
-        );
+        tap(file_get_contents($this->reference->filePath->toString()), function (string $contents) {
+            $this->assertStringContainsString(
+                'namespace '.$this->reference->namespace->after('\\').';',
+                $contents,
+            );
+        });
     }
 
     #[Test]
@@ -79,17 +78,17 @@ final class MakeResourceTest extends TestCase
         $this->artisan(MakeResource::class, $this->baselineInput)
             ->assertSuccessful();
 
-        $contents = file_get_contents($this->reference->filePath->toString());
+        tap(file_get_contents($this->reference->filePath->toString()), function (string $contents) {
+            $this->assertStringContainsString(
+                'public string $id { get => $this->resource->getKey(); }',
+                $contents,
+            );
 
-        $this->assertStringContainsString(
-            'public string $id { get => $this->resource->getKey(); }',
-            $contents,
-        );
-
-        $this->assertStringContainsString(
-            "public string \$resourceType = '".$this->entity->name->snake()."';",
-            $contents,
-        );
+            $this->assertStringContainsString(
+                "public string \$resourceType = '".$this->entity->name->snake()."';",
+                $contents,
+            );
+        });
     }
 
     #[Test]
@@ -109,22 +108,18 @@ final class MakeResourceTest extends TestCase
     #[Test]
     public function it_prompts_for_api_version_and_entity_when_options_are_not_provided(): void
     {
-        $this->artisan(MakeResource::class, [...$this->baselineInput, '--force' => true])
-            ->assertSuccessful();
+        $this->artisan(MakeResource::class, [...$this->baselineInput, '--force' => true])->assertSuccessful();
 
-        $this->artisan(MakeResource::class, ['--force' => true])
-            ->expectsChoice(
-                'What is the API version?',
-                'V1',
-                ['V1', MakeResource::CREATE_NEW_VERSION],
-            )
-            ->expectsSearch(
-                'Which entity?',
-                $this->entity->fqcn->ltrim('\\')->toString(),
-                $this->entity->name->toString(),
-                [$this->entity->fqcn->ltrim('\\')->toString()],
-            )
-            ->assertSuccessful();
+        $this->artisan(MakeResource::class, ['--force' => true])->expectsChoice(
+            'What is the API version?',
+            'V1',
+            ['V1', MakeResource::CREATE_NEW_VERSION],
+        )->expectsSearch(
+            'Which entity?',
+            $this->entity->fqcn->ltrim('\\')->toString(),
+            $this->entity->name->toString(),
+            [$this->entity->fqcn->ltrim('\\')->toString()],
+        )->assertSuccessful();
 
         $this->assertFileExists($this->reference->filePath->toString());
     }
