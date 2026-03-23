@@ -30,7 +30,7 @@ class FormRequestMustBeFinalTest extends RuleTestCase
     #[Test]
     public function it_fails_when_form_request_is_not_final(): void
     {
-        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/RequestNotFinal.php')], [
+        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/NotFinal/Request.php')], [
             [
                 'Form requests must be final.',
                 8,

@@ -24,13 +24,13 @@ class SchemaMustHaveResourceTypeTest extends RuleTestCase
     #[Test]
     public function it_passes_when_schema_has_resource_type(): void
     {
-        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/SchemaWithRequiredProperties.php')], []);
+        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/Schema.php')], []);
     }
 
     #[Test]
     public function it_fails_when_schema_is_missing_resource_type(): void
     {
-        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/SchemaWithoutRequiredProperties.php')], [
+        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/EmptySchema.php')], [
             [
                 'Schema must define a public $resourceType property.',
                 9,

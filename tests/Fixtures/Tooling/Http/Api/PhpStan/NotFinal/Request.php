@@ -1,11 +1,11 @@
 <?php
 
-namespace Tests\Fixtures\Tooling\Http\Api\PhpStan;
+namespace Tests\Fixtures\Tooling\Http\Api\PhpStan\NotFinal;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class RequestNotFinal extends FormRequest
+class Request extends FormRequest
 {
     public function authorize(): bool
     {
