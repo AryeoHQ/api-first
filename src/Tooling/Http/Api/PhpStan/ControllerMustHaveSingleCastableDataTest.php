@@ -18,9 +18,7 @@ final class ControllerMustHaveSingleCastableDataTest extends RuleTestCase
 
     protected function getRule(): Rule
     {
-        return new ControllerMustHaveSingleCastableData(
-            $this->createReflectionProvider(),
-        );
+        return new ControllerMustHaveSingleCastableData;
     }
 
     #[Test]
