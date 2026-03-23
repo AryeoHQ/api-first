@@ -38,17 +38,16 @@ trait GeneratesActionTestCases
             '--type' => 'Action',
         ];
 
-        $this->artisan($this->command, $input)
-            ->expectsQuestion(
-                'What is the name of the action? (ie: PayInvoice, Download, etc.)',
-                'PayInvoice'
-            )->expectsChoice(
-                'What HTTP method should the action use?',
-                ActionMethod::Post->value, array_column(ActionMethod::cases(), 'value')
-            )->expectsChoice(
-                'What is the scope of the action?',
-                Scope::Instance->value, array_column(Scope::cases(), 'value')
-            )->assertSuccessful();
+        $this->artisan($this->command, $input)->expectsQuestion(
+            'What is the name of the action? (ie: PayInvoice, Download, etc.)',
+            'PayInvoice'
+        )->expectsChoice(
+            'What HTTP method should the action use?',
+            ActionMethod::Post->value, array_column(ActionMethod::cases(), 'value')
+        )->expectsChoice(
+            'What is the scope of the action?',
+            Scope::Instance->value, array_column(Scope::cases(), 'value')
+        )->assertSuccessful();
 
         $this->assertFileExists($this->actionController->filePath->toString());
         $this->assertFileExists($this->actionController->authorizer->filePath->toString());
@@ -73,17 +72,16 @@ trait GeneratesActionTestCases
             '--type' => 'Action',
         ];
 
-        $this->artisan($this->command, $input)
-            ->expectsQuestion(
-                'What is the name of the action? (ie: PayInvoice, Download, etc.)',
-                'ExportOrders'
-            )->expectsChoice(
-                'What HTTP method should the action use?',
-                ActionMethod::Post->value, array_column(ActionMethod::cases(), 'value')
-            )->expectsChoice(
-                'What is the scope of the action?',
-                Scope::Resource->value, array_column(Scope::cases(), 'value')
-            )->assertSuccessful();
+        $this->artisan($this->command, $input)->expectsQuestion(
+            'What is the name of the action? (ie: PayInvoice, Download, etc.)',
+            'ExportOrders'
+        )->expectsChoice(
+            'What HTTP method should the action use?',
+            ActionMethod::Post->value, array_column(ActionMethod::cases(), 'value')
+        )->expectsChoice(
+            'What is the scope of the action?',
+            Scope::Resource->value, array_column(Scope::cases(), 'value')
+        )->assertSuccessful();
 
         $this->assertFileExists($this->resourceActionController->filePath->toString());
 
