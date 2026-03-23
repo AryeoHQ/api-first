@@ -105,15 +105,12 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
             'Method::'.$this->controller->route->method->name,
         ], $stub);
 
-        $imports = $this->buildControllerImports();
-        $parameters = $this->buildControllerParameters();
-
         return str_replace([
             '{{ imports }}',
             '{{ parameters }}',
         ], [
-            $imports,
-            $parameters,
+            $this->buildControllerImports(),
+            $this->buildControllerParameters(),
         ], $stub);
     }
 
