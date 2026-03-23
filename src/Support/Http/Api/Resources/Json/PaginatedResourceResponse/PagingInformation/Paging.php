@@ -17,17 +17,16 @@ final class Paging
         $before = data_get($paginated, 'prev_cursor');
         $after = data_get($paginated, 'next_cursor');
 
-        if ($before === null && $after === null) {
-            return null;
-        }
-
-        return [
-            'before' => $before,
-            'before_url' => $this->rewriteCursorParam(data_get($paginated, 'prev_page_url')),
-            'after' => $after,
-            'after_url' => $this->rewriteCursorParam(data_get($paginated, 'next_page_url')),
-            'size' => data_get($paginated, 'per_page'),
-        ];
+        return match ($before === null && $after === null) {
+            true => null,
+            false => [
+                'before' => $before,
+                'before_url' => $this->rewriteCursorParam(data_get($paginated, 'prev_page_url')),
+                'after' => $after,
+                'after_url' => $this->rewriteCursorParam(data_get($paginated, 'next_page_url')),
+                'size' => data_get($paginated, 'per_page'),
+            ],
+        };
     }
 
     private function rewriteCursorParam(mixed $url): null|string
