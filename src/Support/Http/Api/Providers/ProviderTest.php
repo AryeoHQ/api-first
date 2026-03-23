@@ -21,34 +21,32 @@ final class ProviderTest extends TestCase
     #[Test]
     public function it_resolves_castable_data_from_route_with_castable_form_request(): void
     {
-        $request = Request::create('/test', 'GET', [
-            'filters' => ['is_active' => '1', 'count' => '5'],
-        ]);
+        tap(
+            Request::create('/test', 'GET', ['filters' => ['is_active' => '1', 'count' => '5']]),
+            function (Request $request) {
+                $request->setRouteResolver(fn () => tap(
+                    new Route('GET', '/test', ['uses' => CastableController::class.'@index']),
+                    fn (Route $route) => $route->bind($request),
+                ));
 
-        $route = new Route('GET', '/test', ['uses' => CastableController::class.'@index']);
-        $route->bind($request);
-        $request->setRouteResolver(fn () => $route);
+                $this->app->instance('request', $request);
+            });
 
-        $this->app->instance('request', $request);
-
-        $resolved = app(CastableData::class);
-
-        $this->assertInstanceOf(CastableData::class, $resolved);
+        $this->assertInstanceOf(CastableData::class, app(CastableData::class));
     }
 
     #[Test]
     public function it_resolves_null_when_route_has_no_castable_data_parameter(): void
     {
-        $request = Request::create('/test', 'GET');
+        tap(Request::create('/test', 'GET'), function (Request $request) {
+            $request->setRouteResolver(
+                fn () => new Route('GET', '/test', ['uses' => PlainController::class.'@index']),
+            );
 
-        $route = new Route('GET', '/test', ['uses' => PlainController::class.'@index']);
-        $request->setRouteResolver(fn () => $route);
+            $this->app->instance('request', $request);
+        });
 
-        $this->app->instance('request', $request);
-
-        $resolved = app(CastableData::class);
-
-        $this->assertNull($resolved);
+        $this->assertNull(app(CastableData::class));
     }
 
     #[Test]
@@ -56,23 +54,17 @@ final class ProviderTest extends TestCase
     {
         $this->app->instance('request', new Request);
 
-        $resolved = app(CastableData::class);
-
-        $this->assertNull($resolved);
+        $this->assertNull(app(CastableData::class));
     }
 
     #[Test]
     public function it_resolves_cursor_from_paging_cursor_query_parameter(): void
     {
-        $request = Request::create('/test', 'GET', [
+        $this->app->instance('request', Request::create('/test', 'GET', [
             'paging' => ['cursor' => 'eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0'],
-        ]);
+        ]));
 
-        $this->app->instance('request', $request);
-
-        $cursor = CursorPaginator::resolveCurrentCursor();
-
-        $this->assertInstanceOf(Cursor::class, $cursor);
+        $this->assertInstanceOf(Cursor::class, CursorPaginator::resolveCurrentCursor());
     }
 
     #[Test]
