@@ -92,8 +92,14 @@ final class ControllerTest extends TestCase
             Route::make('V1', $this->entity, EndpointType::Rest, 'index'),
         );
 
-        $this->assertSame('\\Workbench\\App\\Http\\Api\\V1\\Orders\\Index\\ControllerTest', $controller->test->fqcn->toString());
-        $this->assertStringEndsWith('workbench/app/Http/Api/V1/Orders/Index/ControllerTest.php', $controller->test->filePath->toString());
+        $this->assertSame(
+            '\\Workbench\\App\\Http\\Api\\V1\\Orders\\Index\\ControllerTest',
+            $controller->test->fqcn->toString()
+        );
+        $this->assertStringEndsWith(
+            'workbench/app/Http/Api/V1/Orders/Index/ControllerTest.php',
+            $controller->test->filePath->toString()
+        );
     }
 
     #[Test]
@@ -103,8 +109,14 @@ final class ControllerTest extends TestCase
             Route::make('V1', $this->entity, EndpointType::Rest, 'index'),
         );
 
-        $this->assertSame('\\Workbench\\App\\Http\\Api\\V1\\Orders\\Index\\Authorizer', $controller->authorizer->fqcn->toString());
-        $this->assertStringEndsWith('workbench/app/Http/Api/V1/Orders/Index/Authorizer.php', $controller->authorizer->filePath->toString());
+        $this->assertSame(
+            '\\Workbench\\App\\Http\\Api\\V1\\Orders\\Index\\Authorizer',
+            $controller->authorizer->fqcn->toString()
+        );
+        $this->assertStringEndsWith(
+            'workbench/app/Http/Api/V1/Orders/Index/Authorizer.php',
+            $controller->authorizer->filePath->toString()
+        );
     }
 
     #[Test]
@@ -114,7 +126,13 @@ final class ControllerTest extends TestCase
             Route::make('V1', $this->entity, EndpointType::Rest, 'index'),
         );
 
-        $this->assertSame('\\Workbench\\App\\Http\\Api\\V1\\Orders\\Index\\Validator', $controller->validator->fqcn->toString());
-        $this->assertStringEndsWith('workbench/app/Http/Api/V1/Orders/Index/Validator.php', $controller->validator->filePath->toString());
+        $this->assertSame(
+            '\\Workbench\\App\\Http\\Api\\V1\\Orders\\Index\\Validator',
+            $controller->validator->fqcn->toString()
+        );
+        $this->assertStringEndsWith(
+            'workbench/app/Http/Api/V1/Orders/Index/Validator.php',
+            $controller->validator->filePath->toString()
+        );
     }
 }
