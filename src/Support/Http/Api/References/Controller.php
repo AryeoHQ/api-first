@@ -19,20 +19,6 @@ final class Controller extends GenericClass
         get => $this->route->entity;
     }
 
-    public static function make(Route $route): self
-    {
-        $namespace = $route->entity->baseNamespace
-            ->append('\\Http\\Api\\')
-            ->append($route->apiVersion->toString())
-            ->append('\\', $route->entity->plural->toString())
-            ->append('\\', Str::studly($route->endpointName->toString()));
-
-        $controller = new self(name: 'Controller', baseNamespace: $namespace);
-        $controller->route = $route;
-
-        return $controller;
-    }
-
     public Scope $scope {
         get => $this->route->scope;
     }
@@ -48,6 +34,20 @@ final class Controller extends GenericClass
         get => new Validator(
             name: 'Validator',
             baseNamespace: $this->namespace,
+        );
+    }
+
+    public static function make(Route $route): self
+    {
+        $namespace = $route->entity->baseNamespace
+            ->append('\\Http\\Api\\')
+            ->append($route->apiVersion->toString())
+            ->append('\\', $route->entity->plural->toString())
+            ->append('\\', Str::studly($route->endpointName->toString()));
+
+        return tap(
+            new self(name: 'Controller', baseNamespace: $namespace),
+            fn (self $controller) => $controller->route = $route
         );
     }
 }
