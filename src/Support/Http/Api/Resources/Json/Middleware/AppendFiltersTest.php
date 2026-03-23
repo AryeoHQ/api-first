@@ -13,28 +13,24 @@ use Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceResponse\Cas
 use Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceResponse\PlainController;
 use Tests\TestCase;
 
-use function PHPUnit\Framework\assertInstanceOf;
-
 #[CoversClass(AppendFilters::class)]
 final class AppendFiltersTest extends TestCase
 {
     #[Test]
     public function it_appends_filters_to_response_when_request_has_filters(): void
     {
-        $request = Request::create('/test', 'GET', [
-            'filters' => ['status' => 'active'],
-        ]);
+        $request = tap(
+            Request::create('/test', 'GET', ['filters' => ['status' => 'active']]),
+            fn (Request $request) => $request->setRouteResolver(
+                fn () => new Route('GET', '/test', ['uses' => PlainController::class.'@index'])
+            )
+        );
 
-        $route = new Route('GET', '/test', ['uses' => PlainController::class.'@index']);
-        $request->setRouteResolver(fn () => $route);
-
-        $middleware = new AppendFilters;
-
-        $response = $middleware->handle($request, fn () => new JsonResponse([
+        $response = new AppendFilters()->handle($request, fn () => new JsonResponse([
             'data' => ['id' => 1],
         ]));
 
-        assertInstanceOf(JsonResponse::class, $response);
+        $this->assertInstanceOf(JsonResponse::class, $response);
         $data = $response->getData(assoc: true);
 
         $this->assertSame(['status' => 'active'], $data['meta']['filters']);
@@ -51,7 +47,7 @@ final class AppendFiltersTest extends TestCase
             'data' => ['id' => 1],
         ]));
 
-        assertInstanceOf(JsonResponse::class, $response);
+        $this->assertInstanceOf(JsonResponse::class, $response);
         $data = $response->getData(assoc: true);
 
         $this->assertArrayNotHasKey('meta', $data);
@@ -60,13 +56,11 @@ final class AppendFiltersTest extends TestCase
     #[Test]
     public function it_returns_cast_filter_values_from_castable_form_request(): void
     {
-        $request = Request::create('/test', 'GET', [
+        $request = tap(Request::create('/test', 'GET', [
             'filters' => ['is_active' => '1', 'count' => '5'],
-        ]);
-
-        $route = new Route('GET', '/test', ['uses' => CastableController::class.'@index']);
-        $route->bind($request);
-        $request->setRouteResolver(fn () => $route);
+        ]), fn (Request $request) => $request->setRouteResolver(
+            fn () => tap(new Route('GET', '/test', ['uses' => CastableController::class.'@index']), fn (Route $route) => $route->bind($request))
+        ));
 
         $this->app->instance('request', $request);
 
@@ -76,7 +70,7 @@ final class AppendFiltersTest extends TestCase
             'data' => [['id' => 1]],
         ]));
 
-        assertInstanceOf(JsonResponse::class, $response);
+        $this->assertInstanceOf(JsonResponse::class, $response);
         $data = $response->getData(assoc: true);
 
         $this->assertSame([
@@ -88,12 +82,12 @@ final class AppendFiltersTest extends TestCase
     #[Test]
     public function it_returns_raw_filter_values_from_plain_form_request(): void
     {
-        $request = Request::create('/test', 'GET', [
-            'filters' => ['status' => 'active'],
-        ]);
-
-        $route = new Route('GET', '/test', ['uses' => PlainController::class.'@index']);
-        $request->setRouteResolver(fn () => $route);
+        $request = tap(
+            Request::create('/test', 'GET', ['filters' => ['status' => 'active']]),
+            fn (Request $request) => $request->setRouteResolver(
+                fn () => new Route('GET', '/test', ['uses' => PlainController::class.'@index'])
+            )
+        );
 
         $middleware = new AppendFilters;
 
@@ -101,7 +95,7 @@ final class AppendFiltersTest extends TestCase
             'data' => [['id' => 1]],
         ]));
 
-        assertInstanceOf(JsonResponse::class, $response);
+        $this->assertInstanceOf(JsonResponse::class, $response);
         $data = $response->getData(assoc: true);
 
         $this->assertSame(['status' => 'active'], $data['meta']['filters']);

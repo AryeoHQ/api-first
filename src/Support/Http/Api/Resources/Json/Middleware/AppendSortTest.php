@@ -12,8 +12,6 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceResponse\CastableController;
 use Tests\TestCase;
 
-use function PHPUnit\Framework\assertInstanceOf;
-
 #[CoversClass(AppendSort::class)]
 final class AppendSortTest extends TestCase
 {
@@ -30,7 +28,7 @@ final class AppendSortTest extends TestCase
             'data' => [['id' => 1]],
         ]));
 
-        assertInstanceOf(JsonResponse::class, $response);
+        $this->assertInstanceOf(JsonResponse::class, $response);
         $data = $response->getData(assoc: true);
 
         $this->assertSame('-created_at', $data['meta']['sort']);
@@ -47,7 +45,7 @@ final class AppendSortTest extends TestCase
             'data' => ['id' => 1],
         ]));
 
-        assertInstanceOf(JsonResponse::class, $response);
+        $this->assertInstanceOf(JsonResponse::class, $response);
         $data = $response->getData(assoc: true);
 
         $this->assertArrayNotHasKey('meta', $data);
@@ -72,7 +70,7 @@ final class AppendSortTest extends TestCase
             'data' => [['id' => 1]],
         ]));
 
-        assertInstanceOf(JsonResponse::class, $response);
+        $this->assertInstanceOf(JsonResponse::class, $response);
         $data = $response->getData(assoc: true);
 
         $this->assertSame('-created_at', $data['meta']['sort']);
