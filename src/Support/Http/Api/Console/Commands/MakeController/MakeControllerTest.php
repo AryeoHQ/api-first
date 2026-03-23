@@ -33,7 +33,7 @@ class MakeControllerTest extends TestCase
 
     private Controller $controller {
         get => Controller::make(
-            Route::make('V1', $this->entity, EndpointType::Rest, 'index', scope: Scope::Resource),
+            Route::make('V1', $this->entity, EndpointType::Rest, Endpoint::Index->value, scope: Scope::Resource),
         );
     }
 
@@ -46,7 +46,7 @@ class MakeControllerTest extends TestCase
         get => [
             '--api-version' => 'V1',
             '--entity' => $this->entity->fqcn->toString(),
-            '--type' => 'REST',
+            '--type' => EndpointType::Rest->value,
         ];
     }
 
@@ -65,7 +65,7 @@ class MakeControllerTest extends TestCase
     {
         $this->artisan($this->command, $this->baselineInput)->expectsChoice(
             'What endpoint would you like to create?',
-            'index',
+            Endpoint::Index->value,
             array_column(Endpoint::cases(), 'value')
         )->assertSuccessful();
 
@@ -87,9 +87,9 @@ class MakeControllerTest extends TestCase
         ];
 
         $this->artisan($this->command, $input)->expectsChoice(
-            'What type of endpoint would you like to create?', 'REST', array_column(EndpointType::cases(), 'value')
+            'What type of endpoint would you like to create?', EndpointType::Rest->value, array_column(EndpointType::cases(), 'value')
         )->expectsChoice(
-            'What endpoint would you like to create?', 'show', array_column(Endpoint::cases(), 'value')
+            'What endpoint would you like to create?', Endpoint::Show->value, array_column(Endpoint::cases(), 'value')
         )->assertSuccessful();
 
         $this->assertFileExists($this->showController->filePath->toString());

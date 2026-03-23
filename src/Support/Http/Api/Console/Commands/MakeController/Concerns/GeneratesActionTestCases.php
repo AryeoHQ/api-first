@@ -35,7 +35,7 @@ trait GeneratesActionTestCases
         $input = [
             '--api-version' => 'V1',
             '--entity' => $this->entity->fqcn->toString(),
-            '--type' => 'Action',
+            '--type' => EndpointType::Action->value,
         ];
 
         $this->artisan($this->command, $input)->expectsQuestion(
@@ -72,7 +72,7 @@ trait GeneratesActionTestCases
         $input = [
             '--api-version' => 'V1',
             '--entity' => $this->entity->fqcn->toString(),
-            '--type' => 'Action',
+            '--type' => EndpointType::Action->value,
         ];
 
         $this->artisan($this->command, $input)->expectsQuestion(

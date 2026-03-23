@@ -18,7 +18,7 @@ trait GeneratesRestTestCases
 {
     private Controller $showController {
         get => Controller::make(
-            Route::make('V1', $this->entity, EndpointType::Rest, 'show'),
+            Route::make('V1', $this->entity, EndpointType::Rest, Endpoint::Show->value),
         );
     }
 
@@ -28,12 +28,12 @@ trait GeneratesRestTestCases
         $input = [
             '--api-version' => 'V1',
             '--entity' => $this->entity->fqcn->toString(),
-            '--type' => 'REST',
+            '--type' => EndpointType::Rest->value,
         ];
 
         $this->artisan($this->command, $input)->expectsChoice(
             'What endpoint would you like to create?',
-            'show',
+            Endpoint::Show->value,
             array_column(Endpoint::cases(), 'value')
         )->assertSuccessful();
 
@@ -49,13 +49,13 @@ trait GeneratesRestTestCases
         $input = [
             '--api-version' => 'V1',
             '--entity' => $this->entity->fqcn->toString(),
-            '--type' => 'REST',
+            '--type' => EndpointType::Rest->value,
             '--no-validator' => true,
         ];
 
         $this->artisan($this->command, $input)->expectsChoice(
             'What endpoint would you like to create?',
-            'show',
+            Endpoint::Show->value,
             array_column(Endpoint::cases(), 'value')
         )->assertSuccessful();
 
@@ -69,13 +69,13 @@ trait GeneratesRestTestCases
         $input = [
             '--api-version' => 'V1',
             '--entity' => $this->entity->fqcn->toString(),
-            '--type' => 'REST',
+            '--type' => EndpointType::Rest->value,
             '--no-authorizer' => true,
         ];
 
         $this->artisan($this->command, $input)->expectsChoice(
             'What endpoint would you like to create?',
-            'show',
+            Endpoint::Show->value,
             array_column(Endpoint::cases(), 'value')
         )->assertSuccessful();
 
@@ -89,12 +89,12 @@ trait GeneratesRestTestCases
         $input = [
             '--api-version' => 'V1',
             '--entity' => $this->entity->fqcn->toString(),
-            '--type' => 'REST',
+            '--type' => EndpointType::Rest->value,
         ];
 
         $this->artisan($this->command, $input)->expectsChoice(
             'What endpoint would you like to create?',
-            'show',
+            Endpoint::Show->value,
             array_column(Endpoint::cases(), 'value')
         )->assertSuccessful();
 
