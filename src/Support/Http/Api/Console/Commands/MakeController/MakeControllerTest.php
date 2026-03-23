@@ -63,9 +63,11 @@ class MakeControllerTest extends TestCase
     #[Test]
     public function it_generates_a_file_with_the_correct_namespace(): void
     {
-        $this->artisan($this->command, $this->baselineInput)
-            ->expectsChoice('What endpoint would you like to create?', 'index', array_column(Endpoint::cases(), 'value'))
-            ->assertSuccessful();
+        $this->artisan($this->command, $this->baselineInput)->expectsChoice(
+            'What endpoint would you like to create?',
+            'index',
+            array_column(Endpoint::cases(), 'value')
+        )->assertSuccessful();
 
         $contents = file_get_contents($this->expectedFilePath);
 
@@ -84,10 +86,11 @@ class MakeControllerTest extends TestCase
             '--type' => 'invalid',
         ];
 
-        $this->artisan($this->command, $input)
-            ->expectsChoice('What type of endpoint would you like to create?', 'REST', array_column(EndpointType::cases(), 'value'))
-            ->expectsChoice('What endpoint would you like to create?', 'show', array_column(Endpoint::cases(), 'value'))
-            ->assertSuccessful();
+        $this->artisan($this->command, $input)->expectsChoice(
+            'What type of endpoint would you like to create?', 'REST', array_column(EndpointType::cases(), 'value')
+        )->expectsChoice(
+            'What endpoint would you like to create?', 'show', array_column(Endpoint::cases(), 'value')
+        )->assertSuccessful();
 
         $this->assertFileExists($this->showController->filePath->toString());
     }
