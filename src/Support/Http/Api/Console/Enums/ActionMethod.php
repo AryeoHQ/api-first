@@ -8,7 +8,5 @@ use Support\Routing\Enums\Method;
 
 enum ActionMethod: string
 {
-    case Get = Method::Get->value;
-
     case Post = Method::Post->value;
 }
