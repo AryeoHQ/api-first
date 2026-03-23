@@ -10,15 +10,15 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Tooling\Concerns\GetsFixtures;
 
-/** @extends RuleTestCase<ControllerHasRouteAttribute> */
-#[CoversClass(ControllerHasRouteAttribute::class)]
-class ControllerHasRouteAttributeTest extends RuleTestCase
+/** @extends RuleTestCase<ControllerMustHaveRoute> */
+#[CoversClass(ControllerMustHaveRoute::class)]
+class ControllerMustHaveRouteTest extends RuleTestCase
 {
     use GetsFixtures;
 
     protected function getRule(): Rule
     {
-        return new ControllerHasRouteAttribute;
+        return new ControllerMustHaveRoute;
     }
 
     #[Test]

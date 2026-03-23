@@ -10,15 +10,15 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Tooling\Concerns\GetsFixtures;
 
-/** @extends RuleTestCase<FormRequestIsFinal> */
-#[CoversClass(FormRequestIsFinal::class)]
-class FormRequestIsFinalTest extends RuleTestCase
+/** @extends RuleTestCase<FormRequestMustBeFinal> */
+#[CoversClass(FormRequestMustBeFinal::class)]
+class FormRequestMustBeFinalTest extends RuleTestCase
 {
     use GetsFixtures;
 
     protected function getRule(): Rule
     {
-        return new FormRequestIsFinal;
+        return new FormRequestMustBeFinal;
     }
 
     #[Test]

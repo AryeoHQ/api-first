@@ -10,15 +10,15 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Tooling\Concerns\GetsFixtures;
 
-/** @extends RuleTestCase<SingleCastableDataParameter> */
-#[CoversClass(SingleCastableDataParameter::class)]
-final class SingleCastableDataParameterTest extends RuleTestCase
+/** @extends RuleTestCase<ControllerMustHaveSingleCastableData> */
+#[CoversClass(ControllerMustHaveSingleCastableData::class)]
+final class ControllerMustHaveSingleCastableDataTest extends RuleTestCase
 {
     use GetsFixtures;
 
     protected function getRule(): Rule
     {
-        return new SingleCastableDataParameter(
+        return new ControllerMustHaveSingleCastableData(
             $this->createReflectionProvider(),
         );
     }

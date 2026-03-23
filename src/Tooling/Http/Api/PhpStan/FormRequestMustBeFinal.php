@@ -15,7 +15,7 @@ use Tooling\Rules\Attributes\NodeType;
  * @extends Rule<Class_>
  */
 #[NodeType(Class_::class)]
-final class FormRequestIsFinal extends Rule
+final class FormRequestMustBeFinal extends Rule
 {
     /**
      * @param  Class_  $node

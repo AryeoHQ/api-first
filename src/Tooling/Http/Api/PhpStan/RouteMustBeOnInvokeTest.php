@@ -10,15 +10,15 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Tooling\Concerns\GetsFixtures;
 
-/** @extends RuleTestCase<RouteAttributeOnlyOnInvoke> */
-#[CoversClass(RouteAttributeOnlyOnInvoke::class)]
-final class RouteAttributeOnlyOnInvokeTest extends RuleTestCase
+/** @extends RuleTestCase<RouteMustBeOnInvoke> */
+#[CoversClass(RouteMustBeOnInvoke::class)]
+final class RouteMustBeOnInvokeTest extends RuleTestCase
 {
     use GetsFixtures;
 
     protected function getRule(): Rule
     {
-        return new RouteAttributeOnlyOnInvoke;
+        return new RouteMustBeOnInvoke;
     }
 
     #[Test]

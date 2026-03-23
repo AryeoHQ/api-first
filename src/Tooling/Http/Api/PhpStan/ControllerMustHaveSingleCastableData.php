@@ -16,7 +16,7 @@ use Tooling\Rules\Attributes\NodeType;
  * @extends Rule<Class_>
  */
 #[NodeType(Class_::class)]
-final class SingleCastableDataParameter extends Rule
+final class ControllerMustHaveSingleCastableData extends Rule
 {
     public function __construct(
         private readonly ReflectionProvider $reflectionProvider,

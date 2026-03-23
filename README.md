@@ -186,10 +186,10 @@ This package provides PHPStan rules that enforce API conventions at static analy
 
 | Rule                          | Enforces                                                              |
 | ----------------------------- | --------------------------------------------------------------------- |
-| `ControllerIsFinal`           | Controllers must be declared `final`.                                 |
-| `ControllerHasRouteAttribute` | Controllers must define their endpoint with a `#[Route]` attribute.   |
-| `RouteAttributeOnlyOnInvoke`  | The `#[Route]` attribute must only appear on the `__invoke()` method. |
-| `FormRequestIsFinal`          | Form requests must be declared `final`.                               |
-| `SingleCastableDataParameter` | Controllers must not have more than one `CastableData` parameter.     |
+| `ControllerMustBeFinal`                | Controllers must be declared `final`.                                 |
+| `ControllerMustHaveRoute`              | Controllers must define their endpoint with a `#[Route]` attribute.   |
+| `RouteMustBeOnInvoke`                  | The `#[Route]` attribute must only appear on the `__invoke()` method. |
+| `FormRequestMustBeFinal`               | Form requests must be declared `final`.                               |
+| `ControllerMustHaveSingleCastableData` | Controllers must not have more than one `CastableData` parameter.     |
 | `SchemaMustHaveId`            | Schemas must define a public `$id` property.                          |
 | `SchemaMustHaveResourceType`  | Schemas must define a public `$resourceType` property.                |

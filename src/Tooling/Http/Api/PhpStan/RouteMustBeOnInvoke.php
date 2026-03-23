@@ -15,7 +15,7 @@ use Tooling\Rules\Attributes\NodeType;
  * @extends Rule<Class_>
  */
 #[NodeType(Class_::class)]
-final class RouteAttributeOnlyOnInvoke extends Rule
+final class RouteMustBeOnInvoke extends Rule
 {
     /**
      * @param  Class_  $node
