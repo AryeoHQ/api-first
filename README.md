@@ -191,5 +191,6 @@ This package provides PHPStan rules that enforce API conventions at static analy
 | `RouteMustBeOnInvoke`                  | The `#[Route]` attribute must only appear on the `__invoke()` method. |
 | `FormRequestMustBeFinal`               | Form requests must be declared `final`.                               |
 | `ControllerMustHaveSingleCastableData` | Controllers must not have more than one `CastableData` parameter.     |
+| `JsonResourceMustImplementSchema`      | JSON resources must implement the `Schema` contract.                  |
 | `SchemaMustHaveId`            | Schemas must define a public `$id` property.                          |
 | `SchemaMustHaveResourceType`  | Schemas must define a public `$resourceType` property.                |

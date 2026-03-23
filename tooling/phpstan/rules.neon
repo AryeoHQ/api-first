@@ -24,6 +24,10 @@ services:
         tags:
             - phpstan.rules.rule
     -
+        class: Tooling\Http\Api\PhpStan\JsonResourceMustImplementSchema
+        tags:
+            - phpstan.rules.rule
+    -
         class: Tooling\Http\Api\PhpStan\SchemaMustHaveResourceType
         tags:
             - phpstan.rules.rule
