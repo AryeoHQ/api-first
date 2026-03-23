@@ -21,7 +21,7 @@ trait ResolvesApiVersion
     use RetrievesApiVersionFromArgument;
     use RetrievesApiVersionFromOption;
 
-    public const NEW_API_VERSION_OPTION = 'Create new API version';
+    public const CREATE_NEW_VERSION = 'Create new API version';
 
     public protected(set) Stringable $apiVersion;
 
@@ -41,14 +41,14 @@ trait ResolvesApiVersion
 
         $selected = select(
             label: 'What is the API version?',
-            options: [...$options, self::NEW_API_VERSION_OPTION],
+            options: [...$options, self::CREATE_NEW_VERSION],
             required: true,
             scroll: 5,
             default: $options !== [] ? end($options) : null,
         );
 
         return match ($selected) {
-            self::NEW_API_VERSION_OPTION => $this->getNextApiVersion(),
+            self::CREATE_NEW_VERSION => $this->getNextApiVersion(),
             default => str($selected),
         };
     }

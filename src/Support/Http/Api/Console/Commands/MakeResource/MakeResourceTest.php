@@ -116,7 +116,7 @@ final class MakeResourceTest extends TestCase
             ->expectsChoice(
                 'What is the API version?',
                 'V1',
-                ['V1', MakeResource::NEW_API_VERSION_OPTION],
+                ['V1', MakeResource::CREATE_NEW_VERSION],
             )
             ->expectsSearch(
                 'Which entity?',
