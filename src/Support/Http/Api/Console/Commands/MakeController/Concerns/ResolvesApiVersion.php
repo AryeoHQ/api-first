@@ -70,10 +70,10 @@ trait ResolvesApiVersion
 
     protected function getNextApiVersion(): Stringable
     {
-        $latest = collect($this->getApiVersionOptions())->map(
-            fn (string $version): int => (int) Str::after($version, 'V')
-        )->max();
+        $latest = collect($this->getApiVersionOptions())
+            ->map(fn (string $version): int => (int) Str::after($version, 'V'))
+            ->max() ?? 0;
 
-        return str('V'.(($latest ?? 0) + 1));
+        return str('V'.($latest + 1));
     }
 }
