@@ -32,9 +32,11 @@ final class TokenContextTest extends TestCase
     #[Test]
     public function it_returns_the_authenticated_user_as_actor(): void
     {
-        $request = Request::create('/test');
         $user = new User;
-        $request->setUserResolver(fn () => $user);
+        $request = tap(
+            Request::create('/test'),
+            fn (Request $request) => $request->setUserResolver(fn () => $user)
+        );
 
         $this->assertSame($user, $request->actor()); // @phpstan-ignore method.notFound
     }
@@ -42,9 +44,11 @@ final class TokenContextTest extends TestCase
     #[Test]
     public function it_returns_the_authenticated_user_as_subject(): void
     {
-        $request = Request::create('/test');
         $user = new User;
-        $request->setUserResolver(fn () => $user);
+        $request = tap(
+            Request::create('/test'),
+            fn (Request $request) => $request->setUserResolver(fn () => $user)
+        );
 
         $this->assertSame($user, $request->subject()); // @phpstan-ignore method.notFound
     }
