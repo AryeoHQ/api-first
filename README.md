@@ -184,13 +184,13 @@ The command prompts for an API version and entity, then generates a schema in th
 
 This package provides PHPStan rules that enforce API conventions at static analysis time. They are automatically registered when using `aryeo/tooling-laravel`.
 
-| Rule                          | Enforces                                                              |
-| ----------------------------- | --------------------------------------------------------------------- |
-| `ControllerMustBeFinal`                | Controllers must be declared `final`.                                 |
-| `ControllerMustHaveRoute`              | Controllers must define their endpoint with a `#[Route]` attribute.   |
-| `RouteMustBeOnInvoke`                  | The `#[Route]` attribute must only appear on the `__invoke()` method. |
-| `FormRequestMustBeFinal`               | Form requests must be declared `final`.                               |
-| `ControllerMustHaveSingleCastableData` | Controllers must not have more than one `CastableData` parameter.     |
-| `JsonResourceMustImplementSchema`      | JSON resources must implement the `Schema` contract.                  |
-| `SchemaMustHaveId`            | Schemas must define a public `$id` property.                          |
-| `SchemaMustHaveResourceType`  | Schemas must define a public `$resourceType` property.                |
+| Rule                                    | Enforces                                                              |
+| --------------------------------------- | --------------------------------------------------------------------- |
+| `ControllerMustBeFinal`                 | Controllers must be declared `final`.                                 |
+| `ControllerMustHaveRoute`               | Controllers must define their endpoint with a `#[Route]` attribute.   |
+| `ControllerMustHaveSingleCastableData`  | Controllers must not have more than one `CastableData` parameter.     |
+| `FormRequestMustBeFinal`                | Form requests must be declared `final`.                               |
+| `JsonResourceMustImplementSchema`       | JSON resources must implement the `Schema` contract.                  |
+| `RouteMustBeOnInvoke`                   | The `#[Route]` attribute must only appear on the `__invoke()` method. |
+| `SchemaMustHaveId`                      | Schemas must define a public `$id` property.                          |
+| `SchemaMustHaveResourceType`            | Schemas must define a public `$resourceType` property.                |
