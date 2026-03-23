@@ -15,7 +15,7 @@ enum Endpoint: string
     case Delete = 'delete';
     case Search = 'search';
 
-    public function httpMethod(): Method
+    public function method(): Method
     {
         return match ($this) {
             self::Index, self::Show => Method::Get,

@@ -85,7 +85,7 @@ final class Route extends GenericClass
                 return Method::from($this->actionMethod->value);
             }
 
-            return Endpoint::from($this->endpointName->lower()->toString())->httpMethod();
+            return Endpoint::from($this->endpointName->lower()->toString())->method();
         }
     }
 }
