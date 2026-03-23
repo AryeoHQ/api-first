@@ -26,10 +26,10 @@ class Provider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->registerMixins();
-        $this->registerCursorResolver();
         $this->registerBindings();
         $this->registerMiddleware();
+        $this->registerCursorResolver();
+        $this->registerMixins();
     }
 
     public function boot(): void
