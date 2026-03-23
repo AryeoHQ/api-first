@@ -17,6 +17,8 @@ final class Filters
         /** @var ?CastableData $castable */
         $castable = app()->bound(CastableData::class) ? app(CastableData::class) : null;
 
-        return $castable?->filters ?? $request->input('filters', []) ?? []; // @phpstan-ignore property.notFound, nullsafe.neverNull
+        $filters = $castable?->filters ?? $request->input('filters', []); // @phpstan-ignore property.notFound, nullsafe.neverNull
+
+        return is_array($filters) ? $filters : [];
     }
 }

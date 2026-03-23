@@ -61,4 +61,21 @@ final class SortTest extends TestCase
 
         $this->assertNull($result);
     }
+
+    #[Test]
+    public function it_returns_null_when_sort_is_not_a_string(): void
+    {
+        $request = Request::create('/test', 'GET', [
+            'sort' => ['created_at', 'updated_at'],
+        ]);
+
+        $route = new Route('GET', '/test', ['uses' => PlainController::class.'@index']);
+        $request->setRouteResolver(fn () => $route);
+
+        $this->app->instance('request', $request);
+
+        $result = Sort::from($request);
+
+        $this->assertNull($result);
+    }
 }

@@ -34,7 +34,7 @@ final class RouteTest extends TestCase
     {
         $route = $this->makeRoute(EndpointType::Rest, Endpoint::Index->value);
 
-        $this->assertSame('api.V1.orders.index', $route->routeName->toString());
+        $this->assertSame('api.v1.orders.index', $route->routeName->toString());
     }
 
     #[Test]
@@ -42,7 +42,7 @@ final class RouteTest extends TestCase
     {
         $route = $this->makeRoute(EndpointType::Action, 'PayInvoice');
 
-        $this->assertSame('api.V1.orders.actions.pay-invoice', $route->routeName->toString());
+        $this->assertSame('api.v1.orders.actions.pay-invoice', $route->routeName->toString());
     }
 
     #[Test]

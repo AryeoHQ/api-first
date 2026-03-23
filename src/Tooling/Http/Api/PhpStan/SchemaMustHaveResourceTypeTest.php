@@ -37,4 +37,15 @@ class SchemaMustHaveResourceTypeTest extends RuleTestCase
             ],
         ]);
     }
+
+    #[Test]
+    public function it_fails_when_schema_has_non_public_resource_type(): void
+    {
+        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/NonPublicResourceTypeSchema.php')], [
+            [
+                'Schema must define a public $resourceType property.',
+                9,
+            ],
+        ]);
+    }
 }

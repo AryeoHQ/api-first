@@ -64,4 +64,21 @@ final class FiltersTest extends TestCase
 
         $this->assertSame([], $result);
     }
+
+    #[Test]
+    public function it_returns_empty_array_when_filters_is_not_an_array(): void
+    {
+        $request = Request::create('/test', 'GET', [
+            'filters' => 'invalid',
+        ]);
+
+        $route = new Route('GET', '/test', ['uses' => PlainController::class.'@index']);
+        $request->setRouteResolver(fn () => $route);
+
+        $this->app->instance('request', $request);
+
+        $result = Filters::from($request);
+
+        $this->assertSame([], $result);
+    }
 }

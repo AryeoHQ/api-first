@@ -14,6 +14,8 @@ final class Sort
         /** @var ?CastableData $castable */
         $castable = app()->bound(CastableData::class) ? app(CastableData::class) : null;
 
-        return $castable?->sort ?? $request->query('sort'); // @phpstan-ignore property.notFound, nullsafe.neverNull
+        $sort = $castable?->sort ?? $request->query('sort'); // @phpstan-ignore property.notFound, nullsafe.neverNull
+
+        return is_string($sort) ? $sort : null;
     }
 }

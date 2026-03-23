@@ -37,4 +37,15 @@ class SchemaMustHaveIdTest extends RuleTestCase
             ],
         ]);
     }
+
+    #[Test]
+    public function it_fails_when_schema_has_non_public_id(): void
+    {
+        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/NonPublicIdSchema.php')], [
+            [
+                'Schema must define a public $id property.',
+                9,
+            ],
+        ]);
+    }
 }
