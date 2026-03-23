@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Support\Http\Api\References;
 
 use Illuminate\Support\Str;
+use Illuminate\Support\Stringable;
 use Support\Entities\References\Entity;
 use Support\Http\Api\Console\Enums\Scope;
 use Support\Http\Commands\References\Authorizer;
@@ -37,16 +38,17 @@ final class Controller extends GenericClass
         );
     }
 
+    public null|Stringable $subNamespace {
+        get => str('Http\\Api')
+            ->append('\\', $this->route->apiVersion->toString())
+            ->append('\\', $this->route->entity->plural->toString())
+            ->append('\\', Str::studly($this->route->endpointName->toString()));
+    }
+
     public static function make(Route $route): self
     {
-        $namespace = $route->entity->baseNamespace
-            ->append('\\Http\\Api\\')
-            ->append($route->apiVersion->toString())
-            ->append('\\', $route->entity->plural->toString())
-            ->append('\\', Str::studly($route->endpointName->toString()));
-
         return tap(
-            new self(name: 'Controller', baseNamespace: $namespace),
+            new self(name: 'Controller', baseNamespace: $route->entity->baseNamespace),
             fn (self $controller) => $controller->route = $route
         );
     }
