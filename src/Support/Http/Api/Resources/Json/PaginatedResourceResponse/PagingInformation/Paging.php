@@ -12,7 +12,7 @@ final class Paging
      * @param  array<array-key, mixed>  $paginated
      * @return array<string, mixed>|null
      */
-    public function __invoke(array $paginated): null|array
+    public static function from(array $paginated): null|array
     {
         $before = data_get($paginated, 'prev_cursor');
         $after = data_get($paginated, 'next_cursor');
@@ -21,15 +21,15 @@ final class Paging
             true => null,
             false => [
                 'before' => $before,
-                'before_url' => $this->rewriteCursorParam(data_get($paginated, 'prev_page_url')),
+                'before_url' => self::rewriteCursorParam(data_get($paginated, 'prev_page_url')),
                 'after' => $after,
-                'after_url' => $this->rewriteCursorParam(data_get($paginated, 'next_page_url')),
+                'after_url' => self::rewriteCursorParam(data_get($paginated, 'next_page_url')),
                 'size' => data_get($paginated, 'per_page'),
             ],
         };
     }
 
-    private function rewriteCursorParam(mixed $url): null|string
+    private static function rewriteCursorParam(mixed $url): null|string
     {
         if ($url === null) {
             return null;

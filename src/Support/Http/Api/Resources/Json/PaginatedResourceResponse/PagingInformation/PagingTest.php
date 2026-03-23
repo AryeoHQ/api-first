@@ -14,7 +14,7 @@ final class PagingTest extends TestCase
     #[Test]
     public function it_returns_paging_data_when_cursors_exist(): void
     {
-        $result = (new Paging)([
+        $result = Paging::from([
             'prev_cursor' => 'abc',
             'next_cursor' => 'def',
             'prev_page_url' => 'https://example.com?cursor=abc',
@@ -34,7 +34,7 @@ final class PagingTest extends TestCase
     #[Test]
     public function it_returns_null_when_no_cursors_exist(): void
     {
-        $result = (new Paging)(['data' => []]);
+        $result = Paging::from(['data' => []]);
 
         $this->assertNull($result);
     }
@@ -42,7 +42,7 @@ final class PagingTest extends TestCase
     #[Test]
     public function it_preserves_other_query_parameters_when_rewriting_urls(): void
     {
-        $result = (new Paging)([
+        $result = Paging::from([
             'prev_cursor' => 'abc',
             'next_cursor' => 'def',
             'prev_page_url' => 'https://example.com?sort=-created_at&cursor=abc',
@@ -58,7 +58,7 @@ final class PagingTest extends TestCase
     #[Test]
     public function it_returns_null_urls_when_paginator_provides_null_urls(): void
     {
-        $result = (new Paging)([
+        $result = Paging::from([
             'prev_cursor' => null,
             'next_cursor' => 'def',
             'prev_page_url' => null,

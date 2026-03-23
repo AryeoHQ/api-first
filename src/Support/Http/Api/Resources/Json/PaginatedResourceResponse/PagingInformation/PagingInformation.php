@@ -11,12 +11,10 @@ class PagingInformation
 {
     public function paginationInformation(): Closure
     {
-        $paging = new Paging;
-
-        return function (Request $request, array $paginated, array $default) use ($paging) {
+        return function (Request $request, array $paginated, array $default) {
             return [
                 'meta' => [
-                    'paging' => $paging($paginated),
+                    'paging' => Paging::from($paginated),
                 ],
             ];
         };
