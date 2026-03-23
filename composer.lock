@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c7e82a97f3dab4dfd9af6b6a2268fd20",
+    "content-hash": "1395679785fbea007741aa4ae9a38a12",
     "packages": [
         {
             "name": "aryeo/api-resource-schema",
@@ -318,80 +318,6 @@
                 "issues": "https://github.com/AryeoHQ/entities/issues"
             },
             "time": "2026-03-18T14:28:48+00:00"
-        },
-        {
-            "name": "aryeo/primitives",
-            "version": "0.0.8",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/AryeoHQ/primitives.git",
-                "reference": "4dd3a93747366c24fde2f53343001e5aaea956b6"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/primitives/zipball/4dd3a93747366c24fde2f53343001e5aaea956b6",
-                "reference": "4dd3a93747366c24fde2f53343001e5aaea956b6",
-                "shasum": ""
-            },
-            "require": {
-                "ext-bcmath": "*",
-                "ext-filter": "*",
-                "laravel/framework": "^12.36",
-                "nesbot/carbon": "^3.10",
-                "php": "^8.4"
-            },
-            "require-dev": {
-                "aryeo/tooling-laravel": "0.0.31",
-                "brianium/paratest": "^7.14",
-                "orchestra/testbench": "^10.6",
-                "orchestra/testbench-core": "^10.7",
-                "phpunit/phpunit": "^12"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "Support\\": "src/Support/"
-                },
-                "exclude-from-classmap": [
-                    "*Test.php",
-                    "*TestCases.php",
-                    "/tests/"
-                ]
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "vendor/bin/phpunit"
-                ],
-                "test-coverage": [
-                    "vendor/bin/phpunit --coverage-html coverage"
-                ]
-            },
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Rob Fonseca",
-                    "email": "robfo@zillowgroup.com"
-                }
-            ],
-            "description": "A package of primitives used to transform data into reusable objects.",
-            "homepage": "https://github.com/aryeohq/primitives",
-            "keywords": [
-                "Aryeo",
-                "actions",
-                "laravel"
-            ],
-            "support": {
-                "source": "https://github.com/AryeoHQ/primitives/tree/0.0.8",
-                "issues": "https://github.com/AryeoHQ/primitives/issues"
-            },
-            "time": "2026-03-18T14:04:23+00:00"
         },
         {
             "name": "aryeo/request-authorizers-validators",
@@ -12160,5 +12086,5 @@
     "prefer-lowest": false,
     "platform": {},
     "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.6.0"
 }
