@@ -47,11 +47,10 @@ trait ResolvesApiVersion
             default: $options !== [] ? end($options) : null,
         );
 
-        if ($selected === self::NEW_API_VERSION_OPTION) {
-            return $this->getNextApiVersion();
-        }
-
-        return str($selected);
+        return match ($selected) {
+            self::NEW_API_VERSION_OPTION => $this->getNextApiVersion(),
+            default => str($selected),
+        };
     }
 
     /**
@@ -62,20 +61,18 @@ trait ResolvesApiVersion
         $composer = resolve(Composer::class);
         $composer->optimizeClassMap();
 
-        return $composer->classMap->keys()
-            ->filter(fn (string $fqcn): bool => Str::is('*\\Http\\Api\\V*\\*', $fqcn))
-            ->map(fn (string $fqcn): string => Str::of($fqcn)->after('\\Http\\Api\\')->before('\\')->toString())
-            ->unique()
-            ->sort()
-            ->values()
-            ->toArray();
+        return $composer->classMap->keys()->filter(
+            fn (string $fqcn): bool => Str::is('*\\Http\\Api\\V*\\*', $fqcn)
+        )->map(
+            fn (string $fqcn): string => Str::of($fqcn)->after('\\Http\\Api\\')->before('\\')->toString()
+        )->unique()->sort()->values()->toArray();
     }
 
     protected function getNextApiVersion(): Stringable
     {
-        $latest = collect($this->getApiVersionOptions())
-            ->map(fn (string $version): int => (int) Str::after($version, 'V'))
-            ->max();
+        $latest = collect($this->getApiVersionOptions())->map(
+            fn (string $version): int => (int) Str::after($version, 'V')
+        )->max();
 
         return str('V'.(($latest ?? 0) + 1));
     }
