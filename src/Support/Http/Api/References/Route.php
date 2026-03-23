@@ -62,7 +62,11 @@ final class Route extends GenericClass
 
             return match ($this->endpointType) {
                 EndpointType::Action => match ($this->scope) {
-                    Scope::Instance => $base->append('/{', $this->entity->variableName->toString(), '}/actions/', Str::kebab($this->endpointName->toString())),
+                    Scope::Instance => $base->append(
+                        '/{', $this->entity->variableName->toString(),
+                        '}/actions/',
+                        Str::kebab($this->endpointName->toString())
+                    ),
                     Scope::Resource => $base->append('/actions/', Str::kebab($this->endpointName->toString())),
                 },
                 EndpointType::Rest => match ($this->scope) {
