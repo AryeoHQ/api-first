@@ -59,7 +59,10 @@ trait GeneratesActionTestCases
             $this->assertStringContainsString($this->actionController->route->uri->toString(), $contents);
             $this->assertStringContainsString('Method::'.$this->actionController->route->method->name, $contents);
             $this->assertStringContainsString($this->actionController->entity->fqcn->toString(), $contents);
-            $this->assertStringContainsString($this->actionController->entity->name.' $'.$this->actionController->entity->variableName, $contents);
+            $this->assertStringContainsString(
+                $this->actionController->entity->name.' $'.$this->actionController->entity->variableName,
+                $contents
+            );
         });
     }
 
@@ -90,7 +93,10 @@ trait GeneratesActionTestCases
             $this->assertStringContainsString($this->resourceActionController->route->uri->toString(), $contents);
             $this->assertStringContainsString('Method::'.$this->resourceActionController->route->method->name, $contents);
             $this->assertStringNotContainsString($this->resourceActionController->entity->fqcn->toString(), $contents);
-            $this->assertStringNotContainsString($this->resourceActionController->entity->name.' $'.$this->resourceActionController->entity->variableName, $contents);
+            $this->assertStringNotContainsString(
+                $this->resourceActionController->entity->name.' $'.$this->resourceActionController->entity->variableName,
+                $contents
+            );
         });
     }
 }
