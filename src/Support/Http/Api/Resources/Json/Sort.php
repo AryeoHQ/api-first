@@ -9,7 +9,7 @@ use Support\Http\Requests\Contracts\CastableData;
 
 final class Sort
 {
-    public function __invoke(Request $request): mixed
+    public static function from(Request $request): null|string
     {
         /** @var ?CastableData $castable */
         $castable = app()->bound(CastableData::class) ? app(CastableData::class) : null;

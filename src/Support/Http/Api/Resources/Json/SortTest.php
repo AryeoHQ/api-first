@@ -28,7 +28,7 @@ final class SortTest extends TestCase
 
         $this->app->instance('request', $request);
 
-        $result = (new Sort)($request);
+        $result = Sort::from($request);
 
         $this->assertSame('-created_at', $result);
     }
@@ -45,7 +45,7 @@ final class SortTest extends TestCase
 
         $this->app->instance('request', $request);
 
-        $result = (new Sort)($request);
+        $result = Sort::from($request);
 
         $this->assertSame('-updated_at', $result);
     }
@@ -57,7 +57,7 @@ final class SortTest extends TestCase
 
         $this->app->instance('request', $request);
 
-        $result = (new Sort)($request);
+        $result = Sort::from($request);
 
         $this->assertNull($result);
     }

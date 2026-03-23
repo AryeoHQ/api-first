@@ -20,15 +20,13 @@ final class AppendFilters
             return $response;
         }
 
-        $filters = new Filters;
-        $resolved = $filters($request);
+        return tap($response, function (JsonResponse $response) use ($request) {
+            $filters = Filters::from($request);
 
-        /** @var array<string, mixed> $data */
-        $data = $response->getData(assoc: true);
-        $data['meta'] ??= [];
-        $data['meta']['filters'] = $resolved !== [] ? $resolved : null;
-        $response->setData($data);
-
-        return $response;
+            /** @var array<string, mixed> $data */
+            $data = $response->getData(assoc: true);
+            $data['meta']['filters'] = $filters !== [] ? $filters : null;
+            $response->setData($data);
+        });
     }
 }

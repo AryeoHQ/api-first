@@ -20,15 +20,11 @@ final class AppendSort
             return $response;
         }
 
-        $sort = new Sort;
-        $resolved = $sort($request);
-
-        /** @var array<string, mixed> $data */
-        $data = $response->getData(assoc: true);
-        $data['meta'] ??= [];
-        $data['meta']['sort'] = $resolved;
-        $response->setData($data);
-
-        return $response;
+        return tap($response, function (JsonResponse $response) use ($request) {
+            /** @var array<string, mixed> $data */
+            $data = $response->getData(assoc: true);
+            $data['meta']['sort'] = Sort::from($request);
+            $response->setData($data);
+        });
     }
 }

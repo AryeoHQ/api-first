@@ -12,7 +12,7 @@ final class Filters
     /**
      * @return array<string, mixed>
      */
-    public function __invoke(Request $request): array
+    public static function from(Request $request): array
     {
         /** @var ?CastableData $castable */
         $castable = app()->bound(CastableData::class) ? app(CastableData::class) : null;

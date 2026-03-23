@@ -28,7 +28,7 @@ final class FiltersTest extends TestCase
 
         $this->app->instance('request', $request);
 
-        $result = (new Filters)($request);
+        $result = Filters::from($request);
 
         $this->assertSame([
             'is_active' => true,
@@ -48,7 +48,7 @@ final class FiltersTest extends TestCase
 
         $this->app->instance('request', $request);
 
-        $result = (new Filters)($request);
+        $result = Filters::from($request);
 
         $this->assertSame(['status' => 'active'], $result);
     }
@@ -60,7 +60,7 @@ final class FiltersTest extends TestCase
 
         $this->app->instance('request', $request);
 
-        $result = (new Filters)($request);
+        $result = Filters::from($request);
 
         $this->assertSame([], $result);
     }
