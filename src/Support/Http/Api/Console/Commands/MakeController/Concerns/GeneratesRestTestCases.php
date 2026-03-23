@@ -31,9 +31,11 @@ trait GeneratesRestTestCases
             '--type' => 'REST',
         ];
 
-        $this->artisan($this->command, $input)
-            ->expectsChoice('What endpoint would you like to create?', 'show', array_column(Endpoint::cases(), 'value'))
-            ->assertSuccessful();
+        $this->artisan($this->command, $input)->expectsChoice(
+            'What endpoint would you like to create?',
+            'show',
+            array_column(Endpoint::cases(), 'value')
+        )->assertSuccessful();
 
         $this->assertFileExists($this->showController->filePath->toString());
         $this->assertFileExists($this->showController->authorizer->filePath->toString());
@@ -51,9 +53,11 @@ trait GeneratesRestTestCases
             '--no-validator' => true,
         ];
 
-        $this->artisan($this->command, $input)
-            ->expectsChoice('What endpoint would you like to create?', 'show', array_column(Endpoint::cases(), 'value'))
-            ->assertSuccessful();
+        $this->artisan($this->command, $input)->expectsChoice(
+            'What endpoint would you like to create?',
+            'show',
+            array_column(Endpoint::cases(), 'value')
+        )->assertSuccessful();
 
         $this->assertFileExists($this->showController->authorizer->filePath->toString());
         $this->assertFileDoesNotExist($this->showController->validator->filePath->toString());
