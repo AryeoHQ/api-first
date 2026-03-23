@@ -42,7 +42,7 @@ final class SchemaMustHaveId extends Rule
     {
         foreach ($node->getProperties() as $property) {
             foreach ($property->props as $prop) {
-                if ($prop->name->toString() === $name) {
+                if ($prop->name->toString() === $name && $property->isPublic()) {
                     return true;
                 }
             }

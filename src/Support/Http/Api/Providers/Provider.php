@@ -91,7 +91,12 @@ class Provider extends ServiceProvider
     {
         $this->commands([
             MakeController::class,
-            MakeResource::class,
         ]);
+
+        $this->app->booted(function () {
+            $this->commands([
+                MakeResource::class,
+            ]);
+        });
     }
 }

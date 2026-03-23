@@ -47,7 +47,7 @@ final class Route extends GenericClass
 
     public Stringable $routeName {
         get {
-            $base = str('api.')->append($this->apiVersion->toString())->append('.', $this->entity->plural->lower()->toString());
+            $base = str('api.')->append($this->apiVersion->lower()->toString())->append('.', $this->entity->plural->lower()->toString());
 
             return match ($this->endpointType) {
                 EndpointType::Action => $base->append('.actions.', Str::kebab($this->endpointName->toString())),

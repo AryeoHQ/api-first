@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1395679785fbea007741aa4ae9a38a12",
+    "content-hash": "eaeb60d1ddb9797ce953d9416dfa9586",
     "packages": [
         {
             "name": "aryeo/api-resource-schema",
@@ -248,16 +248,16 @@
         },
         {
             "name": "aryeo/entities",
-            "version": "0.0.7",
+            "version": "0.0.8",
             "source": {
                 "type": "git",
                 "url": "https://github.com/AryeoHQ/entities.git",
-                "reference": "4cca994b7da7df7ebefa7f5068db4b7c4c3c8dff"
+                "reference": "fe9872f3b00b30175a09dc407a9ae2c83a428c3e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/entities/zipball/4cca994b7da7df7ebefa7f5068db4b7c4c3c8dff",
-                "reference": "4cca994b7da7df7ebefa7f5068db4b7c4c3c8dff",
+                "url": "https://api.github.com/repos/AryeoHQ/entities/zipball/fe9872f3b00b30175a09dc407a9ae2c83a428c3e",
+                "reference": "fe9872f3b00b30175a09dc407a9ae2c83a428c3e",
                 "shasum": ""
             },
             "require": {
@@ -314,10 +314,10 @@
                 }
             ],
             "support": {
-                "source": "https://github.com/AryeoHQ/entities/tree/0.0.7",
+                "source": "https://github.com/AryeoHQ/entities/tree/0.0.8",
                 "issues": "https://github.com/AryeoHQ/entities/issues"
             },
-            "time": "2026-03-18T14:28:48+00:00"
+            "time": "2026-03-18T16:24:25+00:00"
         },
         {
             "name": "aryeo/request-authorizers-validators",
@@ -12084,7 +12084,9 @@
     "stability-flags": {},
     "prefer-stable": false,
     "prefer-lowest": false,
-    "platform": {},
+    "platform": {
+        "php": "^8.4"
+    },
     "platform-dev": {},
     "plugin-api-version": "2.6.0"
 }
