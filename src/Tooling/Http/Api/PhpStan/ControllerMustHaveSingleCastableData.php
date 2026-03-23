@@ -18,6 +18,8 @@ use Tooling\Rules\Attributes\NodeType;
 #[NodeType(Class_::class)]
 final class ControllerMustHaveSingleCastableData extends Rule
 {
+    use Concerns\ValidatesController;
+
     public function __construct(
         private readonly ReflectionProvider $reflectionProvider,
     ) {}
@@ -27,9 +29,7 @@ final class ControllerMustHaveSingleCastableData extends Rule
      */
     public function shouldHandle(Node $node, Scope $scope): bool
     {
-        return $node->name?->toString() === 'Controller'
-            && str_contains($scope->getNamespace() ?? '', 'Http\\Api')
-            && $node->getMethod('__invoke') !== null;
+        return $this->isController($node, $scope);
     }
 
     /**

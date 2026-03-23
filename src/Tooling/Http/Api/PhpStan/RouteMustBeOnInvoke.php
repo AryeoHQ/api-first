@@ -17,13 +17,14 @@ use Tooling\Rules\Attributes\NodeType;
 #[NodeType(Class_::class)]
 final class RouteMustBeOnInvoke extends Rule
 {
+    use Concerns\ValidatesController;
+
     /**
      * @param  Class_  $node
      */
     public function shouldHandle(Node $node, Scope $scope): bool
     {
-        return $node->name?->toString() === 'Controller'
-            && str_contains($scope->getNamespace() ?? '', 'Http\\Api');
+        return $this->isController($node, $scope);
     }
 
     /**
