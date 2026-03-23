@@ -15,17 +15,13 @@ trait RetrievesApiVersionFromOption
 {
     protected function apiVersionFromOption(): null|Stringable
     {
-        if (! $this->hasOption('api-version')) {
-            return null;
-        }
-
-        $provided = str($this->option('api-version')); // @phpstan-ignore argument.type
-
-        if ($provided->isEmpty()) {
-            return null;
-        }
-
-        return $provided;
+        return match ($this->hasOption('api-version')) {
+            false => null,
+            default => match (($provided = str($this->option('api-version')))->isNotEmpty()) {
+                true => $provided,
+                default => null,
+            },
+        };
     }
 
     /** @return array<int, InputOption> */

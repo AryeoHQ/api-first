@@ -15,17 +15,13 @@ trait RetrievesApiVersionFromArgument
 {
     protected function apiVersionFromArgument(): null|Stringable
     {
-        if (! $this->hasArgument('api-version')) {
-            return null;
-        }
-
-        $provided = str($this->argument('api-version')); // @phpstan-ignore argument.type, larastan.console.undefinedArgument
-
-        if ($provided->isEmpty()) {
-            return null;
-        }
-
-        return $provided;
+        return match ($this->hasArgument('api-version')) {
+            false => null,
+            default => match (($provided = str($this->argument('api-version')))->isNotEmpty()) { // @phpstan-ignore argument.type, larastan.console.undefinedArgument
+                true => $provided,
+                default => null,
+            },
+        };
     }
 
     /** @return array<int, InputArgument> */
