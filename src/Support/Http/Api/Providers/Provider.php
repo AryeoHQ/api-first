@@ -26,13 +26,33 @@ class Provider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->registerMixins();
+        $this->registerCursorResolver();
+        $this->registerBindings();
+        $this->registerMiddleware();
+    }
+
+    public function boot(): void
+    {
+        $this->bootListeners();
+        $this->bootCommands();
+    }
+
+    private function registerMixins(): void
+    {
         JsonResource::mixin(new PagingInformation);
         Request::mixin(new TokenContext);
+    }
 
+    private function registerCursorResolver(): void
+    {
         CursorPaginator::currentCursorResolver(function () {
             return Cursor::fromEncoded(request()->input('paging.cursor'));
         });
+    }
 
+    private function registerBindings(): void
+    {
         $this->app->scoped(CastableData::class, function (): null|CastableData {
             $route = request()->route();
 
@@ -52,17 +72,23 @@ class Provider extends ServiceProvider
 
             return null;
         });
+    }
 
+    private function registerMiddleware(): void
+    {
         Route::middlewareGroup('api-first', [
             AppendFilters::class,
             AppendSort::class,
         ]);
     }
 
-    public function boot(): void
+    private function bootListeners(): void
     {
         Event::listen(BuildingSchema::class, InjectSchemaProperties::class);
+    }
 
+    private function bootCommands(): void
+    {
         $this->commands([
             MakeController::class,
             MakeResource::class,
