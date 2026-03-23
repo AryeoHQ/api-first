@@ -6,6 +6,8 @@ namespace Support\Http\Api\Console\Commands\MakeResource;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use Support\Entities\Console\Commands\MakeEntity;
+use Support\Entities\References\Entity;
 use Support\Http\Api\Console\Commands\MakeResource\Listeners\InjectSchemaProperties;
 use Support\Http\Resources\Schemas\Console\Commands\MakeResource\References\Schema;
 use Tests\TestCase;
@@ -17,19 +19,19 @@ final class MakeResourceTest extends TestCase
 {
     use CleansUpGeneratorCommands;
 
-    private string $entityFqcn {
-        get => 'Workbench\\App\\Entities\\Bananas\\Banana';
+    public Entity $entity {
+        get => new Entity(name: class_basename(self::class), baseNamespace: 'Workbench\\App\\');
     }
 
     public Schema $reference {
-        get => new Schema(name: 'Banana', baseNamespace: 'Workbench\\App\\Http\\Api\\V1\\Bananas');
+        get => new Schema(name: $this->entity->name, baseNamespace: 'Workbench\\App\\Http\\Api\\V1\\'.$this->entity->plural);
     }
 
     /** @var array<string, mixed> */
     private array $baselineInput {
         get => [
             '--api-version' => 'V1',
-            '--entity' => $this->entityFqcn,
+            '--entity' => $this->entity->fqcn->toString(),
         ];
     }
 
@@ -37,7 +39,22 @@ final class MakeResourceTest extends TestCase
     protected array $files {
         get => [
             $this->reference->directory->append('/*')->toString(),
+            $this->entity->directory->append('/*')->toString(),
         ];
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->artisan(MakeEntity::class, [
+            'name' => class_basename(self::class),
+            '--namespace' => 'Workbench\\App',
+            '--no-model' => true,
+            '--no-provider' => true,
+            '--no-policy' => true,
+            '--force' => true,
+        ])->assertSuccessful();
     }
 
     #[Test]
@@ -70,7 +87,7 @@ final class MakeResourceTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "public string \$resourceType = 'banana';",
+            "public string \$resourceType = '".$this->entity->name->snake()."';",
             $contents,
         );
     }
@@ -92,6 +109,9 @@ final class MakeResourceTest extends TestCase
     #[Test]
     public function it_prompts_for_api_version_and_entity_when_options_are_not_provided(): void
     {
+        $this->artisan(MakeResource::class, [...$this->baselineInput, '--force' => true])
+            ->assertSuccessful();
+
         $this->artisan(MakeResource::class, ['--force' => true])
             ->expectsChoice(
                 'What is the API version?',
@@ -100,9 +120,9 @@ final class MakeResourceTest extends TestCase
             )
             ->expectsSearch(
                 'Which entity?',
-                $this->entityFqcn,
-                'Banana',
-                [$this->entityFqcn],
+                $this->entity->fqcn->ltrim('\\')->toString(),
+                $this->entity->name->toString(),
+                [$this->entity->fqcn->ltrim('\\')->toString()],
             )
             ->assertSuccessful();
 

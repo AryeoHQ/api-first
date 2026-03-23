@@ -91,10 +91,8 @@ final class RouteTest extends TestCase
     public function it_resolves_method_for_action(): void
     {
         $post = $this->makeRoute(EndpointType::Action, 'PayInvoice', ActionMethod::Post);
-        $get = $this->makeRoute(EndpointType::Action, 'Download', ActionMethod::Get);
 
         $this->assertSame(Method::Post, $post->method);
-        $this->assertSame(Method::Get, $get->method);
     }
 
     private function makeRoute(

@@ -25,7 +25,7 @@ trait GeneratesActionTestCases
 
     private Controller $resourceActionController {
         get => Controller::make(
-            Route::make('V1', $this->entity, EndpointType::Action, 'ExportOrders', ActionMethod::Get, Scope::Resource),
+            Route::make('V1', $this->entity, EndpointType::Action, 'ExportOrders', ActionMethod::Post, Scope::Resource),
         );
     }
 
@@ -49,13 +49,13 @@ trait GeneratesActionTestCases
         $this->assertFileExists($this->actionController->validator->filePath->toString());
         $this->assertFileExists($this->actionController->test->filePath->toString());
 
-        $contents = file_get_contents($this->actionController->filePath->toString());
-
-        $this->assertStringContainsString($this->actionController->route->routeName->toString(), $contents);
-        $this->assertStringContainsString($this->actionController->route->uri->toString(), $contents);
-        $this->assertStringContainsString('Method::'.$this->actionController->route->method->name, $contents);
-        $this->assertStringContainsString($this->actionController->entity->fqcn->toString(), $contents);
-        $this->assertStringContainsString($this->actionController->entity->name.' $'.$this->actionController->entity->variableName, $contents);
+        tap(file_get_contents($this->actionController->filePath->toString()), function (string $contents): void {
+            $this->assertStringContainsString($this->actionController->route->routeName->toString(), $contents);
+            $this->assertStringContainsString($this->actionController->route->uri->toString(), $contents);
+            $this->assertStringContainsString('Method::'.$this->actionController->route->method->name, $contents);
+            $this->assertStringContainsString($this->actionController->entity->fqcn->toString(), $contents);
+            $this->assertStringContainsString($this->actionController->entity->name.' $'.$this->actionController->entity->variableName, $contents);
+        });
     }
 
     #[Test]
@@ -69,18 +69,18 @@ trait GeneratesActionTestCases
 
         $this->artisan($this->command, $input)
             ->expectsQuestion('What is the name of the action? (ie: PayInvoice, Download, etc.)', 'ExportOrders')
-            ->expectsChoice('What HTTP method should the action use?', ActionMethod::Get->value, array_column(ActionMethod::cases(), 'value'))
+            ->expectsChoice('What HTTP method should the action use?', ActionMethod::Post->value, array_column(ActionMethod::cases(), 'value'))
             ->expectsChoice('What is the scope of the action?', Scope::Resource->value, array_column(Scope::cases(), 'value'))
             ->assertSuccessful();
 
         $this->assertFileExists($this->resourceActionController->filePath->toString());
 
-        $contents = file_get_contents($this->resourceActionController->filePath->toString());
-
-        $this->assertStringContainsString($this->resourceActionController->route->routeName->toString(), $contents);
-        $this->assertStringContainsString($this->resourceActionController->route->uri->toString(), $contents);
-        $this->assertStringContainsString('Method::'.$this->resourceActionController->route->method->name, $contents);
-        $this->assertStringNotContainsString($this->resourceActionController->entity->fqcn->toString(), $contents);
-        $this->assertStringNotContainsString($this->resourceActionController->entity->name.' $'.$this->resourceActionController->entity->variableName, $contents);
+        tap(file_get_contents($this->resourceActionController->filePath->toString()), function (string $contents): void {
+            $this->assertStringContainsString($this->resourceActionController->route->routeName->toString(), $contents);
+            $this->assertStringContainsString($this->resourceActionController->route->uri->toString(), $contents);
+            $this->assertStringContainsString('Method::'.$this->resourceActionController->route->method->name, $contents);
+            $this->assertStringNotContainsString($this->resourceActionController->entity->fqcn->toString(), $contents);
+            $this->assertStringNotContainsString($this->resourceActionController->entity->name.' $'.$this->resourceActionController->entity->variableName, $contents);
+        });
     }
 }

@@ -90,12 +90,12 @@ trait GeneratesRestTestCases
             ->expectsChoice('What endpoint would you like to create?', 'show', array_column(Endpoint::cases(), 'value'))
             ->assertSuccessful();
 
-        $contents = file_get_contents($this->showController->filePath->toString());
-
-        $this->assertStringContainsString($this->showController->route->routeName->toString(), $contents);
-        $this->assertStringContainsString($this->showController->route->uri->toString(), $contents);
-        $this->assertStringContainsString('Method::'.$this->showController->route->method->name, $contents);
-        $this->assertStringContainsString($this->showController->entity->fqcn->toString(), $contents);
-        $this->assertStringContainsString($this->showController->entity->name.' $'.$this->showController->entity->variableName, $contents);
+        tap(file_get_contents($this->showController->filePath->toString()), function (string $contents): void {
+            $this->assertStringContainsString($this->showController->route->routeName->toString(), $contents);
+            $this->assertStringContainsString($this->showController->route->uri->toString(), $contents);
+            $this->assertStringContainsString('Method::'.$this->showController->route->method->name, $contents);
+            $this->assertStringContainsString($this->showController->entity->fqcn->toString(), $contents);
+            $this->assertStringContainsString($this->showController->entity->name.' $'.$this->showController->entity->variableName, $contents);
+        });
     }
 }
