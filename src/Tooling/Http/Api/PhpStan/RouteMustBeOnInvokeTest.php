@@ -33,7 +33,7 @@ final class RouteMustBeOnInvokeTest extends RuleTestCase
     #[Test]
     public function it_fails_when_route_is_on_other_method(): void
     {
-        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/ControllerWithRouteOnOtherMethod.php')], [
+        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/RouteOnOtherMethod/Controller.php')], [
             [
                 'The #[Route] attribute must only be applied to __invoke(), not index().',
                 17,

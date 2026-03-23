@@ -30,7 +30,7 @@ class ControllerMustHaveRouteTest extends RuleTestCase
     #[Test]
     public function it_fails_when_controller_is_missing_route_attribute(): void
     {
-        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/ControllerWithoutRouteAttribute.php')], [
+        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/WithoutRoute/Controller.php')], [
             [
                 'Controllers define their endpoints with the Route attribute.',
                 5,

@@ -1,12 +1,12 @@
 <?php
 
-namespace Tests\Fixtures\Tooling\Http\Api\PhpStan;
+namespace Tests\Fixtures\Tooling\Http\Api\PhpStan\TwoCastableData;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Support\Http\Requests\Contracts\CastableData;
 use Support\Http\Requests\Provides\CastsData;
 
-class ControllerWithTwoCastableDataRequestB extends FormRequest implements CastableData
+class RequestA extends FormRequest implements CastableData
 {
     use CastsData;
 }

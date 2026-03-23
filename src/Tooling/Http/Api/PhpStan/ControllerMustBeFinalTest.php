@@ -30,7 +30,7 @@ class ControllerMustBeFinalTest extends RuleTestCase
     #[Test]
     public function it_fails_when_controller_is_not_final(): void
     {
-        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/ControllerNotFinal.php')], [
+        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/NotFinal/Controller.php')], [
             [
                 'Controllers must be final.',
                 8,

@@ -1,11 +1,11 @@
 <?php
 
-namespace Tests\Fixtures\Tooling\Http\Api\PhpStan;
+namespace Tests\Fixtures\Tooling\Http\Api\PhpStan\RouteOnOtherMethod;
 
 use Support\Routing\Attributes\Route;
 use Support\Routing\Enums\Method;
 
-final class ControllerWithRouteOnOtherMethod
+final class Controller
 {
     #[Route(
         name: 'test.index',

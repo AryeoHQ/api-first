@@ -27,7 +27,8 @@ final class ControllerMustHaveSingleCastableData extends Rule
      */
     public function shouldHandle(Node $node, Scope $scope): bool
     {
-        return str_contains($node->name?->toString() ?? '', 'Controller')
+        return $node->name?->toString() === 'Controller'
+            && str_contains($scope->getNamespace() ?? '', 'Http\\Api')
             && $node->getMethod('__invoke') !== null;
     }
 

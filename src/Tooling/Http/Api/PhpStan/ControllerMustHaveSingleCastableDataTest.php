@@ -32,13 +32,13 @@ final class ControllerMustHaveSingleCastableDataTest extends RuleTestCase
     #[Test]
     public function it_passes_when_controller_has_one_castable_data_parameter(): void
     {
-        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/ControllerWithSingleCastableData.php')], []);
+        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/SingleCastableData/Controller.php')], []);
     }
 
     #[Test]
     public function it_fails_when_controller_has_two_castable_data_parameters(): void
     {
-        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/ControllerWithTwoCastableData.php')], [
+        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/TwoCastableData/Controller.php')], [
             [
                 'Controllers must not have more than one CastableData parameter.',
                 10,
