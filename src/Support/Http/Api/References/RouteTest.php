@@ -95,12 +95,7 @@ final class RouteTest extends TestCase
         $this->assertSame(Method::Post, $post->method);
     }
 
-    private function makeRoute(
-        EndpointType $endpointType,
-        string $endpointName,
-        ActionMethod $actionMethod = ActionMethod::Post,
-        Scope $scope = Scope::Instance,
-    ): Route {
+    private function makeRoute(EndpointType $endpointType,string $endpointName,ActionMethod $actionMethod = ActionMethod::Post,Scope $scope = Scope::Instance): Route {
         return Route::make(
             apiVersion: 'V1',
             entity: $this->entity,
