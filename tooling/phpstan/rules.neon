@@ -12,10 +12,6 @@ services:
         tags:
             - phpstan.rules.rule
     -
-        class: Tooling\Http\Api\PhpStan\FormRequestMustBeFinal
-        tags:
-            - phpstan.rules.rule
-    -
         class: Tooling\Http\Api\PhpStan\ControllerMustHaveSingleCastableData
         tags:
             - phpstan.rules.rule
