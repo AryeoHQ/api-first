@@ -1,0 +1,29 @@
+services:
+    -
+        class: Tooling\Http\Api\PhpStan\ControllerMustBeFinal
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\Http\Api\PhpStan\ControllerMustHaveRoute
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\Http\Api\PhpStan\RouteMustBeOnInvoke
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\Http\Api\PhpStan\ControllerMustHaveSingleCastableData
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\Http\Api\PhpStan\SchemaMustHaveId
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\Http\Api\PhpStan\JsonResourceMustImplementSchema
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\Http\Api\PhpStan\SchemaMustHaveResourceType
+        tags:
+            - phpstan.rules.rule
