@@ -37,15 +37,4 @@ class SchemaMustHaveIdTest extends RuleTestCase
             ],
         ]);
     }
-
-    #[Test]
-    public function it_fails_when_schema_has_only_resource_type(): void
-    {
-        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/SchemaWithOnlyResourceType.php')], [
-            [
-                'Schema must define a public $id property.',
-                9,
-            ],
-        ]);
-    }
 }

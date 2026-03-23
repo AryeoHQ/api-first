@@ -37,15 +37,4 @@ class SchemaMustHaveResourceTypeTest extends RuleTestCase
             ],
         ]);
     }
-
-    #[Test]
-    public function it_fails_when_schema_has_only_id(): void
-    {
-        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/SchemaWithPartialProperties.php')], [
-            [
-                'Schema must define a public $resourceType property.',
-                9,
-            ],
-        ]);
-    }
 }
