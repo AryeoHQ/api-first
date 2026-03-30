@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Console\Commands\MakeController;
 
+use Illuminate\Support\Facades\File;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Support\Entities\References\Entity;
@@ -15,20 +16,19 @@ use Support\Http\Api\Console\Enums\Scope;
 use Support\Http\Api\References\Controller;
 use Support\Http\Api\References\Route;
 use Tests\TestCase;
+use Tooling\Composer\Composer;
 use Tooling\GeneratorCommands\References\Contracts\Reference;
-use Tooling\GeneratorCommands\Testing\Concerns\CleansUpGeneratorCommands;
 use Tooling\GeneratorCommands\Testing\Concerns\GeneratesFileTestCases;
 
 #[CoversClass(MakeController::class)]
 class MakeControllerTest extends TestCase
 {
-    use CleansUpGeneratorCommands;
     use GeneratesActionTestCases;
     use GeneratesFileTestCases;
     use GeneratesRestTestCases;
 
     private Entity $entity {
-        get => new Entity(name: class_basename(static::class), baseNamespace: 'Workbench\\App\\');
+        get => new Entity(name: class_basename(static::class), baseNamespace: 'App\\');
     }
 
     private Controller $controller {
@@ -50,26 +50,18 @@ class MakeControllerTest extends TestCase
         ];
     }
 
-    /** @var array<array-key, string> */
-    protected array $files {
-        get => [
-            $this->controller->directory->append('/*')->toString(),
-            $this->showController->directory->append('/*')->toString(),
-            $this->actionController->directory->append('/*')->toString(),
-            $this->resourceActionController->directory->append('/*')->toString(),
-        ];
-    }
-
     #[Test]
     public function it_generates_a_file_with_the_correct_namespace(): void
     {
+        Composer::fake();
+
         $this->artisan($this->command, $this->baselineInput)->expectsChoice(
             'What endpoint would you like to create?',
             Endpoint::Index->value,
             array_column(Endpoint::cases(), 'value')
         )->assertSuccessful();
 
-        $contents = file_get_contents($this->expectedFilePath);
+        $contents = File::get($this->expectedFilePath);
 
         $this->assertStringContainsString(
             'namespace '.$this->reference->namespace->after('\\').';',
@@ -80,6 +72,8 @@ class MakeControllerTest extends TestCase
     #[Test]
     public function it_prompts_for_endpoint_type_when_option_is_invalid(): void
     {
+        Composer::fake();
+
         $input = [
             '--api-version' => 'V1',
             '--entity' => $this->entity->fqcn->toString(),
@@ -92,6 +86,6 @@ class MakeControllerTest extends TestCase
             'What endpoint would you like to create?', Endpoint::Show->value, array_column(Endpoint::cases(), 'value')
         )->assertSuccessful();
 
-        $this->assertFileExists($this->showController->filePath->toString());
+        $this->assertTrue(File::exists($this->showController->filePath->toString()));
     }
 }

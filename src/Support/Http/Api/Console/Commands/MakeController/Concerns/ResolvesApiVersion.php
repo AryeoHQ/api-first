@@ -7,14 +7,13 @@ namespace Support\Http\Api\Console\Commands\MakeController\Concerns;
 use Illuminate\Console\GeneratorCommand;
 use Illuminate\Support\Str;
 use Illuminate\Support\Stringable;
-use Tooling\Composer\Composer;
-use Tooling\GeneratorCommands\Concerns\SearchesClasses;
+use Tooling\Composer\ClassMap\Cache;
+use Tooling\Http\Api\Composer\ClassMap\Collectors\ApiVersions;
 
 use function Laravel\Prompts\select;
 
 /**
  * @mixin GeneratorCommand
- * @mixin SearchesClasses
  */
 trait ResolvesApiVersion
 {
@@ -58,14 +57,10 @@ trait ResolvesApiVersion
      */
     protected function getApiVersionOptions(): array
     {
-        $composer = resolve(Composer::class);
-        $composer->optimizeClassMap();
-
-        return $composer->classMap->keys()->filter(
-            fn (string $fqcn): bool => Str::is('*\\Http\\Api\\V*\\*', $fqcn)
-        )->map(
-            fn (string $fqcn): string => Str::of($fqcn)->after('\\Http\\Api\\')->before('\\')->toString()
-        )->unique()->sort()->values()->toArray();
+        return collect(resolve(Cache::class)->get(ApiVersions::class) ?? [])
+            ->map(fn (string $namespace): string => Str::of($namespace)->after('\\Http\\Api\\')->toString())
+            ->values()
+            ->toArray();
     }
 
     protected function getNextApiVersion(): Stringable

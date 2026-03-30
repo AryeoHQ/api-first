@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Console\Commands\MakeController\Concerns;
 
+use Illuminate\Support\Facades\File;
 use PHPUnit\Framework\Attributes\Test;
 use Support\Http\Api\Console\Enums\ActionMethod;
 use Support\Http\Api\Console\Enums\EndpointType;
@@ -11,6 +12,7 @@ use Support\Http\Api\Console\Enums\Scope;
 use Support\Http\Api\References\Controller;
 use Support\Http\Api\References\Route;
 use Tests\TestCase;
+use Tooling\Composer\Composer;
 
 /**
  * @mixin TestCase
@@ -32,6 +34,8 @@ trait GeneratesActionTestCases
     #[Test]
     public function it_creates_an_instance_scoped_action_endpoint(): void
     {
+        Composer::fake();
+
         $input = [
             '--api-version' => 'V1',
             '--entity' => $this->entity->fqcn->toString(),
@@ -49,12 +53,12 @@ trait GeneratesActionTestCases
             Scope::Instance->value, array_column(Scope::cases(), 'value')
         )->assertSuccessful();
 
-        $this->assertFileExists($this->actionController->filePath->toString());
-        $this->assertFileExists($this->actionController->authorizer->filePath->toString());
-        $this->assertFileExists($this->actionController->validator->filePath->toString());
-        $this->assertFileExists($this->actionController->test->filePath->toString());
+        $this->assertTrue(File::exists($this->actionController->filePath->toString()));
+        $this->assertTrue(File::exists($this->actionController->authorizer->filePath->toString()));
+        $this->assertTrue(File::exists($this->actionController->validator->filePath->toString()));
+        $this->assertTrue(File::exists($this->actionController->test->filePath->toString()));
 
-        tap(file_get_contents($this->actionController->filePath->toString()), function (string $contents): void {
+        tap(File::get($this->actionController->filePath->toString()), function (string $contents): void {
             $this->assertStringContainsString($this->actionController->route->routeName->toString(), $contents);
             $this->assertStringContainsString($this->actionController->route->uri->toString(), $contents);
             $this->assertStringContainsString('Method::'.$this->actionController->route->method->name, $contents);
@@ -69,6 +73,8 @@ trait GeneratesActionTestCases
     #[Test]
     public function it_creates_a_resource_scoped_action_endpoint(): void
     {
+        Composer::fake();
+
         $input = [
             '--api-version' => 'V1',
             '--entity' => $this->entity->fqcn->toString(),
@@ -86,9 +92,9 @@ trait GeneratesActionTestCases
             Scope::Resource->value, array_column(Scope::cases(), 'value')
         )->assertSuccessful();
 
-        $this->assertFileExists($this->resourceActionController->filePath->toString());
+        $this->assertTrue(File::exists($this->resourceActionController->filePath->toString()));
 
-        tap(file_get_contents($this->resourceActionController->filePath->toString()), function (string $contents): void {
+        tap(File::get($this->resourceActionController->filePath->toString()), function (string $contents): void {
             $this->assertStringContainsString($this->resourceActionController->route->routeName->toString(), $contents);
             $this->assertStringContainsString($this->resourceActionController->route->uri->toString(), $contents);
             $this->assertStringContainsString('Method::'.$this->resourceActionController->route->method->name, $contents);

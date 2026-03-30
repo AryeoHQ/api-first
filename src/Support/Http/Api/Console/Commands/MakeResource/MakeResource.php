@@ -10,7 +10,6 @@ use Support\Entities\References\Entity;
 use Support\Http\Api\Console\Commands\MakeController\Concerns\ResolvesApiVersion;
 use Support\Http\Resources\Schemas\Console\Commands\MakeResource\MakeResource as UpstreamMakeResource;
 use Symfony\Component\Console\Input\InputOption;
-use Tooling\GeneratorCommands\Concerns\SearchesClasses;
 
 class MakeResource extends Command
 {
@@ -18,8 +17,6 @@ class MakeResource extends Command
 
     /** @use RetrievesEntity<Entity> */
     use RetrievesEntity;
-
-    use SearchesClasses;
 
     protected $name = 'make:resource';
 
