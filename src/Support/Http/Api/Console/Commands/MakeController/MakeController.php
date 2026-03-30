@@ -26,7 +26,6 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Tooling\GeneratorCommands\Concerns\CreatesColocatedTests;
 use Tooling\GeneratorCommands\Concerns\GeneratorCommandCompatibility;
-use Tooling\GeneratorCommands\Concerns\SearchesClasses;
 use Tooling\GeneratorCommands\Contracts\GeneratesFile;
 
 class MakeController extends ControllerMakeCommand implements GeneratesFile
@@ -39,8 +38,6 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
 
     /** @use RetrievesEntity<Entity> */
     use RetrievesEntity;
-
-    use SearchesClasses;
 
     protected $description = 'Create a new API controller endpoint.';
 

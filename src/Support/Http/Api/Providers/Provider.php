@@ -21,6 +21,7 @@ use Support\Http\Api\Resources\Json\Middleware\AppendSort;
 use Support\Http\Api\Resources\Json\PaginatedResourceResponse\PagingInformation\PagingInformation;
 use Support\Http\Requests\Contracts\CastableData;
 use Support\Http\Resources\Schemas\Console\Commands\MakeResource\Events\BuildingSchema;
+use Tooling\Http\Api\Composer\ClassMap\Collectors\ApiVersions;
 
 class Provider extends ServiceProvider
 {
@@ -30,6 +31,8 @@ class Provider extends ServiceProvider
         $this->registerMiddleware();
         $this->registerCursorResolver();
         $this->registerMixins();
+
+        $this->app->tag([ApiVersions::class], 'tooling.classmap.collectors');
     }
 
     public function boot(): void

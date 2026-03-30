@@ -33,17 +33,17 @@
     },
     "require": {
         "php": "^8.4",
-        "aryeo/api-resource-schema": "0.0.10",
+        "aryeo/api-resource-schema": "0.0.11",
         "laravel/framework": "^12.37",
         "laravel/prompts": "^0.3.8",
         "nikic/php-parser": "^5.7",
         "phpstan/phpstan": "^2.1",
         "symfony/console": "^7.4",
-        "aryeo/tooling-laravel": "0.0.31",
-        "aryeo/attribute-routing": "0.0.10",
-        "aryeo/entities": "0.0.8",
-        "aryeo/request-casts": "0.0.10",
-        "aryeo/request-authorizers-validators": "0.0.7",
+        "aryeo/tooling-laravel": "0.0.33",
+        "aryeo/attribute-routing": "0.0.11",
+        "aryeo/entities": "0.0.10",
+        "aryeo/request-casts": "0.0.11",
+        "aryeo/request-authorizers-validators": "0.0.8",
         "symfony/http-foundation": "^7.4"
     },
     "require-dev": {
