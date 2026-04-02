@@ -14,7 +14,7 @@ final class StringableSort implements Castable
     ) {}
 
     /**
-     * @param string[] $arguments
+     * @param  string[]  $arguments
      * @return class-string<CastsAttributes<StringableSort, StringableSort|mixed>>
      */
     public static function castUsing(array $arguments): string
