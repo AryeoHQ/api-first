@@ -6,8 +6,9 @@ namespace Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceRespon
 
 use Illuminate\Contracts\Database\Eloquent\Castable;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
+use Stringable;
 
-final class StringableSort implements Castable
+final class StringableSort implements Castable, Stringable
 {
     public function __construct(
         public string $field
