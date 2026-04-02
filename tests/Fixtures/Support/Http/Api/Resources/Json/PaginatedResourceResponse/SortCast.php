@@ -6,16 +6,16 @@ namespace Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceRespon
 
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 
-/** @implements CastsAttributes<StringableSort, StringableSort|mixed> */
-class StringableSortCast implements CastsAttributes
+/** @implements CastsAttributes<Sort, Sort|mixed> */
+class SortCast implements CastsAttributes
 {
-    public function get($model, $key, $value, $attributes): null|StringableSort
+    public function get($model, $key, $value, $attributes): null|Sort
     {
         if ($value === null) {
             return null;
         }
 
-        return new StringableSort($value);
+        return new Sort($value);
     }
 
     public function set($model, $key, $value, $attributes): null|string
@@ -24,10 +24,10 @@ class StringableSortCast implements CastsAttributes
             return null;
         }
 
-        if ($value instanceof StringableSort) {
+        if ($value instanceof Sort) {
             return (string) $value;
         }
 
-        return (string) new StringableSort($value);
+        return (string) new Sort($value);
     }
 }

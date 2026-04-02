@@ -15,7 +15,7 @@ final class StringableFormRequest extends FormRequest implements CastableData
     public function casts(): array
     {
         return [
-            'sort' => StringableSort::class,
+            'sort' => Sort::class,
         ];
     }
 }

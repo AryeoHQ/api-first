@@ -8,7 +8,7 @@ use Illuminate\Contracts\Database\Eloquent\Castable;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Stringable;
 
-final class StringableSort implements Castable, Stringable
+final class Sort implements Castable, Stringable
 {
     public function __construct(
         public string $field
@@ -16,11 +16,11 @@ final class StringableSort implements Castable, Stringable
 
     /**
      * @param  string[]  $arguments
-     * @return class-string<CastsAttributes<StringableSort, StringableSort|mixed>>
+     * @return class-string<CastsAttributes<Sort, Sort|mixed>>
      */
     public static function castUsing(array $arguments): string
     {
-        return StringableSortCast::class;
+        return SortCast::class;
     }
 
     public function __toString(): string
