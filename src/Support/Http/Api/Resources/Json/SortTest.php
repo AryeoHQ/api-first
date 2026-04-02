@@ -10,19 +10,38 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceResponse\CastableController;
 use Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceResponse\PlainController;
+use Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceResponse\StringableController;
 use Tests\TestCase;
 
 #[CoversClass(Sort::class)]
 final class SortTest extends TestCase
 {
     #[Test]
-    public function it_returns_sort_value_from_castable_data(): void
+    public function it_returns_string_sort_value_from_castable_data(): void
     {
         $request = Request::create('/test', 'GET', [
             'sort' => '-created_at',
         ]);
 
         $route = new Route('GET', '/test', ['uses' => CastableController::class.'@index']);
+        $route->bind($request);
+        $request->setRouteResolver(fn () => $route);
+
+        $this->app->instance('request', $request);
+
+        $result = Sort::from($request);
+
+        $this->assertSame('-created_at', $result);
+    }
+
+    #[Test]
+    public function it_returns_stringable_sort_value_from_castable_data(): void
+    {
+        $request = Request::create('/test', 'GET', [
+            'sort' => '-created_at',
+        ]);
+
+        $route = new Route('GET', '/test', ['uses' => StringableController::class.'@index']);
         $route->bind($request);
         $request->setRouteResolver(fn () => $route);
 
@@ -63,7 +82,7 @@ final class SortTest extends TestCase
     }
 
     #[Test]
-    public function it_returns_null_when_sort_is_not_a_string(): void
+    public function it_returns_null_when_sort_is_not_a_string_or_stringable(): void
     {
         $request = Request::create('/test', 'GET', [
             'sort' => ['created_at', 'updated_at'],
