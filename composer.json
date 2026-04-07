@@ -29,21 +29,25 @@
         "request-authorizers-validators": {
             "type": "vcs",
             "url": "https://github.com/AryeoHQ/request-authorizers-validators"
+        },
+        "primitives": {
+            "type": "vcs",
+            "url": "https://github.com/AryeoHQ/primitives"
         }
     },
     "require": {
         "php": "^8.4",
-        "aryeo/api-resource-schema": "0.0.11",
+        "aryeo/api-resource-schema": "0.0.12",
         "laravel/framework": "^12.37",
         "laravel/prompts": "^0.3.8",
         "nikic/php-parser": "^5.7",
         "phpstan/phpstan": "^2.1",
         "symfony/console": "^7.4",
-        "aryeo/tooling-laravel": "0.0.33",
-        "aryeo/attribute-routing": "0.0.11",
-        "aryeo/entities": "0.0.10",
-        "aryeo/request-casts": "0.0.11",
-        "aryeo/request-authorizers-validators": "0.0.8",
+        "aryeo/tooling-laravel": "0.0.34",
+        "aryeo/attribute-routing": "0.0.12",
+        "aryeo/entities": "0.0.13",
+        "aryeo/request-casts": "0.0.12",
+        "aryeo/request-authorizers-validators": "0.0.9",
         "symfony/http-foundation": "^7.4"
     },
     "require-dev": {
