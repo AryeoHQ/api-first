@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "39e4d14e77afe91f9a41d3e2cb04f91a",
+    "content-hash": "7ce1cd071b17d7c19e2018e633161990",
     "packages": [
         {
             "name": "aryeo/api-resource-schema",
@@ -249,16 +249,16 @@
         },
         {
             "name": "aryeo/entities",
-            "version": "0.0.13",
+            "version": "0.0.14",
             "source": {
                 "type": "git",
                 "url": "https://github.com/AryeoHQ/entities.git",
-                "reference": "4fdf580e8a7db9acd6113fde3874b5d5aa96791d"
+                "reference": "7ca7161a9138e2965531991eae178cbd5b329e5e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/entities/zipball/4fdf580e8a7db9acd6113fde3874b5d5aa96791d",
-                "reference": "4fdf580e8a7db9acd6113fde3874b5d5aa96791d",
+                "url": "https://api.github.com/repos/AryeoHQ/entities/zipball/7ca7161a9138e2965531991eae178cbd5b329e5e",
+                "reference": "7ca7161a9138e2965531991eae178cbd5b329e5e",
                 "shasum": ""
             },
             "require": {
@@ -315,10 +315,10 @@
                 }
             ],
             "support": {
-                "source": "https://github.com/AryeoHQ/entities/tree/0.0.13",
+                "source": "https://github.com/AryeoHQ/entities/tree/0.0.14",
                 "issues": "https://github.com/AryeoHQ/entities/issues"
             },
-            "time": "2026-04-07T20:10:34+00:00"
+            "time": "2026-04-08T02:32:08+00:00"
         },
         {
             "name": "aryeo/primitives",
@@ -1290,24 +1290,24 @@
         },
         {
             "name": "composer/spdx-licenses",
-            "version": "1.5.9",
+            "version": "1.6.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/composer/spdx-licenses.git",
-                "reference": "edf364cefe8c43501e21e88110aac10b284c3c9f"
+                "reference": "5ecd0cb4177696f9fd48f1605dda81db3dee7889"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/composer/spdx-licenses/zipball/edf364cefe8c43501e21e88110aac10b284c3c9f",
-                "reference": "edf364cefe8c43501e21e88110aac10b284c3c9f",
+                "url": "https://api.github.com/repos/composer/spdx-licenses/zipball/5ecd0cb4177696f9fd48f1605dda81db3dee7889",
+                "reference": "5ecd0cb4177696f9fd48f1605dda81db3dee7889",
                 "shasum": ""
             },
             "require": {
-                "php": "^5.3.2 || ^7.0 || ^8.0"
+                "php": "^7.2 || ^8.0"
             },
             "require-dev": {
                 "phpstan/phpstan": "^1.11",
-                "symfony/phpunit-bridge": "^3 || ^7"
+                "symfony/phpunit-bridge": "^6.4.25 || ^7.3.3 || ^8.0"
             },
             "type": "library",
             "extra": {
@@ -1350,7 +1350,7 @@
             "support": {
                 "irc": "ircs://irc.libera.chat:6697/composer",
                 "issues": "https://github.com/composer/spdx-licenses/issues",
-                "source": "https://github.com/composer/spdx-licenses/tree/1.5.9"
+                "source": "https://github.com/composer/spdx-licenses/tree/1.6.0"
             },
             "funding": [
                 {
@@ -1360,13 +1360,9 @@
                 {
                     "url": "https://github.com/composer",
                     "type": "github"
-                },
-                {
-                    "url": "https://tidelift.com/funding/github/packagist/composer/composer",
-                    "type": "tidelift"
                 }
             ],
-            "time": "2025-05-12T21:07:07+00:00"
+            "time": "2026-04-08T20:18:39+00:00"
         },
         {
             "name": "composer/xdebug-handler",
@@ -5768,16 +5764,16 @@
         },
         {
             "name": "rector/rector",
-            "version": "2.4.0",
+            "version": "2.4.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/rectorphp/rector.git",
-                "reference": "a51dfddbf6a29ed9fbf6e8410fc90c1608df1b5d"
+                "reference": "000b7050b9e4fe98db2192971e56eb0b302b3feb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/rectorphp/rector/zipball/a51dfddbf6a29ed9fbf6e8410fc90c1608df1b5d",
-                "reference": "a51dfddbf6a29ed9fbf6e8410fc90c1608df1b5d",
+                "url": "https://api.github.com/repos/rectorphp/rector/zipball/000b7050b9e4fe98db2192971e56eb0b302b3feb",
+                "reference": "000b7050b9e4fe98db2192971e56eb0b302b3feb",
                 "shasum": ""
             },
             "require": {
@@ -5816,7 +5812,7 @@
             ],
             "support": {
                 "issues": "https://github.com/rectorphp/rector/issues",
-                "source": "https://github.com/rectorphp/rector/tree/2.4.0"
+                "source": "https://github.com/rectorphp/rector/tree/2.4.1"
             },
             "funding": [
                 {
@@ -5824,7 +5820,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-04-04T07:37:45+00:00"
+            "time": "2026-04-08T08:43:56+00:00"
         },
         {
             "name": "sebastian/cli-parser",
@@ -5897,16 +5893,16 @@
         },
         {
             "name": "sebastian/comparator",
-            "version": "7.1.4",
+            "version": "7.1.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/comparator.git",
-                "reference": "6a7de5df2e094f9a80b40a522391a7e6022df5f6"
+                "reference": "c284f55811f43d555e51e8e5c166ac40d3e33c63"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/comparator/zipball/6a7de5df2e094f9a80b40a522391a7e6022df5f6",
-                "reference": "6a7de5df2e094f9a80b40a522391a7e6022df5f6",
+                "url": "https://api.github.com/repos/sebastianbergmann/comparator/zipball/c284f55811f43d555e51e8e5c166ac40d3e33c63",
+                "reference": "c284f55811f43d555e51e8e5c166ac40d3e33c63",
                 "shasum": ""
             },
             "require": {
@@ -5965,7 +5961,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/comparator/issues",
                 "security": "https://github.com/sebastianbergmann/comparator/security/policy",
-                "source": "https://github.com/sebastianbergmann/comparator/tree/7.1.4"
+                "source": "https://github.com/sebastianbergmann/comparator/tree/7.1.5"
             },
             "funding": [
                 {
@@ -5985,7 +5981,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-01-24T09:28:48+00:00"
+            "time": "2026-04-08T04:43:00+00:00"
         },
         {
             "name": "sebastian/complexity",
