@@ -144,12 +144,14 @@ Controllers are limited to a single `CastableData` parameter — this is enforce
 
 ## Request Context
 
-The package adds `actor()` and `subject()` macros to `Illuminate\Http\Request`, providing semantic access to the authenticated user:
+The package adds `actor()` and `subject()` macros to `Authorizer` and `Validator`, providing semantic access to the authenticated user:
 
 ```php
-$request->actor();   // The user performing the action
-$request->subject(); // The user the action is being performed on behalf of
+$this->actor();   // The user or client performing the action
+$this->subject(); // The user the action is being performed on behalf of
 ```
+
+PHPStan stubs are included so these methods are recognized as instance methods with typed return values, avoiding `staticMethod.dynamicCall` errors in consuming apps.
 
 ## Generators
 

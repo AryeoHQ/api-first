@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Support\Http\Api\Request;
 
 use Illuminate\Foundation\Auth\User;
-use Illuminate\Http\Request;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Support\Http\Authorizer;
 use Support\Http\Validator;
+use Tests\Fixtures\Support\Http\Api\Authorizers\Authorizer as AuthorizerFixture;
 use Tests\TestCase;
 
 #[CoversClass(TokenContext::class)]
@@ -75,14 +75,8 @@ final class TokenContextTest extends TestCase
         $this->assertSame($user, $request->subject());
     }
 
-    private function createAuthorizer(): Authorizer
+    private function createAuthorizer(): AuthorizerFixture
     {
-        return new class extends Authorizer
-        {
-            public function authorize(): bool
-            {
-                return true;
-            }
-        };
+        return new AuthorizerFixture;
     }
 }
