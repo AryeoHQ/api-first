@@ -1,0 +1,12 @@
+<?php
+
+namespace Support\Http;
+
+use Illuminate\Foundation\Auth\User;
+use Laravel\Passport\Client;
+
+/**
+ * @method User|Client|null actor()
+ * @method User|null subject()
+ */
+abstract class Authorizer extends \Illuminate\Foundation\Http\FormRequest {}

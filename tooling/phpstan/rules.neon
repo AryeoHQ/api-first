@@ -1,3 +1,8 @@
+parameters:
+    stubFiles:
+        - stubs/Authorizer.stub
+        - stubs/Validator.stub
+
 services:
     -
         class: Tooling\Http\Api\PhpStan\ControllerMustBeFinal

@@ -48,6 +48,7 @@
         "aryeo/entities": "0.0.15",
         "aryeo/request-casts": "0.0.12",
         "aryeo/request-authorizers-validators": "0.0.10",
+        "laravel/passport": "^12.0",
         "symfony/http-foundation": "^7.4"
     },
     "require-dev": {

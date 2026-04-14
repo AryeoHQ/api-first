@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Providers;
 
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator;
@@ -17,6 +16,8 @@ use Support\Http\Api\Console\Commands\MakeResource\Listeners\InjectSchemaPropert
 use Support\Http\Api\Console\Commands\MakeResource\MakeResource;
 use Support\Http\Api\Request\TokenContext;
 use Support\Http\Api\Resources\Json\Middleware\AppendFilters;
+use Support\Http\Authorizer;
+use Support\Http\Validator;
 use Support\Http\Api\Resources\Json\Middleware\AppendSort;
 use Support\Http\Api\Resources\Json\PaginatedResourceResponse\PagingInformation\PagingInformation;
 use Support\Http\Requests\Contracts\CastableData;
@@ -44,7 +45,8 @@ class Provider extends ServiceProvider
     private function registerMixins(): void
     {
         JsonResource::mixin(new PagingInformation);
-        Request::mixin(new TokenContext);
+        Authorizer::mixin(new TokenContext);
+        Validator::mixin(new TokenContext);
     }
 
     private function registerCursorResolver(): void

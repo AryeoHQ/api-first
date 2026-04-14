@@ -8,48 +8,81 @@ use Illuminate\Foundation\Auth\User;
 use Illuminate\Http\Request;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use Support\Http\Authorizer;
+use Support\Http\Validator;
 use Tests\TestCase;
 
 #[CoversClass(TokenContext::class)]
 final class TokenContextTest extends TestCase
 {
     #[Test]
-    public function it_returns_null_actor_when_unauthenticated(): void
+    public function authorizer_has_actor_macro(): void
     {
-        $request = Request::create('/test');
-
-        $this->assertNull($request->actor()); // @phpstan-ignore staticMethod.dynamicCall
+        $this->assertTrue(Authorizer::hasMacro('actor'));
     }
 
     #[Test]
-    public function it_returns_null_subject_when_unauthenticated(): void
+    public function authorizer_has_subject_macro(): void
     {
-        $request = Request::create('/test');
-
-        $this->assertNull($request->subject()); // @phpstan-ignore staticMethod.dynamicCall
+        $this->assertTrue(Authorizer::hasMacro('subject'));
     }
 
     #[Test]
-    public function it_returns_the_authenticated_user_as_actor(): void
+    public function validator_has_actor_macro(): void
+    {
+        $this->assertTrue(Validator::hasMacro('actor'));
+    }
+
+    #[Test]
+    public function validator_has_subject_macro(): void
+    {
+        $this->assertTrue(Validator::hasMacro('subject'));
+    }
+
+    #[Test]
+    public function actor_returns_null_when_unauthenticated(): void
+    {
+        $request = $this->createAuthorizer();
+
+        $this->assertNull($request->actor());
+    }
+
+    #[Test]
+    public function subject_returns_null_when_unauthenticated(): void
+    {
+        $request = $this->createAuthorizer();
+
+        $this->assertNull($request->subject());
+    }
+
+    #[Test]
+    public function actor_returns_the_authenticated_user(): void
     {
         $user = new User;
-        $request = tap(
-            Request::create('/test'),
-            fn (Request $request) => $request->setUserResolver(fn () => $user)
-        );
+        $request = $this->createAuthorizer();
+        $request->setUserResolver(fn () => $user);
 
-        $this->assertSame($user, $request->actor()); // @phpstan-ignore staticMethod.dynamicCall
+        $this->assertSame($user, $request->actor());
     }
 
     #[Test]
-    public function it_returns_the_authenticated_user_as_subject(): void
+    public function subject_returns_the_authenticated_user(): void
     {
         $user = new User;
-        $request = tap(
-            Request::create('/test'),
-            fn (Request $request) => $request->setUserResolver(fn () => $user)
-        );
+        $request = $this->createAuthorizer();
+        $request->setUserResolver(fn () => $user);
 
-        $this->assertSame($user, $request->subject()); // @phpstan-ignore staticMethod.dynamicCall
+        $this->assertSame($user, $request->subject());
+    }
+
+    private function createAuthorizer(): Authorizer
+    {
+        return new class extends Authorizer
+        {
+            public function authorize(): bool
+            {
+                return true;
+            }
+        };
     }
 }
