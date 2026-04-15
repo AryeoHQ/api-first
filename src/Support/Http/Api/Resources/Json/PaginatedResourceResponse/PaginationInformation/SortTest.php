@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Support\Http\Api\Resources\Json;
+namespace Support\Http\Api\Resources\Json\PaginatedResourceResponse\PaginationInformation;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;

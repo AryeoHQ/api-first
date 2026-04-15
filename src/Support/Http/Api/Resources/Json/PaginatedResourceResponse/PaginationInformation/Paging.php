@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Support\Http\Api\Resources\Json\PaginatedResourceResponse\PagingInformation;
+namespace Support\Http\Api\Resources\Json\PaginatedResourceResponse\PaginationInformation;
 
 use Illuminate\Support\Uri;
 

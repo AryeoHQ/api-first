@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Support\Http\Api\Resources\Json;
+namespace Support\Http\Api\Resources\Json\PaginatedResourceResponse\PaginationInformation;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
@@ -54,7 +54,7 @@ final class FiltersTest extends TestCase
     }
 
     #[Test]
-    public function it_returns_empty_array_when_no_filters_present(): void
+    public function it_returns_null_when_no_filters_present(): void
     {
         $request = Request::create('/test', 'GET');
 
@@ -62,11 +62,11 @@ final class FiltersTest extends TestCase
 
         $result = Filters::from($request);
 
-        $this->assertSame([], $result);
+        $this->assertNull($result);
     }
 
     #[Test]
-    public function it_returns_empty_array_when_filters_is_not_an_array(): void
+    public function it_returns_null_when_filters_is_not_an_array(): void
     {
         $request = Request::create('/test', 'GET', [
             'filters' => 'invalid',
@@ -79,6 +79,6 @@ final class FiltersTest extends TestCase
 
         $result = Filters::from($request);
 
-        $this->assertSame([], $result);
+        $this->assertNull($result);
     }
 }
