@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tooling\Http\Api\PhpStan;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\Json\ResourceCollection;
 use PhpParser\Node;
 use PhpParser\Node\Stmt\Class_;
 use PHPStan\Analyser\Scope;
@@ -24,6 +25,7 @@ final class JsonResourceMustImplementSchema extends Rule
     public function shouldHandle(Node $node, Scope $scope): bool
     {
         return $this->inherits($node, JsonResource::class)
+            && $this->doesNotInherit($node, ResourceCollection::class)
             && $this->doesNotInherit($node, Schema::class);
     }
 

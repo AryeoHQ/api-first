@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Support\Http\Api\Resources\Json\PaginatedResourceResponse\PagingInformation;
+namespace Support\Http\Api\Resources\Json\PaginatedResourceResponse\PaginationInformation;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
