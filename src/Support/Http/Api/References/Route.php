@@ -30,10 +30,10 @@ final class Route extends GenericClass
 
     public static function make(Stringable|string $apiVersion, Entity $entity, EndpointType $endpointType, Stringable|string $endpointName, ActionMethod $actionMethod = ActionMethod::Post, Scope $scope = Scope::Instance): self
     {
-        $route = new self(
-            name: 'Route',
-            baseNamespace: 'Support\\Routing\\Attributes',
-        );
+        $route = resolve(self::class, [
+            'name' => 'Route',
+            'baseNamespace' => 'Support\\Routing\\Attributes',
+        ]);
 
         $route->apiVersion = str($apiVersion);
         $route->entity = $entity;
