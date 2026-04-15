@@ -49,8 +49,6 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
         get => $this->controller;
     }
 
-    public string $stub = __DIR__.'/stubs/controller.stub';
-
     public Stringable $nameInput {
         get => $this->controller->name;
     }

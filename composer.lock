@@ -4,24 +4,24 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0a268b4c95adb43d31bd36852bd0265f",
+    "content-hash": "e7594f03f1f0433116382dcba9be952b",
     "packages": [
         {
             "name": "aryeo/api-resource-schema",
-            "version": "0.0.13",
+            "version": "0.0.14",
             "source": {
                 "type": "git",
                 "url": "https://github.com/AryeoHQ/api-resource-schema.git",
-                "reference": "2e1053f61449cc478c6ef4f746647bae077d0717"
+                "reference": "c11fb2116a117a7b8b437565cbdfb77a3735604b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/api-resource-schema/zipball/2e1053f61449cc478c6ef4f746647bae077d0717",
-                "reference": "2e1053f61449cc478c6ef4f746647bae077d0717",
+                "url": "https://api.github.com/repos/AryeoHQ/api-resource-schema/zipball/c11fb2116a117a7b8b437565cbdfb77a3735604b",
+                "reference": "c11fb2116a117a7b8b437565cbdfb77a3735604b",
                 "shasum": ""
             },
             "require": {
-                "aryeo/tooling-laravel": "0.0.35",
+                "aryeo/tooling-laravel": "0.0.36",
                 "laravel/framework": "^12.37",
                 "nikic/php-parser": "^5.7",
                 "php": "^8.4",
@@ -74,10 +74,10 @@
                 }
             ],
             "support": {
-                "source": "https://github.com/AryeoHQ/api-resource-schema/tree/0.0.13",
+                "source": "https://github.com/AryeoHQ/api-resource-schema/tree/0.0.14",
                 "issues": "https://github.com/AryeoHQ/api-resource-schema/issues"
             },
-            "time": "2026-04-14T06:54:31+00:00"
+            "time": "2026-04-15T02:38:00+00:00"
         },
         {
             "name": "aryeo/attribute-routing",
@@ -167,21 +167,21 @@
         },
         {
             "name": "aryeo/eloquent-filters",
-            "version": "0.0.15",
+            "version": "0.0.16",
             "source": {
                 "type": "git",
                 "url": "https://github.com/AryeoHQ/eloquent-filters.git",
-                "reference": "6a73515a531b7154677dff77d4ce9a37a2222ce5"
+                "reference": "407cbf74322e3bb2bfe69e5ef95311aaeee1e2d4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/eloquent-filters/zipball/6a73515a531b7154677dff77d4ce9a37a2222ce5",
-                "reference": "6a73515a531b7154677dff77d4ce9a37a2222ce5",
+                "url": "https://api.github.com/repos/AryeoHQ/eloquent-filters/zipball/407cbf74322e3bb2bfe69e5ef95311aaeee1e2d4",
+                "reference": "407cbf74322e3bb2bfe69e5ef95311aaeee1e2d4",
                 "shasum": ""
             },
             "require": {
                 "aryeo/primitives": "0.0.10",
-                "aryeo/tooling-laravel": "0.0.35",
+                "aryeo/tooling-laravel": "0.0.36",
                 "laravel/framework": "^12.36",
                 "nikic/php-parser": "^5.7",
                 "php": "^8.4",
@@ -242,28 +242,28 @@
                 "laravel"
             ],
             "support": {
-                "source": "https://github.com/AryeoHQ/eloquent-filters/tree/0.0.15",
+                "source": "https://github.com/AryeoHQ/eloquent-filters/tree/0.0.16",
                 "issues": "https://github.com/AryeoHQ/eloquent-filters/issues"
             },
-            "time": "2026-04-14T06:59:35+00:00"
+            "time": "2026-04-15T02:38:18+00:00"
         },
         {
             "name": "aryeo/entities",
-            "version": "0.0.15",
+            "version": "0.0.16",
             "source": {
                 "type": "git",
                 "url": "https://github.com/AryeoHQ/entities.git",
-                "reference": "b613fce8143740e5e0eb89be3efdcfffd29e036b"
+                "reference": "1ed8389dac2a855a2da6e119ae14846827801348"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/entities/zipball/b613fce8143740e5e0eb89be3efdcfffd29e036b",
-                "reference": "b613fce8143740e5e0eb89be3efdcfffd29e036b",
+                "url": "https://api.github.com/repos/AryeoHQ/entities/zipball/1ed8389dac2a855a2da6e119ae14846827801348",
+                "reference": "1ed8389dac2a855a2da6e119ae14846827801348",
                 "shasum": ""
             },
             "require": {
-                "aryeo/eloquent-filters": "0.0.15",
-                "aryeo/tooling-laravel": "0.0.35",
+                "aryeo/eloquent-filters": "0.0.16",
+                "aryeo/tooling-laravel": "0.0.36",
                 "laravel/framework": "^12.37",
                 "laravel/prompts": "^0.3.8",
                 "nikic/php-parser": "^5.7",
@@ -315,10 +315,10 @@
                 }
             ],
             "support": {
-                "source": "https://github.com/AryeoHQ/entities/tree/0.0.15",
+                "source": "https://github.com/AryeoHQ/entities/tree/0.0.16",
                 "issues": "https://github.com/AryeoHQ/entities/issues"
             },
-            "time": "2026-04-14T07:03:32+00:00"
+            "time": "2026-04-15T02:47:37+00:00"
         },
         {
             "name": "aryeo/primitives",
@@ -396,20 +396,20 @@
         },
         {
             "name": "aryeo/request-authorizers-validators",
-            "version": "0.0.10",
+            "version": "0.0.11",
             "source": {
                 "type": "git",
                 "url": "https://github.com/AryeoHQ/request-authorizers-validators.git",
-                "reference": "4048bf3265c457244a47e97f9aa3847755382422"
+                "reference": "2d456f19d20c45ba91a094e85146f53768496815"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/request-authorizers-validators/zipball/4048bf3265c457244a47e97f9aa3847755382422",
-                "reference": "4048bf3265c457244a47e97f9aa3847755382422",
+                "url": "https://api.github.com/repos/AryeoHQ/request-authorizers-validators/zipball/2d456f19d20c45ba91a094e85146f53768496815",
+                "reference": "2d456f19d20c45ba91a094e85146f53768496815",
                 "shasum": ""
             },
             "require": {
-                "aryeo/tooling-laravel": "0.0.35",
+                "aryeo/tooling-laravel": "0.0.36",
                 "laravel/framework": "^12.36",
                 "nikic/php-parser": "^5.6",
                 "php": "^8.4",
@@ -481,10 +481,10 @@
                 "validators"
             ],
             "support": {
-                "source": "https://github.com/AryeoHQ/request-authorizers-validators/tree/0.0.10",
+                "source": "https://github.com/AryeoHQ/request-authorizers-validators/tree/0.0.11",
                 "issues": "https://github.com/AryeoHQ/request-authorizers-validators/issues"
             },
-            "time": "2026-04-14T06:56:19+00:00"
+            "time": "2026-04-15T02:38:11+00:00"
         },
         {
             "name": "aryeo/request-casts",
@@ -536,16 +536,16 @@
         },
         {
             "name": "aryeo/tooling-laravel",
-            "version": "0.0.35",
+            "version": "0.0.36",
             "source": {
                 "type": "git",
                 "url": "https://github.com/AryeoHQ/tooling-laravel.git",
-                "reference": "4ff4cf34bfb61bed5022f69972fddd247d13e26b"
+                "reference": "28127a87c280aeca160a188c789046804ac8b361"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/tooling-laravel/zipball/4ff4cf34bfb61bed5022f69972fddd247d13e26b",
-                "reference": "4ff4cf34bfb61bed5022f69972fddd247d13e26b",
+                "url": "https://api.github.com/repos/AryeoHQ/tooling-laravel/zipball/28127a87c280aeca160a188c789046804ac8b361",
+                "reference": "28127a87c280aeca160a188c789046804ac8b361",
                 "shasum": ""
             },
             "require": {
@@ -617,10 +617,10 @@
             ],
             "description": "Development tooling for Laravel",
             "support": {
-                "source": "https://github.com/AryeoHQ/tooling-laravel/tree/0.0.35",
+                "source": "https://github.com/AryeoHQ/tooling-laravel/tree/0.0.36",
                 "issues": "https://github.com/AryeoHQ/tooling-laravel/issues"
             },
-            "time": "2026-04-14T06:35:32+00:00"
+            "time": "2026-04-15T01:58:36+00:00"
         },
         {
             "name": "brick/math",
@@ -952,16 +952,16 @@
         },
         {
             "name": "composer/composer",
-            "version": "2.9.5",
+            "version": "2.9.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/composer/composer.git",
-                "reference": "72a8f8e653710e18d83e5dd531eb5a71fc3223e6"
+                "reference": "82a2fbd1372a98d7915cfb092acf05207d9b4113"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/composer/composer/zipball/72a8f8e653710e18d83e5dd531eb5a71fc3223e6",
-                "reference": "72a8f8e653710e18d83e5dd531eb5a71fc3223e6",
+                "url": "https://api.github.com/repos/composer/composer/zipball/82a2fbd1372a98d7915cfb092acf05207d9b4113",
+                "reference": "82a2fbd1372a98d7915cfb092acf05207d9b4113",
                 "shasum": ""
             },
             "require": {
@@ -1049,7 +1049,7 @@
                 "irc": "ircs://irc.libera.chat:6697/composer",
                 "issues": "https://github.com/composer/composer/issues",
                 "security": "https://github.com/composer/composer/security/policy",
-                "source": "https://github.com/composer/composer/tree/2.9.5"
+                "source": "https://github.com/composer/composer/tree/2.9.7"
             },
             "funding": [
                 {
@@ -1061,7 +1061,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-01-29T10:40:53+00:00"
+            "time": "2026-04-14T11:31:52+00:00"
         },
         {
             "name": "composer/metadata-minifier",
@@ -2978,16 +2978,16 @@
         },
         {
             "name": "laravel/serializable-closure",
-            "version": "v2.0.11",
+            "version": "v2.0.12",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/serializable-closure.git",
-                "reference": "d1af40ac4a6ccc12bd062a7184f63c9995a63bdd"
+                "reference": "a6abb4e54f6fcd3138120b9ad497f0bd146f9919"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/serializable-closure/zipball/d1af40ac4a6ccc12bd062a7184f63c9995a63bdd",
-                "reference": "d1af40ac4a6ccc12bd062a7184f63c9995a63bdd",
+                "url": "https://api.github.com/repos/laravel/serializable-closure/zipball/a6abb4e54f6fcd3138120b9ad497f0bd146f9919",
+                "reference": "a6abb4e54f6fcd3138120b9ad497f0bd146f9919",
                 "shasum": ""
             },
             "require": {
@@ -3035,7 +3035,7 @@
                 "issues": "https://github.com/laravel/serializable-closure/issues",
                 "source": "https://github.com/laravel/serializable-closure"
             },
-            "time": "2026-04-07T13:32:18+00:00"
+            "time": "2026-04-14T13:33:34+00:00"
         },
         {
             "name": "league/commonmark",
@@ -5892,16 +5892,16 @@
         },
         {
             "name": "sebastian/comparator",
-            "version": "7.1.5",
+            "version": "7.1.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/comparator.git",
-                "reference": "c284f55811f43d555e51e8e5c166ac40d3e33c63"
+                "reference": "c769009dee98f494e0edc3fd4f4087501688f11e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/comparator/zipball/c284f55811f43d555e51e8e5c166ac40d3e33c63",
-                "reference": "c284f55811f43d555e51e8e5c166ac40d3e33c63",
+                "url": "https://api.github.com/repos/sebastianbergmann/comparator/zipball/c769009dee98f494e0edc3fd4f4087501688f11e",
+                "reference": "c769009dee98f494e0edc3fd4f4087501688f11e",
                 "shasum": ""
             },
             "require": {
@@ -5960,7 +5960,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/comparator/issues",
                 "security": "https://github.com/sebastianbergmann/comparator/security/policy",
-                "source": "https://github.com/sebastianbergmann/comparator/tree/7.1.5"
+                "source": "https://github.com/sebastianbergmann/comparator/tree/7.1.6"
             },
             "funding": [
                 {
@@ -5980,7 +5980,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-04-08T04:43:00+00:00"
+            "time": "2026-04-14T08:23:15+00:00"
         },
         {
             "name": "sebastian/complexity",
@@ -8077,7 +8077,7 @@
         },
         {
             "name": "symfony/polyfill-ctype",
-            "version": "v1.34.0",
+            "version": "v1.35.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-ctype.git",
@@ -8136,7 +8136,7 @@
                 "portable"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-ctype/tree/v1.34.0"
+                "source": "https://github.com/symfony/polyfill-ctype/tree/v1.35.0"
             },
             "funding": [
                 {
@@ -8160,7 +8160,7 @@
         },
         {
             "name": "symfony/polyfill-intl-grapheme",
-            "version": "v1.34.0",
+            "version": "v1.35.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-intl-grapheme.git",
@@ -8218,7 +8218,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-intl-grapheme/tree/v1.34.0"
+                "source": "https://github.com/symfony/polyfill-intl-grapheme/tree/v1.35.0"
             },
             "funding": [
                 {
@@ -8242,7 +8242,7 @@
         },
         {
             "name": "symfony/polyfill-intl-idn",
-            "version": "v1.34.0",
+            "version": "v1.35.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-intl-idn.git",
@@ -8305,7 +8305,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-intl-idn/tree/v1.34.0"
+                "source": "https://github.com/symfony/polyfill-intl-idn/tree/v1.35.0"
             },
             "funding": [
                 {
@@ -8329,7 +8329,7 @@
         },
         {
             "name": "symfony/polyfill-intl-normalizer",
-            "version": "v1.34.0",
+            "version": "v1.35.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-intl-normalizer.git",
@@ -8390,7 +8390,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-intl-normalizer/tree/v1.34.0"
+                "source": "https://github.com/symfony/polyfill-intl-normalizer/tree/v1.35.0"
             },
             "funding": [
                 {
@@ -8414,7 +8414,7 @@
         },
         {
             "name": "symfony/polyfill-mbstring",
-            "version": "v1.34.0",
+            "version": "v1.35.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-mbstring.git",
@@ -8475,7 +8475,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-mbstring/tree/v1.34.0"
+                "source": "https://github.com/symfony/polyfill-mbstring/tree/v1.35.0"
             },
             "funding": [
                 {
@@ -8499,7 +8499,7 @@
         },
         {
             "name": "symfony/polyfill-php73",
-            "version": "v1.34.0",
+            "version": "v1.35.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-php73.git",
@@ -8555,7 +8555,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-php73/tree/v1.34.0"
+                "source": "https://github.com/symfony/polyfill-php73/tree/v1.35.0"
             },
             "funding": [
                 {
@@ -8579,7 +8579,7 @@
         },
         {
             "name": "symfony/polyfill-php80",
-            "version": "v1.34.0",
+            "version": "v1.35.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-php80.git",
@@ -8639,7 +8639,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-php80/tree/v1.34.0"
+                "source": "https://github.com/symfony/polyfill-php80/tree/v1.35.0"
             },
             "funding": [
                 {
@@ -8663,7 +8663,7 @@
         },
         {
             "name": "symfony/polyfill-php81",
-            "version": "v1.34.0",
+            "version": "v1.35.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-php81.git",
@@ -8719,7 +8719,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-php81/tree/v1.34.0"
+                "source": "https://github.com/symfony/polyfill-php81/tree/v1.35.0"
             },
             "funding": [
                 {
@@ -8743,7 +8743,7 @@
         },
         {
             "name": "symfony/polyfill-php83",
-            "version": "v1.34.0",
+            "version": "v1.35.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-php83.git",
@@ -8799,7 +8799,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-php83/tree/v1.34.0"
+                "source": "https://github.com/symfony/polyfill-php83/tree/v1.35.0"
             },
             "funding": [
                 {
@@ -8823,7 +8823,7 @@
         },
         {
             "name": "symfony/polyfill-php84",
-            "version": "v1.34.0",
+            "version": "v1.35.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-php84.git",
@@ -8879,7 +8879,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-php84/tree/v1.34.0"
+                "source": "https://github.com/symfony/polyfill-php84/tree/v1.35.0"
             },
             "funding": [
                 {
@@ -8903,7 +8903,7 @@
         },
         {
             "name": "symfony/polyfill-php85",
-            "version": "v1.34.0",
+            "version": "v1.35.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-php85.git",
@@ -8959,7 +8959,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-php85/tree/v1.34.0"
+                "source": "https://github.com/symfony/polyfill-php85/tree/v1.35.0"
             },
             "funding": [
                 {
@@ -8983,7 +8983,7 @@
         },
         {
             "name": "symfony/polyfill-uuid",
-            "version": "v1.34.0",
+            "version": "v1.35.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-uuid.git",
@@ -9042,7 +9042,7 @@
                 "uuid"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-uuid/tree/v1.34.0"
+                "source": "https://github.com/symfony/polyfill-uuid/tree/v1.35.0"
             },
             "funding": [
                 {

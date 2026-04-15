@@ -16,6 +16,10 @@ final class Controller extends GenericClass
 {
     public Route $route;
 
+    public Stringable $stubPath {
+        get => str(__DIR__.'/stubs/controller.stub');
+    }
+
     public Entity $entity {
         get => $this->route->entity;
     }
@@ -25,17 +29,17 @@ final class Controller extends GenericClass
     }
 
     public Authorizer $authorizer {
-        get => new Authorizer(
-            name: 'Authorizer',
-            baseNamespace: $this->namespace,
-        );
+        get => resolve(Authorizer::class, [
+            'name' => 'Authorizer',
+            'baseNamespace' => $this->namespace,
+        ]);
     }
 
     public Validator $validator {
-        get => new Validator(
-            name: 'Validator',
-            baseNamespace: $this->namespace,
-        );
+        get => resolve(Validator::class, [
+            'name' => 'Validator',
+            'baseNamespace' => $this->namespace,
+        ]);
     }
 
     public null|Stringable $subNamespace {
@@ -48,7 +52,7 @@ final class Controller extends GenericClass
     public static function make(Route $route): self
     {
         return tap(
-            new self(name: 'Controller', baseNamespace: $route->entity->baseNamespace),
+            resolve(self::class, ['name' => 'Controller', 'baseNamespace' => $route->entity->baseNamespace]),
             fn (self $controller) => $controller->route = $route
         );
     }
