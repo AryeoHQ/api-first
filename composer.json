@@ -44,7 +44,7 @@
         "phpstan/phpstan": "^2.1",
         "symfony/console": "^7.4",
         "aryeo/tooling-laravel": "0.0.36",
-        "aryeo/attribute-routing": "0.0.12",
+        "aryeo/attribute-routing": "0.0.13",
         "aryeo/entities": "0.0.16",
         "aryeo/request-casts": "0.0.12",
         "aryeo/request-authorizers-validators": "0.0.11"

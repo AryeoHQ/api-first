@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fec97d6db3fa5e51fe12ebd125d890cc",
+    "content-hash": "e3230edf4666a37887cb0a48c13e68c0",
     "packages": [
         {
             "name": "aryeo/api-resource-schema",
@@ -81,16 +81,16 @@
         },
         {
             "name": "aryeo/attribute-routing",
-            "version": "0.0.12",
+            "version": "0.0.13",
             "source": {
                 "type": "git",
                 "url": "https://github.com/AryeoHQ/attribute-routing.git",
-                "reference": "46dd50c764953c50486ae2b70b10e94fee110882"
+                "reference": "65bd2975a5568b532c60f51aac3c5079ba4e4982"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/attribute-routing/zipball/46dd50c764953c50486ae2b70b10e94fee110882",
-                "reference": "46dd50c764953c50486ae2b70b10e94fee110882",
+                "url": "https://api.github.com/repos/AryeoHQ/attribute-routing/zipball/65bd2975a5568b532c60f51aac3c5079ba4e4982",
+                "reference": "65bd2975a5568b532c60f51aac3c5079ba4e4982",
                 "shasum": ""
             },
             "require": {
@@ -160,10 +160,10 @@
                 "laravel"
             ],
             "support": {
-                "source": "https://github.com/AryeoHQ/attribute-routing/tree/0.0.12",
+                "source": "https://github.com/AryeoHQ/attribute-routing/tree/0.0.13",
                 "issues": "https://github.com/AryeoHQ/attribute-routing/issues"
             },
-            "time": "2026-04-07T18:47:24+00:00"
+            "time": "2026-04-20T23:35:42+00:00"
         },
         {
             "name": "aryeo/eloquent-filters",
@@ -4435,11 +4435,11 @@
         },
         {
             "name": "phpstan/phpstan",
-            "version": "2.1.48",
+            "version": "2.1.47",
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/231397213efb7c0a066ee024b5c3c87f2d3adfa0",
-                "reference": "231397213efb7c0a066ee024b5c3c87f2d3adfa0",
+                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/79015445d8bd79e62b29140f12e5bfced1dcca65",
+                "reference": "79015445d8bd79e62b29140f12e5bfced1dcca65",
                 "shasum": ""
             },
             "require": {
@@ -4484,7 +4484,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-04-15T20:24:19+00:00"
+            "time": "2026-04-13T15:49:08+00:00"
         },
         {
             "name": "phpstan/phpstan-deprecation-rules",
@@ -4990,16 +4990,16 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "12.5.20",
+            "version": "12.5.16",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "c2364520611caa03567a8a020f2d59f3f90b115a"
+                "reference": "b2429f58ae75cae980b5bb9873abe4de6aac8b58"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/c2364520611caa03567a8a020f2d59f3f90b115a",
-                "reference": "c2364520611caa03567a8a020f2d59f3f90b115a",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/b2429f58ae75cae980b5bb9873abe4de6aac8b58",
+                "reference": "b2429f58ae75cae980b5bb9873abe4de6aac8b58",
                 "shasum": ""
             },
             "require": {
@@ -5013,13 +5013,13 @@
                 "phar-io/manifest": "^2.0.4",
                 "phar-io/version": "^3.2.1",
                 "php": ">=8.3",
-                "phpunit/php-code-coverage": "^12.5.5",
+                "phpunit/php-code-coverage": "^12.5.3",
                 "phpunit/php-file-iterator": "^6.0.1",
                 "phpunit/php-invoker": "^6.0.0",
                 "phpunit/php-text-template": "^5.0.0",
                 "phpunit/php-timer": "^8.0.0",
                 "sebastian/cli-parser": "^4.2.0",
-                "sebastian/comparator": "^7.1.6",
+                "sebastian/comparator": "^7.1.4",
                 "sebastian/diff": "^7.0.0",
                 "sebastian/environment": "^8.0.4",
                 "sebastian/exporter": "^7.0.2",
@@ -5068,7 +5068,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/phpunit/issues",
                 "security": "https://github.com/sebastianbergmann/phpunit/security/policy",
-                "source": "https://github.com/sebastianbergmann/phpunit/tree/12.5.20"
+                "source": "https://github.com/sebastianbergmann/phpunit/tree/12.5.16"
             },
             "funding": [
                 {
@@ -5076,7 +5076,7 @@
                     "type": "other"
                 }
             ],
-            "time": "2026-04-15T05:05:59+00:00"
+            "time": "2026-04-03T05:26:42+00:00"
         },
         {
             "name": "psr/clock",
@@ -11248,41 +11248,40 @@
         },
         {
             "name": "pestphp/pest",
-            "version": "v4.6.1",
+            "version": "v4.4.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/pestphp/pest.git",
-                "reference": "87db0b484788cfde4778b715bb1fed34133685fa"
+                "reference": "9797a71dbc776f46d6fcacb708b002755da6f37a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/pestphp/pest/zipball/87db0b484788cfde4778b715bb1fed34133685fa",
-                "reference": "87db0b484788cfde4778b715bb1fed34133685fa",
+                "url": "https://api.github.com/repos/pestphp/pest/zipball/9797a71dbc776f46d6fcacb708b002755da6f37a",
+                "reference": "9797a71dbc776f46d6fcacb708b002755da6f37a",
                 "shasum": ""
             },
             "require": {
                 "brianium/paratest": "^7.20.0",
-                "nunomaduro/collision": "^8.9.3",
+                "nunomaduro/collision": "^8.9.2",
                 "nunomaduro/termwind": "^2.4.0",
                 "pestphp/pest-plugin": "^4.0.0",
-                "pestphp/pest-plugin-arch": "^4.0.2",
+                "pestphp/pest-plugin-arch": "^4.0.0",
                 "pestphp/pest-plugin-mutate": "^4.0.1",
                 "pestphp/pest-plugin-profanity": "^4.2.1",
                 "php": "^8.3.0",
-                "phpunit/phpunit": "^12.5.20",
+                "phpunit/phpunit": "^12.5.16",
                 "symfony/process": "^7.4.8|^8.0.8"
             },
             "conflict": {
                 "filp/whoops": "<2.18.3",
-                "phpunit/phpunit": ">12.5.20",
+                "phpunit/phpunit": ">12.5.16",
                 "sebastian/exporter": "<7.0.0",
                 "webmozart/assert": "<1.11.0"
             },
             "require-dev": {
-                "mrpunyapal/peststan": "^0.2.5",
                 "pestphp/pest-dev-tools": "^4.1.0",
-                "pestphp/pest-plugin-browser": "^4.3.1",
-                "pestphp/pest-plugin-type-coverage": "^4.0.4",
+                "pestphp/pest-plugin-browser": "^4.3.0",
+                "pestphp/pest-plugin-type-coverage": "^4.0.3",
                 "psy/psysh": "^0.12.22"
             },
             "bin": [
@@ -11349,7 +11348,7 @@
             ],
             "support": {
                 "issues": "https://github.com/pestphp/pest/issues",
-                "source": "https://github.com/pestphp/pest/tree/v4.6.1"
+                "source": "https://github.com/pestphp/pest/tree/v4.4.5"
             },
             "funding": [
                 {
@@ -11361,7 +11360,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-04-15T16:03:09+00:00"
+            "time": "2026-04-03T13:43:28+00:00"
         },
         {
             "name": "pestphp/pest-plugin",
@@ -11435,26 +11434,26 @@
         },
         {
             "name": "pestphp/pest-plugin-arch",
-            "version": "v4.0.2",
+            "version": "v4.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/pestphp/pest-plugin-arch.git",
-                "reference": "3fb0d02a91b9da504b139dc7ab2a31efb7c3215c"
+                "reference": "25bb17e37920ccc35cbbcda3b00d596aadf3e58d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/pestphp/pest-plugin-arch/zipball/3fb0d02a91b9da504b139dc7ab2a31efb7c3215c",
-                "reference": "3fb0d02a91b9da504b139dc7ab2a31efb7c3215c",
+                "url": "https://api.github.com/repos/pestphp/pest-plugin-arch/zipball/25bb17e37920ccc35cbbcda3b00d596aadf3e58d",
+                "reference": "25bb17e37920ccc35cbbcda3b00d596aadf3e58d",
                 "shasum": ""
             },
             "require": {
                 "pestphp/pest-plugin": "^4.0.0",
                 "php": "^8.3",
-                "ta-tikoma/phpunit-architecture-test": "^0.8.7"
+                "ta-tikoma/phpunit-architecture-test": "^0.8.5"
             },
             "require-dev": {
-                "pestphp/pest": "^4.4.6",
-                "pestphp/pest-dev-tools": "^4.1.0"
+                "pestphp/pest": "^4.0.0",
+                "pestphp/pest-dev-tools": "^4.0.0"
             },
             "type": "library",
             "extra": {
@@ -11489,7 +11488,7 @@
                 "unit"
             ],
             "support": {
-                "source": "https://github.com/pestphp/pest-plugin-arch/tree/v4.0.2"
+                "source": "https://github.com/pestphp/pest-plugin-arch/tree/v4.0.0"
             },
             "funding": [
                 {
@@ -11501,7 +11500,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-04-10T17:20:19+00:00"
+            "time": "2025-08-20T13:10:51+00:00"
         },
         {
             "name": "pestphp/pest-plugin-mutate",
@@ -12144,5 +12143,5 @@
         "php": "^8.4"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }
