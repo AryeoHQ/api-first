@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e3230edf4666a37887cb0a48c13e68c0",
+    "content-hash": "54af347ddbd643c9f8b3412c0689b15b",
     "packages": [
         {
             "name": "aryeo/api-resource-schema",
-            "version": "0.0.15",
+            "version": "0.0.16",
             "source": {
                 "type": "git",
                 "url": "https://github.com/AryeoHQ/api-resource-schema.git",
-                "reference": "0a841b099d45e0f4259ef215c8057c87d71526c6"
+                "reference": "3e3450d62ca37660bec6980888f9fcff0825ba8e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/api-resource-schema/zipball/0a841b099d45e0f4259ef215c8057c87d71526c6",
-                "reference": "0a841b099d45e0f4259ef215c8057c87d71526c6",
+                "url": "https://api.github.com/repos/AryeoHQ/api-resource-schema/zipball/3e3450d62ca37660bec6980888f9fcff0825ba8e",
+                "reference": "3e3450d62ca37660bec6980888f9fcff0825ba8e",
                 "shasum": ""
             },
             "require": {
@@ -74,10 +74,10 @@
                 }
             ],
             "support": {
-                "source": "https://github.com/AryeoHQ/api-resource-schema/tree/0.0.15",
+                "source": "https://github.com/AryeoHQ/api-resource-schema/tree/0.0.16",
                 "issues": "https://github.com/AryeoHQ/api-resource-schema/issues"
             },
-            "time": "2026-04-15T07:55:59+00:00"
+            "time": "2026-04-29T20:08:55+00:00"
         },
         {
             "name": "aryeo/attribute-routing",
@@ -12143,5 +12143,5 @@
         "php": "^8.4"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.6.0"
 }

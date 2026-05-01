@@ -37,7 +37,7 @@
     },
     "require": {
         "php": "^8.4",
-        "aryeo/api-resource-schema": "0.0.15",
+        "aryeo/api-resource-schema": "0.0.16",
         "laravel/framework": "^12.37",
         "laravel/prompts": "^0.3.8",
         "nikic/php-parser": "^5.7",
