@@ -27,3 +27,11 @@ services:
         class: Tooling\Http\Api\PhpStan\SchemaMustHaveResourceType
         tags:
             - phpstan.rules.rule
+    -
+        class: Tooling\Http\Api\PhpStan\EntityMustImplementLoggable
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\Http\Api\PhpStan\EntityMustUseLogsSchemas
+        tags:
+            - phpstan.rules.rule

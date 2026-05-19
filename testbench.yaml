@@ -1,4 +1,2 @@
-env:
-  - PHPSTAN_PATHS=src,tests/Fixtures/Support
-  - RECTOR_PATHS=src,tests/Fixtures/Support
-  - PINT_PATHS=src,tests
+providers:
+  - Workbench\App\Providers\WorkbenchServiceProvider

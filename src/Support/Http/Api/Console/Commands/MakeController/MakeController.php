@@ -6,12 +6,12 @@ namespace Support\Http\Api\Console\Commands\MakeController;
 
 use Illuminate\Console\GeneratorCommand;
 use Illuminate\Routing\Console\ControllerMakeCommand;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Stringable;
 use Support\Entities\Console\Concerns\RetrievesEntity;
 use Support\Entities\References\Entity;
 use Support\Http\Api\Console\Commands\MakeController\Concerns\GeneratesAction;
 use Support\Http\Api\Console\Commands\MakeController\Concerns\GeneratesRest;
-use Support\Http\Api\Console\Commands\MakeController\Concerns\ResolvesApiVersion;
 use Support\Http\Api\Console\Enums\ActionMethod;
 use Support\Http\Api\Console\Enums\Endpoint;
 use Support\Http\Api\Console\Enums\EndpointType;
@@ -20,6 +20,10 @@ use Support\Http\Api\References\Controller;
 use Support\Http\Api\References\Route;
 use Support\Http\Commands\MakeAuthorizer;
 use Support\Http\Commands\MakeValidator;
+use Support\Http\Resources\Schemas\Attributes\CollectedBy\CollectedBy;
+use Support\Http\Resources\Schemas\Attributes\UseSchema\UseSchema;
+use Support\Http\Resources\Schemas\Attributes\Version\Version;
+use Support\Http\Resources\Schemas\Contracts;
 use Support\Routing\Enums\Method;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -28,13 +32,14 @@ use Tooling\GeneratorCommands\Concerns\CreatesColocatedTests;
 use Tooling\GeneratorCommands\Concerns\GeneratorCommandCompatibility;
 use Tooling\GeneratorCommands\Contracts\GeneratesFile;
 
+use function Laravel\Prompts\select;
+
 class MakeController extends ControllerMakeCommand implements GeneratesFile
 {
     use CreatesColocatedTests;
     use GeneratesAction;
     use GeneratesRest;
     use GeneratorCommandCompatibility;
-    use ResolvesApiVersion;
 
     /** @use RetrievesEntity<Entity> */
     use RetrievesEntity;
@@ -44,6 +49,13 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
     protected $type = 'Controller';
 
     public protected(set) Controller $controller;
+
+    protected Contracts\Version $version;
+
+    /** @var Collection<int, class-string<Contracts\Schema>> */
+    protected Collection $schemas;
+
+    protected string $schemaReturnType;
 
     public Controller $reference {
         get => $this->controller;
@@ -59,9 +71,14 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
 
     public function handle()
     {
-        $this->resolveApiVersion();
         $this->resolveEntity();
+
+        if (! $this->resolveVersion()) {
+            return (bool) self::FAILURE;
+        }
+
         $this->resolveController();
+        $this->resolveSchema();
 
         // Does not call parent::handle() to skip base command's operations
         GeneratorCommand::handle();
@@ -82,7 +99,7 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
             ]);
         }
 
-        return self::SUCCESS; // @phpstan-ignore return.type
+        return (bool) self::SUCCESS;
     }
 
     protected function buildClass($name)
@@ -103,9 +120,11 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
         return str_replace([
             '{{ imports }}',
             '{{ parameters }}',
+            '{{ returnType }}',
         ], [
             $this->buildControllerImports(),
             $this->buildControllerParameters(),
+            $this->buildReturnType(),
         ], $stub);
     }
 
@@ -114,11 +133,17 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
         return collect([
             'use '.$this->controller->route->fqcn.';',
             'use '.Method::class.';',
+            'use '.$this->schemaReturnType.';',
         ])->when(
             $this->controller->scope === Scope::Instance,
             fn ($imports) => $imports
                 ->push('use '.$this->controller->entity->fqcn.';')
         )->sort()->values()->implode("\n");
+    }
+
+    private function buildReturnType(): string
+    {
+        return ': '.class_basename($this->schemaReturnType);
     }
 
     private function buildControllerParameters(): string
@@ -161,7 +186,7 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
     private function buildController(Entity $entity, EndpointType $endpointType, Endpoint|Stringable $endpoint, ActionMethod $actionMethod = ActionMethod::Post, Scope $scope = Scope::Instance): Controller
     {
         $route = Route::make(
-            apiVersion: $this->apiVersion,
+            apiVersion: $this->version->name,
             entity: $entity,
             endpointType: $endpointType,
             endpointName: $endpoint instanceof Endpoint ? $endpoint->value : $endpoint,
@@ -170,6 +195,82 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
         );
 
         return Controller::make($route);
+    }
+
+    private function resolveVersion(): bool
+    {
+        /** @var class-string<Contracts\Version>|null $enumClass */
+        $enumClass = config('api-resource-schema.version', null);
+
+        if (! $enumClass) {
+            $this->components->error('`Version` enum not configured.');
+
+            return false;
+        }
+
+        $this->schemas = UseSchema::resolve($this->entity->fqcn->toString());
+
+        $availableVersions = $this->schemas->mapWithKeys(
+            fn (string $schema): array => [Version::resolve($schema)->value => $schema]
+        );
+
+        $allVersions = collect($enumClass::cases());
+
+        if ($input = $this->option('api-version')) {
+            $schema = $availableVersions->first(
+                fn (string $schema, string $value): bool => $value === $input || Version::resolve($schema)->name === $input,
+            );
+
+            if (! $schema) {
+                $this->components->error("No schema exists for version [{$input}]. Create one with `make:resource`.");
+
+                return false;
+            }
+
+            $this->version = Version::resolve($schema);
+
+            return true;
+        }
+
+        $options = $allVersions->mapWithKeys(fn (Contracts\Version $case) => [
+            $case->value => $case->value,
+        ]);
+
+        $unavailableVersions = $options->keys()->diff($availableVersions->keys());
+
+        if ($availableVersions->isEmpty()) {
+            $this->components->error('No schemas found for ['.class_basename($this->entity->fqcn->toString()).'].');
+            $this->components->bulletList([
+                'Create a schema using `make:resource`.',
+                'Add #['.class_basename(UseSchema::class).'(YourSchema::class)] to the entity model.',
+            ]);
+
+            return false;
+        }
+
+        $selected = select(
+            label: 'Select a version.',
+            options: $availableVersions->keys()->values()->toArray(),
+            hint: $unavailableVersions->isNotEmpty()
+                ? 'Missing schemas: '.$unavailableVersions->implode(', ')
+                : '',
+        );
+
+        $this->version = Version::resolve($availableVersions->get($selected));
+
+        return true;
+    }
+
+    private function resolveSchema(): void
+    {
+        $schema = $this->schemas->first(
+            fn (string $schema): bool => Version::resolve($schema) === $this->version,
+        );
+
+        $this->schemaReturnType = match ($this->controller->scope) {
+            Scope::Instance => $schema,
+            Scope::Resource => CollectedBy::resolve($schema),
+        };
     }
 
     protected function getArguments(): array
@@ -181,7 +282,7 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
     protected function getOptions(): array
     {
         return [
-            ...$this->getApiVersionInputOptions(),
+            new InputOption('api-version', null, InputOption::VALUE_OPTIONAL, 'The API version (case name or value).'),
             new InputOption('entity', null, InputOption::VALUE_OPTIONAL, 'The entity FQCN (e.g. App\\Entities\\Posts\\Post).'),
             new InputOption('type', null, InputOption::VALUE_OPTIONAL, 'The endpoint type (Rest or Action).'),
             new InputOption('authorizer', null, InputOption::VALUE_NEGATABLE, 'Generate an Authorizer class.', true),
