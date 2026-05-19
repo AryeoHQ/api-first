@@ -18,6 +18,7 @@ class Post extends JsonResource implements Schema
 {
     /** @use AsSchema<ApiVersion> */
     use AsSchema;
+
     use WithStructuredMeta;
 
     public int $id { get => $this->resource['id']; }

@@ -56,8 +56,8 @@ class MakeResource extends Command
 
         $this->components->warn('Reminder:');
         $this->components->bulletList([
-            "Add #[".class_basename(UseSchema::class)."(".class_basename($schema->fqcn->classBasename())."::class)] to ". class_basename($this->entity->fqcn->classBasename()->toString()).".",
-            "Add #[".class_basename(UseSchemaCollection::class)."(".class_basename($schema->collection->fqcn->classBasename())."::class)] to {$this->entity->plural}.",
+            'Add #['.class_basename(UseSchema::class).'('.class_basename($schema->fqcn->classBasename()).'::class)] to '.class_basename($this->entity->fqcn->classBasename()->toString()).'.',
+            'Add #['.class_basename(UseSchemaCollection::class).'('.class_basename($schema->collection->fqcn->classBasename())."::class)] to {$this->entity->plural}.",
         ]);
 
         return self::SUCCESS;
