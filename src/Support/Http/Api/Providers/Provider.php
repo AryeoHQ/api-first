@@ -4,19 +4,24 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Providers;
 
+use Carbon\FactoryImmutable;
+use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator;
-use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades;
 use Illuminate\Support\ServiceProvider;
 use ReflectionNamedType;
+use Support\Http\Api\Console\Commands\MakeCollection\MakeCollection;
 use Support\Http\Api\Console\Commands\MakeController\MakeController;
+use Support\Http\Api\Console\Commands\MakeEvent\MakeEvent;
+use Support\Http\Api\Console\Commands\MakeModel\MakeModel;
 use Support\Http\Api\Console\Commands\MakeResource\Listeners\InjectSchemaProperties;
 use Support\Http\Api\Console\Commands\MakeResource\MakeResource;
 use Support\Http\Api\Request\TokenContext;
 use Support\Http\Requests\Contracts\CastableData;
 use Support\Http\Resources\Schemas\Console\Commands\MakeResource\Events\BuildingSchema;
-use Tooling\Http\Api\Composer\ClassMap\Collectors\ApiVersions;
+use Support\Http\Resources\Schemas\Console\Commands\MakeResource\References;
 
 class Provider extends ServiceProvider
 {
@@ -25,12 +30,12 @@ class Provider extends ServiceProvider
         $this->registerBindings();
         $this->registerCursorResolver();
         $this->registerMixins();
-
-        $this->app->tag([ApiVersions::class], 'tooling.classmap.collectors');
     }
 
     public function boot(): void
     {
+        $this->bootCarbonConfiguration();
+        $this->bootSchemaConfiguration();
         $this->bootListeners();
         $this->bootCommands();
     }
@@ -49,30 +54,59 @@ class Provider extends ServiceProvider
 
     private function registerBindings(): void
     {
+        $this->registerCastableDataBinding();
+        $this->registerMakeCommands();
+        $this->registerReferences();
+    }
+
+    private function registerCastableDataBinding(): void
+    {
         $this->app->scoped(CastableData::class, function (): null|CastableData {
-            $route = request()->route();
+            $type = collect(request()->route()?->signatureParameters(['subClass' => CastableData::class]))
+                ->map(fn ($p) => $p->getType())
+                ->first(fn ($type) => $type instanceof ReflectionNamedType && ! $type->isBuiltin());
 
-            if ($route === null) {
-                return null;
-            }
-
-            foreach ($route->signatureParameters(['subClass' => CastableData::class]) as $parameter) {
-                $type = $parameter->getType();
-
-                if (! $type instanceof ReflectionNamedType || $type->isBuiltin()) {
-                    continue;
-                }
-
-                return resolve($type->getName());
-            }
-
-            return null;
+            return $type ? resolve($type->getName()) : null;
         });
+    }
+
+    private function registerMakeCommands(): void
+    {
+        $this->app->bind(
+            \Support\Entities\Models\Console\Commands\MakeCollection::class,
+            MakeCollection::class,
+        );
+    }
+
+    private function registerReferences(): void
+    {
+        $this->app->bind(References\Schema::class, function ($app, array $params) {
+            $name = str(data_get($params, 'name', ''));
+            $baseNamespace = str(data_get($params, 'baseNamespace', ''))->when(
+                    fn ($s) => ! $s->endsWith('\\'.$name->plural()->toString()),
+                    fn ($s) => $s->append('\\', $name->plural()->toString()),
+                );
+
+            return new References\Schema(name: $name, baseNamespace: $baseNamespace);
+        });
+    }
+
+    private function bootCarbonConfiguration(): void
+    {
+        FactoryImmutable::getDefaultInstance()->mergeSettings([ // @phpstan-ignore staticMethod.internal
+            'toJsonFormat' => DateTime::RFC3339_EXTENDED,
+            'toStringFormat' => DateTime::RFC3339_EXTENDED,
+        ]);
+    }
+
+    private function bootSchemaConfiguration(): void
+    {
+        Facades\Schema::defaultTimePrecision(3);
     }
 
     private function bootListeners(): void
     {
-        Event::listen(BuildingSchema::class, InjectSchemaProperties::class);
+        Facades\Event::listen(BuildingSchema::class, InjectSchemaProperties::class);
     }
 
     private function bootCommands(): void
@@ -83,6 +117,9 @@ class Provider extends ServiceProvider
 
         $this->app->booted(function () {
             $this->commands([
+                MakeCollection::class,
+                MakeEvent::class,
+                MakeModel::class,
                 MakeResource::class,
             ]);
         });

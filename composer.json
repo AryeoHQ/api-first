@@ -6,6 +6,10 @@
             "type": "vcs",
             "url": "https://github.com/AryeoHQ/tooling-laravel"
         },
+        "actions": {
+            "type": "vcs",
+            "url": "https://github.com/AryeoHQ/actions"
+        },
         "api-resource-schema": {
             "type": "vcs",
             "url": "https://github.com/AryeoHQ/api-resource-schema"
@@ -22,6 +26,10 @@
             "type": "vcs",
             "url": "https://github.com/AryeoHQ/entities"
         },
+        "event-log": {
+            "type": "vcs",
+            "url": "https://github.com/AryeoHQ/event-log"
+        },
         "request-casts": {
             "type": "vcs",
             "url": "https://github.com/AryeoHQ/request-casts"
@@ -37,17 +45,18 @@
     },
     "require": {
         "php": "^8.4",
-        "aryeo/api-resource-schema": "0.0.16",
+        "aryeo/event-log": "dev-main",
+        "aryeo/api-resource-schema": "dev-versions as 0.0.16",
         "laravel/framework": "^12.37",
         "laravel/prompts": "^0.3.8",
         "nikic/php-parser": "^5.7",
         "phpstan/phpstan": "^2.1",
         "symfony/console": "^7.4",
-        "aryeo/tooling-laravel": "0.0.36",
-        "aryeo/attribute-routing": "0.0.13",
-        "aryeo/entities": "0.0.16",
-        "aryeo/request-casts": "0.0.12",
-        "aryeo/request-authorizers-validators": "0.0.11"
+        "aryeo/tooling-laravel": "0.0.37",
+        "aryeo/attribute-routing": "0.0.15",
+        "aryeo/entities": "0.0.18",
+        "aryeo/request-casts": "0.0.13",
+        "aryeo/request-authorizers-validators": "0.0.12"
     },
     "require-dev": {
         "orchestra/testbench": "^10.6",
@@ -58,6 +67,7 @@
     },
     "autoload": {
         "psr-4": {
+            "Support\\Entities\\": "src/Support/Entities",
             "Support\\Http\\Api\\": "src/Support/Http/Api",
             "Tooling\\Http\\Api\\": "src/Tooling/Http/Api"
         },
@@ -93,7 +103,31 @@
             ]
         },
         "tooling": {
-            "phpstan": "tooling/phpstan/rules.neon"
+            "phpstan": {
+                "rules": "tooling/phpstan/rules.neon",
+                "config": {
+                    "paths": [
+                        "src",
+                        "tests/Fixtures/Support"
+                    ]
+                }
+            },
+            "rector": {
+                "config": {
+                    "paths": [
+                        "src",
+                        "tests/Fixtures/Support"
+                    ]
+                }
+            },
+            "pint": {
+                "config": {
+                    "paths": [
+                        "src",
+                        "tests"
+                    ]
+                }
+            }
         }
     }
 }

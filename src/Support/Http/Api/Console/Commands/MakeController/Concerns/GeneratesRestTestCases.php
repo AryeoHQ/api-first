@@ -10,6 +10,7 @@ use Support\Http\Api\Console\Enums\Endpoint;
 use Support\Http\Api\Console\Enums\EndpointType;
 use Support\Http\Api\References\Controller;
 use Support\Http\Api\References\Route;
+use Tests\Fixtures\Support\Http\Api\Resources\Json\Post as V1Post;
 use Tests\TestCase;
 use Tooling\Composer\Composer;
 
@@ -116,6 +117,8 @@ trait GeneratesRestTestCases
             $this->assertStringContainsString(
                 $this->showController->entity->name.' $'.$this->showController->entity->variableName, $contents
             );
+            $this->assertStringContainsString('use '.V1Post::class.';', $contents);
+            $this->assertStringContainsString('): '.class_basename(V1Post::class), $contents);
         });
     }
 }
