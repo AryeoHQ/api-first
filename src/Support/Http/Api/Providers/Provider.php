@@ -6,12 +6,15 @@ namespace Support\Http\Api\Providers;
 
 use Carbon\FactoryImmutable;
 use DateTime;
+use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Support\Facades;
 use Illuminate\Support\ServiceProvider;
 use ReflectionNamedType;
+use Support\Entities\Database\Query\Grammars\PostgresGrammar;
+use Support\Entities\Database\Query\Grammars\SQLiteGrammar;
 use Support\Http\Api\Console\Commands\MakeCollection\MakeCollection;
 use Support\Http\Api\Console\Commands\MakeController\MakeController;
 use Support\Http\Api\Console\Commands\MakeEvent\MakeEvent;
@@ -27,6 +30,7 @@ class Provider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->registerQueryGrammars();
         $this->registerBindings();
         $this->registerCursorResolver();
         $this->registerMixins();
@@ -83,9 +87,9 @@ class Provider extends ServiceProvider
         $this->app->bind(References\Schema::class, function ($app, array $params) {
             $name = str(data_get($params, 'name', ''));
             $baseNamespace = str(data_get($params, 'baseNamespace', ''))->when(
-                    fn ($s) => ! $s->endsWith('\\'.$name->plural()->toString()),
-                    fn ($s) => $s->append('\\', $name->plural()->toString()),
-                );
+                fn ($s) => ! $s->endsWith('\\'.$name->plural()->toString()),
+                fn ($s) => $s->append('\\', $name->plural()->toString()),
+            );
 
             return new References\Schema(name: $name, baseNamespace: $baseNamespace);
         });
@@ -102,6 +106,28 @@ class Provider extends ServiceProvider
     private function bootSchemaConfiguration(): void
     {
         Facades\Schema::defaultTimePrecision(3);
+    }
+
+    private function registerQueryGrammars(): void
+    {
+        $grammars = [
+            \Illuminate\Database\Query\Grammars\PostgresGrammar::class => PostgresGrammar::class,
+            \Illuminate\Database\Query\Grammars\SQLiteGrammar::class => SQLiteGrammar::class,
+        ];
+
+        Facades\Event::listen(ConnectionEstablished::class, function (ConnectionEstablished $event) use ($grammars): void {
+            if (! $event->connection->getConfig('date_format')) {
+                return;
+            }
+
+            $grammarClass = $event->connection->getQueryGrammar()::class;
+
+            if (! array_key_exists($grammarClass, $grammars)) {
+                return;
+            }
+
+            $event->connection->setQueryGrammar(new $grammars[$grammarClass]($event->connection));
+        });
     }
 
     private function bootListeners(): void
