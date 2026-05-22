@@ -8,8 +8,11 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Routing\Route;
+use Illuminate\Support\Facades\DB;
+use Orchestra\Testbench\Attributes\WithConfig;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use Support\Entities\Database\Query\Grammars\SQLiteGrammar;
 use Support\Http\Requests\Contracts\CastableData;
 use Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceResponse\CastableController;
 use Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceResponse\PlainController;
@@ -75,5 +78,12 @@ final class ProviderTest extends TestCase
         $cursor = CursorPaginator::resolveCurrentCursor();
 
         $this->assertNull($cursor);
+    }
+
+    #[Test]
+    #[WithConfig('database.connections.testing.date_format', 'Y-m-d\TH:i:s.vP')]
+    public function it_swaps_the_query_grammar_when_date_format_is_configured(): void
+    {
+        $this->assertInstanceOf(SQLiteGrammar::class, DB::connection()->getQueryGrammar());
     }
 }

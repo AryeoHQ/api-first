@@ -13,7 +13,7 @@ final class Controller
         uri: '{{ routeUri }}',
         methods: {{ routeMethod }},
     )]
-    public function __invoke({{ parameters }})
+    public function __invoke({{ parameters }}){{ returnType }}
     {
         //
     }

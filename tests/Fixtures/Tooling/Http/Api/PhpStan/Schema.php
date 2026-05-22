@@ -5,6 +5,7 @@ namespace Tests\Fixtures\Tooling\Http\Api\PhpStan;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Support\Http\Resources\Schemas\Contracts;
 use Support\Http\Resources\Schemas\Provides\AsSchema;
+use Tests\Fixtures\Support\Schemas\ApiVersion;
 
 final class Schema extends JsonResource implements Contracts\Schema
 {
@@ -13,4 +14,6 @@ final class Schema extends JsonResource implements Contracts\Schema
     public string $id { get => $this->resource->getKey(); }
 
     public string $resourceType = 'example';
+
+    public ApiVersion $resourceVersion { get => $this->schemaVersion; }
 }
