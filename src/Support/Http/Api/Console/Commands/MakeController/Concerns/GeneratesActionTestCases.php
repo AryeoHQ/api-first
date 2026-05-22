@@ -11,6 +11,7 @@ use Support\Http\Api\Console\Enums\EndpointType;
 use Support\Http\Api\Console\Enums\Scope;
 use Support\Http\Api\References\Controller;
 use Support\Http\Api\References\Route;
+use Tests\Fixtures\Support\Http\Api\V1;
 use Tests\TestCase;
 use Tooling\Composer\Composer;
 
@@ -67,6 +68,8 @@ trait GeneratesActionTestCases
                 $this->actionController->entity->name.' $'.$this->actionController->entity->variableName,
                 $contents
             );
+            $this->assertStringContainsString('use '.V1\Posts\Post::class.';', $contents);
+            $this->assertStringContainsString('): '.class_basename(V1\Posts\Post::class), $contents);
         });
     }
 
@@ -103,6 +106,8 @@ trait GeneratesActionTestCases
                 $this->resourceActionController->entity->name.' $'.$this->resourceActionController->entity->variableName,
                 $contents
             );
+            $this->assertStringContainsString('use '.V1\Posts\Posts::class.';', $contents);
+            $this->assertStringContainsString('): '.class_basename(V1\Posts\Posts::class), $contents);
         });
     }
 }

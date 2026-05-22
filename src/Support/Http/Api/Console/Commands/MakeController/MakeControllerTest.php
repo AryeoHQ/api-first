@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Support\Http\Api\Console\Commands\MakeController;
 
 use Illuminate\Support\Facades\File;
+use Orchestra\Testbench\Attributes\WithConfig;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Support\Entities\References\Entity;
@@ -15,12 +16,16 @@ use Support\Http\Api\Console\Enums\EndpointType;
 use Support\Http\Api\Console\Enums\Scope;
 use Support\Http\Api\References\Controller;
 use Support\Http\Api\References\Route;
+use Tests\Fixtures\Support\Entities\Posts\Post;
+use Tests\Fixtures\Support\Entities\Tags\Tag;
+use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\TestCase;
 use Tooling\Composer\Composer;
 use Tooling\GeneratorCommands\References\Contracts\Reference;
 use Tooling\GeneratorCommands\Testing\Concerns\GeneratesFileTestCases;
 
 #[CoversClass(MakeController::class)]
+#[WithConfig('api-resource-schema.version', ApiVersion::class)]
 class MakeControllerTest extends TestCase
 {
     use GeneratesActionTestCases;
@@ -28,7 +33,7 @@ class MakeControllerTest extends TestCase
     use GeneratesRestTestCases;
 
     private Entity $entity {
-        get => new Entity(name: class_basename(static::class), baseNamespace: 'App\\');
+        get => Entity::fromFqcn(Post::class);
     }
 
     private Controller $controller {
@@ -48,6 +53,13 @@ class MakeControllerTest extends TestCase
             '--entity' => $this->entity->fqcn->toString(),
             '--type' => EndpointType::Rest->value,
         ];
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Composer::fake(['autoload' => ['psr-4' => ['Tests\\Fixtures\\Support\\' => 'tests/Fixtures/Support/']]]);
     }
 
     #[Test]
@@ -87,5 +99,52 @@ class MakeControllerTest extends TestCase
         )->assertSuccessful();
 
         $this->assertTrue(File::exists($this->showController->filePath->toString()));
+    }
+
+    #[Test]
+    public function it_errors_when_api_version_has_no_schema(): void
+    {
+        Composer::fake();
+
+        $input = [
+            '--api-version' => 'V2',
+            '--entity' => $this->entity->fqcn->toString(),
+            '--type' => EndpointType::Rest->value,
+        ];
+
+        $this->artisan($this->command, $input)
+            ->expectsOutputToContain('No schema exists for version [V2]')
+            ->assertFailed();
+    }
+
+    #[Test]
+    #[WithConfig('api-resource-schema.version', null)]
+    public function it_errors_when_version_enum_is_not_configured(): void
+    {
+        Composer::fake();
+
+        $input = [
+            '--entity' => $this->entity->fqcn->toString(),
+            '--type' => EndpointType::Rest->value,
+        ];
+
+        $this->artisan($this->command, $input)
+            ->expectsOutputToContain('`Version` enum not configured.')
+            ->assertFailed();
+    }
+
+    #[Test]
+    public function it_errors_when_entity_has_no_schemas(): void
+    {
+        Composer::fake();
+
+        $input = [
+            '--entity' => Tag::class,
+            '--type' => EndpointType::Rest->value,
+        ];
+
+        $this->artisan($this->command, $input)
+            ->expectsOutputToContain('No schemas found for [Tag]')
+            ->assertFailed();
     }
 }

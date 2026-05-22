@@ -8,8 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Routing\Route;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Fixtures\Support\Entities\Posts\Post;
 use Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceResponse\CastableController;
-use Tests\Fixtures\Support\Http\Api\Resources\Json\Post;
+use Tests\Fixtures\Support\Http\Api\V1;
 
 trait WithStructuredMetaSortTestCases
 {
@@ -17,14 +18,14 @@ trait WithStructuredMetaSortTestCases
     public function it_includes_sort_in_response_when_request_has_sort(): void
     {
         $paginator = new CursorPaginator(
-            items: [['id' => 1]],
+            items: [(new Post)->forceFill(['id' => 'uuid-1'])],
             perPage: 1,
         );
 
         $request = Request::create('/test', 'GET', [
             'sort' => '-created_at',
         ]);
-        $response = Post::collection($paginator)->toResponse($request);
+        $response = V1\Posts\Post::collection($paginator)->toResponse($request);
 
         $data = $response->getData(assoc: true);
 
@@ -35,12 +36,12 @@ trait WithStructuredMetaSortTestCases
     public function it_returns_null_sort_when_request_has_no_sort(): void
     {
         $paginator = new CursorPaginator(
-            items: [['id' => 1]],
+            items: [(new Post)->forceFill(['id' => 'uuid-1'])],
             perPage: 1,
         );
 
         $request = Request::create('/test', 'GET');
-        $response = Post::collection($paginator)->toResponse($request);
+        $response = V1\Posts\Post::collection($paginator)->toResponse($request);
 
         $this->assertNull($response->getData(assoc: true)['meta']['sort']);
     }
@@ -49,7 +50,7 @@ trait WithStructuredMetaSortTestCases
     public function it_returns_casted_sort_value_from_castable_form_request(): void
     {
         $paginator = new CursorPaginator(
-            items: [['id' => 1]],
+            items: [(new Post)->forceFill(['id' => 'uuid-1'])],
             perPage: 1,
         );
 
@@ -61,7 +62,7 @@ trait WithStructuredMetaSortTestCases
 
         $this->app->instance('request', $request);
 
-        $response = Post::collection($paginator)->toResponse($request);
+        $response = V1\Posts\Post::collection($paginator)->toResponse($request);
 
         $data = $response->getData(assoc: true);
 

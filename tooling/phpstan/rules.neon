@@ -27,3 +27,20 @@ services:
         class: Tooling\Http\Api\PhpStan\SchemaMustHaveResourceType
         tags:
             - phpstan.rules.rule
+    -
+        class: Tooling\Http\Api\PhpStan\ModelMustImplementLoggable
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\Http\Api\PhpStan\LoggableMustUseLogsSchemas
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\Http\Api\PhpStan\SchemaMustHaveResourceVersion
+        tags:
+            - phpstan.rules.rule
+
+parameters:
+    ignoreErrors:
+        -
+            identifier: Schemable.TransformsToSchema.required
