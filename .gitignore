@@ -14,6 +14,8 @@ workbench/*
 !workbench/app
 workbench/app/*
 !workbench/app/.gitkeep
+
+# zRetreat - PHP Archetype
 !workbench/app/Http
 workbench/app/Http/*
 !workbench/app/Http/Api
