@@ -16,6 +16,7 @@ use Support\Entities\Models\Concerns\LogsSchemas;
 use Support\Events\Log\Contracts\Loggable;
 use Support\Http\Resources\Schemas\Attributes\UseSchema\UseSchema;
 use Support\Http\Resources\Schemas\Contracts\Schemable;
+use Workbench\App\Entities\Articles\Actions\Syndicate;
 use Workbench\App\Entities\Articles\Builder\Builder;
 use Workbench\App\Entities\Articles\Collection\Articles;
 use Workbench\App\Entities\Articles\Events;
@@ -38,6 +39,11 @@ class Article extends Model implements Entity, Schemable, Loggable
     protected $fillable = [
         'title',
         'body',
+        'syndicated_at',
+    ];
+
+    protected $casts = [
+        'syndicated_at' => 'datetime',
     ];
 
     /**
@@ -60,4 +66,9 @@ class Article extends Model implements Entity, Schemable, Loggable
         'forceDeleting' => Events\ForceDeleting::class,
         'forceDeleted' => Events\ForceDeleted::class,
     ];
+
+    public function syndicate(): Syndicate
+    {
+        return Syndicate::make($this);
+    }
 }

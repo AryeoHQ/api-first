@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Providers;
 
+use Carbon\Carbon;
 use Carbon\FactoryImmutable;
 use DateTime;
 use Illuminate\Database\Events\ConnectionEstablished;
@@ -101,6 +102,9 @@ class Provider extends ServiceProvider
             'toJsonFormat' => DateTime::RFC3339_EXTENDED,
             'toStringFormat' => DateTime::RFC3339_EXTENDED,
         ]);
+
+        Carbon::serializeUsing(fn (\DateTimeInterface $date) => $date->format(DateTime::RFC3339_EXTENDED));
+        \Illuminate\Support\Carbon::serializeUsing(fn (\DateTimeInterface $date) => $date->format(DateTime::RFC3339_EXTENDED));
     }
 
     private function bootSchemaConfiguration(): void

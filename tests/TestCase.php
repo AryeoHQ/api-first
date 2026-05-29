@@ -36,6 +36,7 @@ abstract class TestCase extends Testbench\TestCase
             $table->string('title');
             $table->text('body');
             $table->timestamps();
+            $table->timestamp('syndicated_at')->nullable();
         });
     }
 }

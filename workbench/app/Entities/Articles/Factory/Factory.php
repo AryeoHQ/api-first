@@ -26,4 +26,11 @@ final class Factory extends \Illuminate\Database\Eloquent\Factories\Factory
             'body' => $this->faker->paragraph(),
         ];
     }
+
+    public function syndicated(): self
+    {
+        return $this->state(fn () => [
+            'syndicated_at' => now(),
+        ]);
+    }
 }
