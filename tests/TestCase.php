@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\WithCachedConfig;
 use Illuminate\Foundation\Testing\WithCachedRoutes;
 use Illuminate\Support\Facades\Schema;
 use Orchestra\Testbench;
+use Support\Routing\DirectoryConfig;
 
 abstract class TestCase extends Testbench\TestCase
 {
@@ -19,11 +20,22 @@ abstract class TestCase extends Testbench\TestCase
 
     protected $enablesPackageDiscoveries = true;
 
+    protected function defineEnvironment($app): void
+    {
+        $app['config']->set('routing.directories', [
+            new DirectoryConfig(
+                path: dirname(__DIR__).'/workbench/app/Http',
+            ),
+        ]);
+    }
+
     protected function defineDatabaseMigrations(): void
     {
-        Schema::create('posts', function (Blueprint $table): void {
+        Schema::create('articles', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->timestampsTz();
+            $table->string('title');
+            $table->text('body');
+            $table->timestamps();
         });
     }
 }

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5df11bc8dde96e16db40fe1ea386b816",
+    "content-hash": "a709cbf3bcf99db70fec8d474b13f40f",
     "packages": [
         {
             "name": "aryeo/actions",
@@ -903,6 +903,58 @@
                 "issues": "https://github.com/AryeoHQ/request-casts/issues"
             },
             "time": "2026-05-15T20:42:23+00:00"
+        },
+        {
+            "name": "aryeo/request-factories",
+            "version": "0.0.11",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AryeoHQ/request-factories.git",
+                "reference": "2017d3c8865ad039fe8818e4f9eba7dd26066726"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/AryeoHQ/request-factories/zipball/2017d3c8865ad039fe8818e4f9eba7dd26066726",
+                "reference": "2017d3c8865ad039fe8818e4f9eba7dd26066726",
+                "shasum": ""
+            },
+            "require": {
+                "laravel/framework": "^12.37"
+            },
+            "require-dev": {
+                "aryeo/tooling-laravel": "0.0.34",
+                "orchestra/testbench": "^10.6",
+                "orchestra/testbench-core": "^10.7",
+                "pestphp/pest": "^4.1",
+                "phpunit/phpunit": "^12.4.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Support\\": "src/Support"
+                },
+                "exclude-from-classmap": [
+                    "*Test.php",
+                    "*TestCases.php",
+                    "/tests/"
+                ]
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Tests\\": "tests/"
+                }
+            },
+            "authors": [
+                {
+                    "name": "Justin Seliga",
+                    "email": "justinsel@zillowgroup.com"
+                }
+            ],
+            "support": {
+                "source": "https://github.com/AryeoHQ/request-factories/tree/0.0.11",
+                "issues": "https://github.com/AryeoHQ/request-factories/issues"
+            },
+            "time": "2026-04-07T19:50:42+00:00"
         },
         {
             "name": "aryeo/tooling-laravel",
@@ -12565,5 +12617,5 @@
         "php": "^8.4"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.6.0"
 }

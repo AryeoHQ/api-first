@@ -14,3 +14,13 @@ workbench/*
 !workbench/app
 workbench/app/*
 !workbench/app/.gitkeep
+!workbench/app/Http
+workbench/app/Http/*
+!workbench/app/Http/Api
+workbench/app/Http/Api/*
+!workbench/app/Http/Api/V1
+workbench/app/Http/Api/V1/*
+!workbench/app/Http/Api/V1/Articles
+!workbench/app/Entities
+workbench/app/Entities/*
+!workbench/app/Entities/Articles
