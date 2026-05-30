@@ -11,6 +11,7 @@ use Illuminate\Foundation\Testing\WithCachedRoutes;
 use Illuminate\Support\Facades\Schema;
 use Orchestra\Testbench;
 use Support\Routing\DirectoryConfig;
+use Workbench\App\Entities\Articles\Provider\Provider as ArticlesProvider;
 
 abstract class TestCase extends Testbench\TestCase
 {
@@ -19,6 +20,15 @@ abstract class TestCase extends Testbench\TestCase
     use WithCachedRoutes;
 
     protected $enablesPackageDiscoveries = true;
+
+    protected $afterCommitCallbacksShouldBeExecuted = true;
+
+    protected function getPackageProviders($app): array
+    {
+        return [
+            ArticlesProvider::class,
+        ];
+    }
 
     protected function defineEnvironment($app): void
     {

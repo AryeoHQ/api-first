@@ -45,7 +45,7 @@ class MakeEvent extends \Support\Entities\Models\Console\Commands\MakeEvent
 
         $stub = str_replace(
             'final class',
-            "#[".class_basename(Alias::class)."('{$this->reference->semanticName}')]\nfinal class",
+            '#['.class_basename(Alias::class)."('{$this->reference->semanticName}')]\nfinal class",
             $stub,
         );
 

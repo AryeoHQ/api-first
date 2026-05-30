@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Workbench\App\Http\Api\V1\Articles\Store;
 
-use \Support\Routing\Attributes\Route;
+use Support\Routing\Attributes\Route;
 use Support\Routing\Enums\Method;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Workbench\App\Entities\Articles\Article;

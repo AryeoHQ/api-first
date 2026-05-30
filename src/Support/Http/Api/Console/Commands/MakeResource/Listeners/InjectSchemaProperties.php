@@ -16,7 +16,7 @@ class InjectSchemaProperties
         $versionClass = config('api-resource-schema.version');
         $versionBasename = class_basename($versionClass);
 
-        $event->properties->push('public string $id { get => $this->resource->getKey(); }');
+        $event->properties->push('public null|string $id { get => $this->resource->getKey(); }');
         $event->properties->push("public string \$resourceType = '".$resourceType."';");
         $event->properties->push("public {$versionBasename} \$resourceVersion { get => \$this->schemaVersion; }");
     }

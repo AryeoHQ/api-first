@@ -24,7 +24,7 @@ final class Syndicate implements Action
         // Syndication request using LaravelNews API SDK...
 
         $this->article->update([
-            'syndicated_at' => now()
+            'syndicated_at' => now(),
         ]);
 
         return $this->article;

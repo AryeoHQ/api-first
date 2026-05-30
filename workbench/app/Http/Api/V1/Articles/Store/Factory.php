@@ -32,7 +32,7 @@ final class Factory extends \Support\Http\Requests\Factories\Factory
 
     public function invalid(): self
     {
-        $state = collect(['withoutTitle','withoutBody'])->random();
+        $state = collect(['withoutTitle', 'withoutBody'])->random();
 
         return $this->$state();
     }

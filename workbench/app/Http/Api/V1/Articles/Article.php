@@ -12,14 +12,14 @@ use Support\Http\Resources\Schemas\Contracts\Schema;
 use Support\Http\Resources\Schemas\Provides\AsSchema;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
 
-#[Version(ApiVersion::V1)]
 #[CollectedBy(Articles::class)]
+#[Version(ApiVersion::V1)]
 final class Article extends JsonResource implements Schema
 {
     /** @use AsSchema<ApiVersion> */
     use AsSchema;
 
-    public string $id { get => $this->resource->getKey(); }
+    public null|string $id { get => $this->resource->getKey(); }
 
     public string $resourceType = 'article';
 

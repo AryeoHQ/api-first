@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Workbench\App\Http\Api\V1\Articles\Index;
 
+use Support\Routing\Attributes\Route;
 use Support\Routing\Enums\Method;
-use \Support\Routing\Attributes\Route;
 
 final class Controller
 {

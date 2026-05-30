@@ -19,7 +19,6 @@ use Support\Http\Resources\Schemas\Contracts\Schemable;
 use Workbench\App\Entities\Articles\Actions\Syndicate;
 use Workbench\App\Entities\Articles\Builder\Builder;
 use Workbench\App\Entities\Articles\Collection\Articles;
-use Workbench\App\Entities\Articles\Events;
 use Workbench\App\Entities\Articles\Factory\Factory;
 use Workbench\App\Entities\Articles\Policy\Policy;
 use Workbench\App\Http\Api\V1;
@@ -29,10 +28,11 @@ use Workbench\App\Http\Api\V1;
 #[UseFactory(Factory::class)]
 #[UsePolicy(Policy::class)]
 #[UseSchema(V1\Articles\Article::class)]
-class Article extends Model implements Entity, Schemable, Loggable
+class Article extends Model implements Entity, Loggable, Schemable
 {
     /** @use HasFactory<Factory> */
     use HasFactory;
+
     use HasUuids;
     use LogsSchemas;
 

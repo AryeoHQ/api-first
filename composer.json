@@ -129,7 +129,8 @@
                 "config": {
                     "paths": [
                         "src",
-                        "tests"
+                        "tests",
+                        "workbench/app"
                     ]
                 }
             }
