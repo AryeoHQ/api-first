@@ -21,8 +21,6 @@ final class ArticleTest extends TestCase
         $article->delete();
         Article::find($article->getKey());
 
-        dd(Log::all()->map->type->toArray());
-
         $this->assertCount(8, Log::all());
     }
 }
