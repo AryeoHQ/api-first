@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a709cbf3bcf99db70fec8d474b13f40f",
+    "content-hash": "a9b5d24cdc16d0d6a27f7120713e0740",
     "packages": [
         {
             "name": "aryeo/actions",
@@ -426,6 +426,113 @@
                 "issues": "https://github.com/AryeoHQ/eloquent-filters/issues"
             },
             "time": "2026-05-08T17:14:58+00:00"
+        },
+        {
+            "name": "aryeo/eloquent-state-machines",
+            "version": "0.0.21",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AryeoHQ/eloquent-state-machines.git",
+                "reference": "2be0241b0b4c46fd2d701d1189bd3cef64e52266"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/AryeoHQ/eloquent-state-machines/zipball/2be0241b0b4c46fd2d701d1189bd3cef64e52266",
+                "reference": "2be0241b0b4c46fd2d701d1189bd3cef64e52266",
+                "shasum": ""
+            },
+            "require": {
+                "aryeo/actions": "0.0.14",
+                "laravel/framework": "12.x",
+                "laravel/prompts": "^0.3.7",
+                "nikic/php-parser": "^5.7",
+                "php": "^8.4",
+                "phpstan/phpdoc-parser": "^2.3",
+                "phpstan/phpstan": "^2.1",
+                "rector/rector": "^2.3",
+                "symfony/console": "^7.3",
+                "symfony/finder": "^7.3"
+            },
+            "require-dev": {
+                "aryeo/tooling-laravel": "0.0.37",
+                "nesbot/carbon": "^3.10",
+                "orchestra/testbench": "^10.6",
+                "orchestra/testbench-core": "^10.7",
+                "pestphp/pest": "^4.1",
+                "phpunit/phpunit": "^12.4.1",
+                "symplify/rule-doc-generator-contracts": "^11.2"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Support\\Database\\Eloquent\\StateMachines\\Provider"
+                    ]
+                },
+                "tooling": {
+                    "rector": {
+                        "config": {
+                            "paths": [
+                                "src",
+                                "tests/Fixtures/Support"
+                            ]
+                        },
+                        "rules": "tooling/rector/rules.php",
+                        "configured_rules": "tooling/rector/configured-rules.php",
+                        "skip": "tooling/rector/skip.php"
+                    },
+                    "phpstan": {
+                        "config": {
+                            "paths": [
+                                "src",
+                                "tests/Fixtures/Support"
+                            ]
+                        },
+                        "rules": "tooling/phpstan/phpstan.neon"
+                    },
+                    "pint": {
+                        "config": {
+                            "paths": [
+                                "src",
+                                "tests",
+                                "tooling"
+                            ]
+                        }
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Support\\": "src/Support/",
+                    "Tooling\\": "src/Tooling/"
+                },
+                "exclude-from-classmap": [
+                    "*Test.php",
+                    "*TestCases.php",
+                    "/tests/"
+                ]
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Workbench\\App\\": "workbench/app/",
+                    "Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Justin Seliga",
+                    "email": "justinsel@zillowgroup.com"
+                }
+            ],
+            "description": "A state machine package for Eloquent.",
+            "support": {
+                "source": "https://github.com/AryeoHQ/eloquent-state-machines/tree/0.0.21",
+                "issues": "https://github.com/AryeoHQ/eloquent-state-machines/issues"
+            },
+            "time": "2026-05-11T17:57:09+00:00"
         },
         {
             "name": "aryeo/entities",
@@ -5011,6 +5118,53 @@
                 }
             ],
             "time": "2025-12-27T19:41:33+00:00"
+        },
+        {
+            "name": "phpstan/phpdoc-parser",
+            "version": "2.3.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/phpstan/phpdoc-parser.git",
+                "reference": "a004701b11273a26cd7955a61d67a7f1e525a45a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/phpstan/phpdoc-parser/zipball/a004701b11273a26cd7955a61d67a7f1e525a45a",
+                "reference": "a004701b11273a26cd7955a61d67a7f1e525a45a",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7.4 || ^8.0"
+            },
+            "require-dev": {
+                "doctrine/annotations": "^2.0",
+                "nikic/php-parser": "^5.3.0",
+                "php-parallel-lint/php-parallel-lint": "^1.2",
+                "phpstan/extension-installer": "^1.0",
+                "phpstan/phpstan": "^2.0",
+                "phpstan/phpstan-phpunit": "^2.0",
+                "phpstan/phpstan-strict-rules": "^2.0",
+                "phpunit/phpunit": "^9.6",
+                "symfony/process": "^5.2"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PHPStan\\PhpDocParser\\": [
+                        "src/"
+                    ]
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "PHPDoc parser with support for nullable, intersection and generic types",
+            "support": {
+                "issues": "https://github.com/phpstan/phpdoc-parser/issues",
+                "source": "https://github.com/phpstan/phpdoc-parser/tree/2.3.2"
+            },
+            "time": "2026-01-25T14:56:51+00:00"
         },
         {
             "name": "phpstan/phpstan",
@@ -12277,53 +12431,6 @@
                 "source": "https://github.com/phpDocumentor/TypeResolver/tree/2.0.0"
             },
             "time": "2026-01-06T21:53:42+00:00"
-        },
-        {
-            "name": "phpstan/phpdoc-parser",
-            "version": "2.3.2",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/phpstan/phpdoc-parser.git",
-                "reference": "a004701b11273a26cd7955a61d67a7f1e525a45a"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpdoc-parser/zipball/a004701b11273a26cd7955a61d67a7f1e525a45a",
-                "reference": "a004701b11273a26cd7955a61d67a7f1e525a45a",
-                "shasum": ""
-            },
-            "require": {
-                "php": "^7.4 || ^8.0"
-            },
-            "require-dev": {
-                "doctrine/annotations": "^2.0",
-                "nikic/php-parser": "^5.3.0",
-                "php-parallel-lint/php-parallel-lint": "^1.2",
-                "phpstan/extension-installer": "^1.0",
-                "phpstan/phpstan": "^2.0",
-                "phpstan/phpstan-phpunit": "^2.0",
-                "phpstan/phpstan-strict-rules": "^2.0",
-                "phpunit/phpunit": "^9.6",
-                "symfony/process": "^5.2"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "PHPStan\\PhpDocParser\\": [
-                        "src/"
-                    ]
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "description": "PHPDoc parser with support for nullable, intersection and generic types",
-            "support": {
-                "issues": "https://github.com/phpstan/phpdoc-parser/issues",
-                "source": "https://github.com/phpstan/phpdoc-parser/tree/2.3.2"
-            },
-            "time": "2026-01-25T14:56:51+00:00"
         },
         {
             "name": "psy/psysh",

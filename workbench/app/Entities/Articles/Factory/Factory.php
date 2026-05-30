@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Workbench\App\Entities\Articles\Factory;
 
 use Workbench\App\Entities\Articles\Article;
+use Workbench\App\Entities\Articles\Status\Status;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<Article>
@@ -31,6 +32,20 @@ final class Factory extends \Illuminate\Database\Eloquent\Factories\Factory
     {
         return $this->state(fn () => [
             'syndicated_at' => now(),
+        ]);
+    }
+
+    public function draft(): self
+    {
+        return $this->state(fn () => [
+            'status' => Status::Draft,
+        ]);
+    }
+
+    public function published(): self
+    {
+        return $this->state(fn () => [
+            'status' => Status::Published,
         ]);
     }
 }

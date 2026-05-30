@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\CollectedBy;
 use Illuminate\Database\Eloquent\Attributes\UseEloquentBuilder;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -21,8 +22,14 @@ use Workbench\App\Entities\Articles\Builder\Builder;
 use Workbench\App\Entities\Articles\Collection\Articles;
 use Workbench\App\Entities\Articles\Factory\Factory;
 use Workbench\App\Entities\Articles\Policy\Policy;
+use Workbench\App\Entities\Articles\Status\Status;
 use Workbench\App\Http\Api\V1;
 
+/**
+ * @property bool $is_syndicated
+ * @property bool $is_not_syndicated
+ * @property \Carbon\Carbon|null $syndicated_at
+ */
 #[CollectedBy(Articles::class)]
 #[UseEloquentBuilder(Builder::class)]
 #[UseFactory(Factory::class)]
@@ -40,9 +47,15 @@ class Article extends Model implements Entity, Loggable, Schemable
         'title',
         'body',
         'syndicated_at',
+        'status',
+    ];
+
+    protected $attributes = [
+        'status' => Status::Draft,
     ];
 
     protected $casts = [
+        'status' => Status::class,
         'syndicated_at' => 'datetime',
     ];
 
@@ -70,5 +83,21 @@ class Article extends Model implements Entity, Loggable, Schemable
     public function syndicate(): Syndicate
     {
         return Syndicate::make($this);
+    }
+
+    /** @return Attribute<bool, never> */
+    public function isSyndicated(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): bool => filled($this->syndicated_at)
+        );
+    }
+
+    /** @return Attribute<bool, never> */
+    public function isNotSyndicated(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => ! $this->is_syndicated
+        );
     }
 }

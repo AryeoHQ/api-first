@@ -45,6 +45,10 @@
         "primitives": {
             "type": "vcs",
             "url": "https://github.com/AryeoHQ/primitives"
+        },
+        "eloquent-state-machines": {
+            "type": "vcs",
+            "url": "https://github.com/AryeoHQ/eloquent-state-machines"
         }
     },
     "require": {
@@ -61,7 +65,8 @@
         "aryeo/entities": "0.0.18",
         "aryeo/request-casts": "0.0.13",
         "aryeo/request-authorizers-validators": "0.0.12",
-        "aryeo/request-factories": "^0.0.11"
+        "aryeo/request-factories": "^0.0.11",
+        "aryeo/eloquent-state-machines": "^0.0.21"
     },
     "require-dev": {
         "orchestra/testbench": "^10.6",
@@ -112,24 +117,20 @@
                 "rules": "tooling/phpstan/rules.neon",
                 "config": {
                     "paths": [
-                        "src",
-                        "tests/Fixtures/Support"
+                        "workbench/app"
                     ]
                 }
             },
             "rector": {
                 "config": {
                     "paths": [
-                        "src",
-                        "tests/Fixtures/Support"
+                        "workbench/app"
                     ]
                 }
             },
             "pint": {
                 "config": {
                     "paths": [
-                        "src",
-                        "tests",
                         "workbench/app"
                     ]
                 }

@@ -45,6 +45,7 @@ abstract class TestCase extends Testbench\TestCase
             $table->uuid('id')->primary();
             $table->string('title');
             $table->text('body');
+            $table->string('status');
             $table->timestamps();
             $table->timestamp('syndicated_at')->nullable();
         });
