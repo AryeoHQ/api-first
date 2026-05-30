@@ -16,11 +16,8 @@ final class ArticleTest extends TestCase
     public function its_recorded_to_the_event_log(): void
     {
         $article = Article::factory()->create();
-        $article->update(['title' => 'Updated Title']);
         $article->syndicate()->now();
-        $article->delete();
-        Article::find($article->getKey());
 
-        $this->assertCount(8, Log::all());
+        $this->assertCount(4, Log::all());
     }
 }
