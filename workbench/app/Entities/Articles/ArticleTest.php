@@ -49,8 +49,10 @@ final class ArticleTest extends TestCase
     {
         $article = Article::factory()->create();
         $article->syndicate()->now();
-        // TODO every state transition
 
-        $this->assertCount(4, Log::all());
+        Article::factory()->create()->status->draft()->create()->publish()->now();
+        Article::factory()->create()->status->published()->create()->draft()->now();
+
+        $this->assertCount(12, Log::all());
     }
 }
