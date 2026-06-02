@@ -47,11 +47,10 @@ final class ArticleTest extends TestCase
     #[Test]
     public function its_recorded_to_the_event_log(): void
     {
-        $article = Article::factory()->create();
-        $article->syndicate()->now();
-
-        Article::factory()->create()->status->draft()->create()->publish()->now();
-        Article::factory()->create()->status->published()->create()->draft()->now();
+        $article = Article::factory()->create(); // 2
+        $article->status->publish()->now(); // 4
+        $article->status->draft()->now(); // 4
+        $article->syndicate()->now(); // 2
 
         $this->assertCount(12, Log::all());
     }
