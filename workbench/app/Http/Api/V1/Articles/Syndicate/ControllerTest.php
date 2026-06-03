@@ -26,6 +26,6 @@ final class ControllerTest extends TestCase
             'syndicated_at' => $syndicated->syndicated_at,
         ]);
 
-        Syndicate::assertFiredTimes(1);
+        Syndicate::assertFired(fn (Syndicate $action) => $action->article->is($syndicated));
     }
 }
