@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "54af347ddbd643c9f8b3412c0689b15b",
+    "content-hash": "8eac54f124398bbc5e1c02ba8d042c4c",
     "packages": [
         {
             "name": "aryeo/api-resource-schema",
@@ -488,23 +488,23 @@
         },
         {
             "name": "aryeo/request-casts",
-            "version": "0.0.12",
+            "version": "0.0.14",
             "source": {
                 "type": "git",
                 "url": "https://github.com/AryeoHQ/request-casts.git",
-                "reference": "d43cb1f728a207ed3c276ae9a16ace087621bdf9"
+                "reference": "4e5786c70587587d8488cd4de45f28bdb3f1727c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/request-casts/zipball/d43cb1f728a207ed3c276ae9a16ace087621bdf9",
-                "reference": "d43cb1f728a207ed3c276ae9a16ace087621bdf9",
+                "url": "https://api.github.com/repos/AryeoHQ/request-casts/zipball/4e5786c70587587d8488cd4de45f28bdb3f1727c",
+                "reference": "4e5786c70587587d8488cd4de45f28bdb3f1727c",
                 "shasum": ""
             },
             "require": {
                 "laravel/framework": "^12.37"
             },
             "require-dev": {
-                "aryeo/tooling-laravel": "0.0.34",
+                "aryeo/tooling-laravel": "0.0.37",
                 "nesbot/carbon": "^3.10",
                 "orchestra/testbench": "^10.6",
                 "orchestra/testbench-core": "^10.7",
@@ -512,6 +512,34 @@
                 "phpunit/phpunit": "^12.4.1"
             },
             "type": "library",
+            "extra": {
+                "tooling": {
+                    "phpstan": {
+                        "config": {
+                            "paths": [
+                                "./src",
+                                "./tests"
+                            ]
+                        }
+                    },
+                    "rector": {
+                        "config": {
+                            "paths": [
+                                "./src",
+                                "./tests"
+                            ]
+                        }
+                    },
+                    "pint": {
+                        "config": {
+                            "paths": [
+                                "./src",
+                                "./tests"
+                            ]
+                        }
+                    }
+                }
+            },
             "autoload": {
                 "psr-4": {
                     "Support\\": "src/Support"
@@ -529,10 +557,10 @@
                 }
             ],
             "support": {
-                "source": "https://github.com/AryeoHQ/request-casts/tree/0.0.12",
+                "source": "https://github.com/AryeoHQ/request-casts/tree/0.0.14",
                 "issues": "https://github.com/AryeoHQ/request-casts/issues"
             },
-            "time": "2026-04-07T19:50:53+00:00"
+            "time": "2026-07-22T14:09:08+00:00"
         },
         {
             "name": "aryeo/tooling-laravel",
