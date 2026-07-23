@@ -49,6 +49,10 @@ class Provider extends ServiceProvider
 
     private function registerBindings(): void
     {
+        $this->app->rebinding('request', function (): void {
+            $this->app->forgetInstance(CastableData::class);
+        });
+
         $this->app->scoped(CastableData::class, function (): null|CastableData {
             $route = request()->route();
 
