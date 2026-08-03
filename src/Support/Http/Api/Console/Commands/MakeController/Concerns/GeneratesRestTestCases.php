@@ -114,7 +114,7 @@ trait GeneratesRestTestCases
             $this->assertStringContainsString('Method::'.$this->showController->route->method->name, $contents);
             $this->assertStringContainsString($this->showController->entity->fqcn->toString(), $contents);
             $this->assertStringContainsString(
-                $this->showController->entity->name.' $'.$this->showController->entity->variableName, $contents
+                $this->showController->entity->name.' $'.$this->showController->route->routeParameterName, $contents
             );
         });
     }

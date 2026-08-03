@@ -45,9 +45,13 @@ final class Route extends GenericClass
         return $route;
     }
 
+    public Stringable $routeParameterName {
+        get => str(Str::camel($this->entity->name->toString()));
+    }
+
     public Stringable $routeName {
         get {
-            $base = str('api.')->append($this->apiVersion->lower()->toString())->append('.', $this->entity->plural->lower()->toString());
+            $base = str('api.')->append($this->apiVersion->lower()->toString())->append('.', Str::kebab($this->entity->plural->toString()));
 
             return match ($this->endpointType) {
                 EndpointType::Action => $base->append('.actions.', Str::kebab($this->endpointName->toString())),
@@ -58,19 +62,19 @@ final class Route extends GenericClass
 
     public Stringable $uri {
         get {
-            $base = str('api/')->append($this->apiVersion->lower()->toString())->append('/', $this->entity->plural->lower()->toString());
+            $base = str('api/')->append($this->apiVersion->lower()->toString())->append('/', Str::kebab($this->entity->plural->toString()));
 
             return match ($this->endpointType) {
                 EndpointType::Action => match ($this->scope) {
                     Scope::Instance => $base->append(
-                        '/{', $this->entity->variableName->toString(),
+                        '/{', $this->routeParameterName->toString(),
                         '}/actions/',
                         Str::kebab($this->endpointName->toString())
                     ),
                     Scope::Resource => $base->append('/actions/', Str::kebab($this->endpointName->toString())),
                 },
                 EndpointType::Rest => match ($this->scope) {
-                    Scope::Instance => $base->append('/{', $this->entity->variableName->toString(), '}'),
+                    Scope::Instance => $base->append('/{', $this->routeParameterName->toString(), '}'),
                     Scope::Resource => $base,
                 },
             };
