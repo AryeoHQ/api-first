@@ -96,6 +96,46 @@ final class RouteTest extends TestCase
         $this->assertSame(Method::Post, $post->method);
     }
 
+    #[Test]
+    public function it_resolves_route_name_for_multi_word_entity(): void
+    {
+        $route = Route::make(
+            apiVersion: 'V1',
+            entity: new Entity(name: 'MarketingKitTemplate', baseNamespace: 'Workbench\\App\\'),
+            endpointType: EndpointType::Rest,
+            endpointName: Endpoint::Index->value,
+            scope: Scope::Resource,
+        );
+
+        $this->assertSame('api.v1.marketing-kit-templates.index', $route->routeName->toString());
+    }
+
+    #[Test]
+    public function it_resolves_uri_for_multi_word_entity(): void
+    {
+        $entity = new Entity(name: 'MarketingKitTemplate', baseNamespace: 'Workbench\\App\\');
+
+        $index = Route::make(
+            apiVersion: 'V1',
+            entity: $entity,
+            endpointType: EndpointType::Rest,
+            endpointName: Endpoint::Index->value,
+            scope: Scope::Resource,
+        );
+
+        $show = Route::make(
+            apiVersion: 'V1',
+            entity: $entity,
+            endpointType: EndpointType::Rest,
+            endpointName: Endpoint::Show->value,
+        );
+
+        $this->assertSame('api/v1/marketing-kit-templates', $index->uri->toString());
+        $this->assertSame('api/v1/marketing-kit-templates/{marketing_kit_template}', $show->uri->toString());
+        $this->assertSame('marketing_kit_template', $show->routeParameterName->toString());
+        $this->assertSame('marketingKitTemplate', $show->controllerParameterName->toString());
+    }
+
     private function makeRoute(EndpointType $endpointType, string $endpointName, ActionMethod $actionMethod = ActionMethod::Post, Scope $scope = Scope::Instance): Route
     {
         return Route::make(
