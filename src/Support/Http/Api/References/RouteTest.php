@@ -131,8 +131,9 @@ final class RouteTest extends TestCase
         );
 
         $this->assertSame('api/v1/marketing-kit-templates', $index->uri->toString());
-        $this->assertSame('api/v1/marketing-kit-templates/{marketingKitTemplate}', $show->uri->toString());
-        $this->assertSame('marketingKitTemplate', $show->routeParameterName->toString());
+        $this->assertSame('api/v1/marketing-kit-templates/{marketing_kit_template}', $show->uri->toString());
+        $this->assertSame('marketing_kit_template', $show->routeParameterName->toString());
+        $this->assertSame('marketingKitTemplate', $show->controllerParameterName->toString());
     }
 
     private function makeRoute(EndpointType $endpointType, string $endpointName, ActionMethod $actionMethod = ActionMethod::Post, Scope $scope = Scope::Instance): Route

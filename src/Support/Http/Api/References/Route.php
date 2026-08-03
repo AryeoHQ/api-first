@@ -46,12 +46,16 @@ final class Route extends GenericClass
     }
 
     public Stringable $routeParameterName {
-        get => str(Str::camel($this->entity->name->toString()));
+        get => $this->entity->name->snake();
+    }
+
+    public Stringable $controllerParameterName {
+        get => $this->entity->name->camel();
     }
 
     public Stringable $routeName {
         get {
-            $base = str('api.')->append($this->apiVersion->lower()->toString())->append('.', Str::kebab($this->entity->plural->toString()));
+            $base = str('api.')->append($this->apiVersion->lower()->toString())->append('.', $this->entity->plural->kebab()->toString());
 
             return match ($this->endpointType) {
                 EndpointType::Action => $base->append('.actions.', Str::kebab($this->endpointName->toString())),
@@ -62,7 +66,7 @@ final class Route extends GenericClass
 
     public Stringable $uri {
         get {
-            $base = str('api/')->append($this->apiVersion->lower()->toString())->append('/', Str::kebab($this->entity->plural->toString()));
+            $base = str('api/')->append($this->apiVersion->lower()->toString())->append('/', $this->entity->plural->kebab()->toString());
 
             return match ($this->endpointType) {
                 EndpointType::Action => match ($this->scope) {

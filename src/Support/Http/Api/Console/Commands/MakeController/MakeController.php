@@ -129,7 +129,7 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
             ->when(
                 $this->controller->scope === Scope::Instance,
                 fn ($parameters) => $parameters
-                    ->push($this->controller->entity->name.' $'.$this->controller->route->routeParameterName)
+                    ->push($this->controller->entity->name.' $'.$this->controller->route->controllerParameterName)
             )->implode(', ');
     }
 

@@ -64,7 +64,7 @@ trait GeneratesActionTestCases
             $this->assertStringContainsString('Method::'.$this->actionController->route->method->name, $contents);
             $this->assertStringContainsString($this->actionController->entity->fqcn->toString(), $contents);
             $this->assertStringContainsString(
-                $this->actionController->entity->name.' $'.$this->actionController->route->routeParameterName,
+                $this->actionController->entity->name.' $'.$this->actionController->route->controllerParameterName,
                 $contents
             );
         });
@@ -100,7 +100,7 @@ trait GeneratesActionTestCases
             $this->assertStringContainsString('Method::'.$this->resourceActionController->route->method->name, $contents);
             $this->assertStringNotContainsString($this->resourceActionController->entity->fqcn->toString(), $contents);
             $this->assertStringNotContainsString(
-                $this->resourceActionController->entity->name.' $'.$this->resourceActionController->route->routeParameterName,
+                $this->resourceActionController->entity->name.' $'.$this->resourceActionController->route->controllerParameterName,
                 $contents
             );
         });
