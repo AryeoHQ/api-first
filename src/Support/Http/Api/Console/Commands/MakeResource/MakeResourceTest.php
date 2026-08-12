@@ -5,18 +5,20 @@ declare(strict_types=1);
 namespace Support\Http\Api\Console\Commands\MakeResource;
 
 use Illuminate\Support\Facades\File;
+use Orchestra\Testbench\Attributes\WithConfig;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Support\Entities\References\Entity;
 use Support\Http\Api\Console\Commands\MakeResource\Listeners\InjectSchemaProperties;
 use Support\Http\Resources\Schemas\Console\Commands\MakeResource\References\Schema;
+use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\TestCase;
 use Tooling\Composer\Composer;
 use Tooling\Entities\Composer\ClassMap\Collectors\Entities as EntitiesCollector;
-use Tooling\Http\Api\Composer\ClassMap\Collectors\ApiVersions;
 
 #[CoversClass(MakeResource::class)]
 #[CoversClass(InjectSchemaProperties::class)]
+#[WithConfig('api-resource-schema.version', ApiVersion::class)]
 final class MakeResourceTest extends TestCase
 {
     public Entity $entity {
@@ -111,13 +113,12 @@ final class MakeResourceTest extends TestCase
     public function it_prompts_for_api_version_when_option_is_not_provided(): void
     {
         Composer::fake();
-        ApiVersions::fake(['App\Http\Api\V1']);
 
         $this->artisan(MakeResource::class, ['--entity' => $this->entity->fqcn->toString(), '--force' => true])
             ->expectsChoice(
-                'What is the API version?',
-                'V1',
-                ['V1', MakeResource::CREATE_NEW_VERSION],
+                'Select a version.',
+                'v1',
+                ['v1' => 'v1'],
             )
             ->assertSuccessful();
 

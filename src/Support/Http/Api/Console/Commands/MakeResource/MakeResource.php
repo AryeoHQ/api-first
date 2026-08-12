@@ -38,6 +38,7 @@ class MakeResource extends Command
             [
                 'name' => $this->entity->name->toString(),
                 '--namespace' => $namespace,
+                '--schema-version' => $this->apiVersion->toString(),
                 '--force' => $this->option('force'),
             ]
         );

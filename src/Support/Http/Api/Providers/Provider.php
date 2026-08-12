@@ -16,7 +16,6 @@ use Support\Http\Api\Console\Commands\MakeResource\MakeResource;
 use Support\Http\Api\Request\TokenContext;
 use Support\Http\Requests\Contracts\CastableData;
 use Support\Http\Resources\Schemas\Console\Commands\MakeResource\Events\BuildingSchema;
-use Tooling\Http\Api\Composer\ClassMap\Collectors\ApiVersions;
 
 class Provider extends ServiceProvider
 {
@@ -25,8 +24,6 @@ class Provider extends ServiceProvider
         $this->registerBindings();
         $this->registerCursorResolver();
         $this->registerMixins();
-
-        $this->app->tag([ApiVersions::class], 'tooling.classmap.collectors');
     }
 
     public function boot(): void
