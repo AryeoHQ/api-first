@@ -14,3 +14,4 @@ workbench/*
 !workbench/app
 workbench/app/*
 !workbench/app/.gitkeep
+!workbench/app/Providers
