@@ -27,3 +27,7 @@ services:
         class: Tooling\Http\Api\PhpStan\SchemaMustHaveResourceType
         tags:
             - phpstan.rules.rule
+    -
+        class: Tooling\Http\Api\PhpStan\Extensions\TokenContext
+        tags:
+            - phpstan.broker.methodsClassReflectionExtension
