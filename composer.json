@@ -47,12 +47,12 @@
         "aryeo/attribute-routing": "0.0.15",
         "aryeo/entities": "0.0.19",
         "aryeo/request-casts": "0.0.15",
-        "aryeo/request-authorizers-validators": "0.0.13"
+        "aryeo/request-authorizers-validators": "0.0.13",
+        "nesbot/carbon": "^3.10"
     },
     "require-dev": {
         "orchestra/testbench": "^10.6",
         "phpunit/phpunit": "^12.4.1",
-        "nesbot/carbon": "^3.10",
         "orchestra/testbench-core": "^10.7",
         "pestphp/pest": "^4.1"
     },
