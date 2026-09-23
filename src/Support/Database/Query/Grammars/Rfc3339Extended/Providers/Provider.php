@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Support\Database\Query\Grammars\Rfc3339Extended\Providers;
 
-use Carbon\FactoryImmutable;
 use DateTime;
+use DateTimeInterface;
 use Illuminate\Database\Events\ConnectionEstablished;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -41,8 +42,6 @@ class Provider extends ServiceProvider
 
     private function bootCarbonSerialization(): void
     {
-        FactoryImmutable::getDefaultInstance()->serializeUsing(
-            fn (\DateTimeInterface $date): string => $date->format(DateTime::RFC3339_EXTENDED)
-        );
+        Date::serializeUsing(fn (DateTimeInterface $date): string => $date->format(DateTime::RFC3339_EXTENDED));
     }
 }

@@ -6,7 +6,7 @@ namespace Support\Database\Query\Grammars\Rfc3339Extended\Providers;
 
 use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Database\Schema\Builder;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -47,7 +47,7 @@ final class ProviderTest extends TestCase
     {
         $this->assertSame(
             '2026-05-19T10:30:45.123+00:00',
-            Carbon::parse('2026-05-19T10:30:45.123+00:00')->jsonSerialize(),
+            Date::parse('2026-05-19T10:30:45.123+00:00')->jsonSerialize(),
         );
     }
 }
