@@ -58,6 +58,7 @@
     },
     "autoload": {
         "psr-4": {
+            "Support\\Database\\": "src/Support/Database",
             "Support\\Http\\Api\\": "src/Support/Http/Api",
             "Tooling\\Http\\Api\\": "src/Tooling/Http/Api"
         },
@@ -89,6 +90,7 @@
     "extra": {
         "laravel": {
             "providers": [
+                "Support\\Database\\Query\\Grammars\\Rfc3339Extended\\Providers\\Provider",
                 "Support\\Http\\Api\\Providers\\Provider"
             ]
         },
