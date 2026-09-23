@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Support\Database\Query\Grammars\Rfc3339Extended\Providers;
 
-use DateTime;
 use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Database\Schema\Builder;
 use Illuminate\Support\Carbon;

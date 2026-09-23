@@ -26,8 +26,8 @@ final class SwapDateFormatGrammarTest extends TestCase
         );
     }
 
-    #[Test]
     #[DataProvider('grammars')]
+    #[Test]
     public function it_replaces_laravels_grammar_with_ours(string $laravel, string $ours): void
     {
         $connection = DB::connection();
