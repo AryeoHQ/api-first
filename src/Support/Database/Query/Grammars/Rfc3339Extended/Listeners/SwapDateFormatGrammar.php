@@ -14,7 +14,9 @@ use Support\Database\Query\Grammars\Rfc3339Extended\SqlServerGrammar;
 
 class SwapDateFormatGrammar
 {
-    /** @var Collection<class-string, class-string> */
+    /**
+     * @var Collection<class-string, class-string>
+     */
     public Collection $map {
         get => collect([
             MySqlGrammar::class,
@@ -22,9 +24,15 @@ class SwapDateFormatGrammar
             PostgresGrammar::class,
             SQLiteGrammar::class,
             SqlServerGrammar::class,
-        ])->mapWithKeys(
-            fn (string $grammar): array => [get_parent_class($grammar) => $grammar]
-        );
+        ])->mapWithKeys($this->parentEntry(...));
+    }
+
+    /**
+     * @return array<class-string, class-string>
+     */
+    private function parentEntry(string $grammar): array
+    {
+        return [get_parent_class($grammar) => $grammar];
     }
 
     public function handle(ConnectionEstablished $event): void
