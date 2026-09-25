@@ -13,6 +13,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Support\Database\Query\Grammars\Rfc3339Extended\Listeners\SwapDateFormatGrammar;
 use Support\Database\Query\Grammars\Rfc3339Extended\SQLiteGrammar;
+use Tests\Fixtures\Support\Database\Query\Grammars\Rfc3339Extended\Rfc3339ExtendedTestModel;
 use Tests\TestCase;
 
 #[CoversClass(Provider::class)]
@@ -43,11 +44,38 @@ final class ProviderTest extends TestCase
     }
 
     #[Test]
-    public function it_configures_carbon_serialization_to_rfc3339_extended(): void
+    public function it_serializes_carbon_with_millisecond_precision(): void
     {
+        $timestamp = '2026-05-19T10:30:45.123+00:00';
+
         $this->assertSame(
-            '2026-05-19T10:30:45.123+00:00',
-            Date::parse('2026-05-19T10:30:45.123+00:00')->jsonSerialize(),
+            $timestamp,
+            Date::parse($timestamp)->jsonSerialize(),
         );
+    }
+
+    #[Test]
+    public function it_stores_timestamps_with_millisecond_precision(): void
+    {
+        $timestamp = '2026-05-19T10:30:45.123+00:00';
+
+        Date::withTestNow(Date::parse($timestamp), function () use ($timestamp) {
+            $model = Rfc3339ExtendedTestModel::factory()->create();
+            $raw = DB::table('rfc3339_extended_test_models')->where('id', $model->getKey())->first();
+
+            $this->assertSame($timestamp, $raw->created_at);
+        });
+    }
+
+    #[Test]
+    public function it_retrieves_model_timestamps_with_millisecond_precision(): void
+    {
+        $timestamp = '2026-05-19T10:30:45.123+00:00';
+
+        Date::withTestNow(Date::parse($timestamp), function () use ($timestamp) {
+            $model = Rfc3339ExtendedTestModel::factory()->create();
+
+            $this->assertSame($timestamp, $model->fresh()->created_at->jsonSerialize());
+        });
     }
 }

@@ -6,11 +6,8 @@ namespace Support\Database\Query\Grammars\Rfc3339Extended\Listeners;
 
 use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Support\Collection;
-use Support\Database\Query\Grammars\Rfc3339Extended\MariaDbGrammar;
-use Support\Database\Query\Grammars\Rfc3339Extended\MySqlGrammar;
 use Support\Database\Query\Grammars\Rfc3339Extended\PostgresGrammar;
 use Support\Database\Query\Grammars\Rfc3339Extended\SQLiteGrammar;
-use Support\Database\Query\Grammars\Rfc3339Extended\SqlServerGrammar;
 
 class SwapDateFormatGrammar
 {
@@ -19,11 +16,8 @@ class SwapDateFormatGrammar
      */
     public Collection $map {
         get => collect([
-            MySqlGrammar::class,
-            MariaDbGrammar::class,
             PostgresGrammar::class,
             SQLiteGrammar::class,
-            SqlServerGrammar::class,
         ])->mapWithKeys($this->parentEntry(...));
     }
 
