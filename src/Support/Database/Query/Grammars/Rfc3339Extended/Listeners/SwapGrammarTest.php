@@ -17,13 +17,10 @@ final class SwapGrammarTest extends TestCase
     /** @return array<int, array{class-string, class-string}> */
     public static function grammars(): array
     {
-        $map = (new SwapGrammar)->map;
-
-        return array_map(
-            static fn (string $laravel, string $ours): array => [$laravel, $ours],
-            $map->keys()->all(),
-            $map->values()->all(),
-        );
+        return (new SwapGrammar)->map
+            ->map(fn (string $ours, string $laravel): array => [$laravel, $ours])
+            ->values()
+            ->all();
     }
 
     #[DataProvider('grammars')]
