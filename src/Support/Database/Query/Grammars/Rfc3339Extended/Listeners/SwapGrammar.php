@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
 use Support\Database\Query\Grammars\Rfc3339Extended\PostgresGrammar;
 use Support\Database\Query\Grammars\Rfc3339Extended\SQLiteGrammar;
 
-class SwapDateFormatGrammar
+class SwapGrammar
 {
     /**
      * @var Collection<class-string, class-string>

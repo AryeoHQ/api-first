@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
-use Support\Database\Query\Grammars\Rfc3339Extended\Listeners\SwapDateFormatGrammar;
+use Support\Database\Query\Grammars\Rfc3339Extended\Listeners\SwapGrammar;
 use Support\Database\Query\Grammars\Rfc3339Extended\SQLiteGrammar;
 use Tests\Fixtures\Support\Database\Query\Grammars\Rfc3339Extended\Rfc3339ExtendedTestModel;
 use Tests\TestCase;
@@ -23,7 +23,7 @@ final class ProviderTest extends TestCase
     public function it_registers_the_grammar_swap_listener(): void
     {
         $this->assertContains(
-            SwapDateFormatGrammar::class,
+            SwapGrammar::class,
             Event::getRawListeners()[ConnectionEstablished::class],
         );
     }

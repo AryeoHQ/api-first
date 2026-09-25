@@ -11,13 +11,13 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-#[CoversClass(SwapDateFormatGrammar::class)]
-final class SwapDateFormatGrammarTest extends TestCase
+#[CoversClass(SwapGrammar::class)]
+final class SwapGrammarTest extends TestCase
 {
     /** @return array<int, array{class-string, class-string}> */
     public static function grammars(): array
     {
-        $map = (new SwapDateFormatGrammar)->map;
+        $map = (new SwapGrammar)->map;
 
         return array_map(
             static fn (string $laravel, string $ours): array => [$laravel, $ours],
@@ -33,7 +33,7 @@ final class SwapDateFormatGrammarTest extends TestCase
         $connection = DB::connection();
         $connection->setQueryGrammar(new $laravel($connection));
 
-        (new SwapDateFormatGrammar)->handle(new ConnectionEstablished($connection));
+        (new SwapGrammar)->handle(new ConnectionEstablished($connection));
 
         $this->assertInstanceOf($ours, $connection->getQueryGrammar());
     }
