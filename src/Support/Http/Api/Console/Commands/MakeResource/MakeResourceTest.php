@@ -64,7 +64,7 @@ final class MakeResourceTest extends TestCase
 
         tap(File::get($this->reference->filePath->toString()), function (string $contents) {
             $this->assertStringContainsString(
-                'public string $id { get => $this->resource->getKey(); }',
+                'public null|string $id { get => $this->resource->getKey(); }',
                 $contents,
             );
 

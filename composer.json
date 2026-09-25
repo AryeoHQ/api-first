@@ -33,6 +33,22 @@
         "primitives": {
             "type": "vcs",
             "url": "https://github.com/AryeoHQ/primitives"
+        },
+        "event-log": {
+            "type": "vcs",
+            "url": "https://github.com/AryeoHQ/event-log"
+        },
+        "webhooks": {
+            "type": "vcs",
+            "url": "https://github.com/AryeoHQ/webhooks"
+        },
+        "actions": {
+            "type": "vcs",
+            "url": "https://github.com/AryeoHQ/actions"
+        },
+        "eloquent-state-machines": {
+            "type": "vcs",
+            "url": "https://github.com/AryeoHQ/eloquent-state-machines"
         }
     },
     "require": {
@@ -47,7 +63,9 @@
         "aryeo/attribute-routing": "0.0.15",
         "aryeo/entities": "0.0.19",
         "aryeo/request-casts": "0.0.15",
-        "aryeo/request-authorizers-validators": "0.0.13"
+        "aryeo/request-authorizers-validators": "0.0.13",
+        "aryeo/event-log": "0.0.4",
+        "aryeo/webhooks": "0.0.1"
     },
     "require-dev": {
         "nesbot/carbon": "^3.10",
@@ -59,6 +77,7 @@
     "autoload": {
         "psr-4": {
             "Support\\Database\\": "src/Support/Database",
+            "Support\\Entities\\": "src/Support/Entities",
             "Support\\Http\\Api\\": "src/Support/Http/Api",
             "Tooling\\Http\\Api\\": "src/Tooling/Http/Api"
         },
