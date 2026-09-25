@@ -50,14 +50,15 @@
         "aryeo/request-authorizers-validators": "0.0.13"
     },
     "require-dev": {
-        "orchestra/testbench": "^10.6",
-        "phpunit/phpunit": "^12.4.1",
         "nesbot/carbon": "^3.10",
+        "orchestra/testbench": "^10.6",
         "orchestra/testbench-core": "^10.7",
-        "pestphp/pest": "^4.1"
+        "pestphp/pest": "^4.1",
+        "phpunit/phpunit": "^12.4.1"
     },
     "autoload": {
         "psr-4": {
+            "Support\\Database\\": "src/Support/Database",
             "Support\\Http\\Api\\": "src/Support/Http/Api",
             "Tooling\\Http\\Api\\": "src/Tooling/Http/Api"
         },
@@ -89,6 +90,7 @@
     "extra": {
         "laravel": {
             "providers": [
+                "Support\\Database\\Query\\Grammars\\Rfc3339Extended\\Providers\\Provider",
                 "Support\\Http\\Api\\Providers\\Provider"
             ]
         },

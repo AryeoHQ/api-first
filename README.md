@@ -180,6 +180,22 @@ php artisan make:resource
 
 The command prompts for an API version and entity, then generates a schema in the entity's namespace (e.g., `App\Http\Api\V1\Jobs`). The generated schema automatically includes `$id` and `$resourceType` properties via the `InjectSchemaProperties` event listener.
 
+## Timestamps
+
+All timestamps use RFC 3339 Extended format with millisecond precision:
+
+```
+2026-05-19T10:30:45.123+00:00
+```
+
+The package does three things automatically on boot:
+
+1. **Swaps query grammars** — When a Postgres or SQLite connection starts, the package replaces Laravel's grammar with one that reads and writes `DateTime::RFC3339_EXTENDED`. Other database drivers keep their default grammar.
+2. **Sets schema precision** — `Schema::defaultTimePrecision(3)` makes new timestamp columns store three decimal places.
+3. **Configures Carbon serialization** — `Date::serializeUsing()` formats all Carbon instances (mutable and immutable) as RFC 3339 Extended when serialized to JSON.
+
+No configuration is needed. The service provider handles everything through package discovery.
+
 ## Tooling
 
 This package provides PHPStan rules that enforce API conventions at static analysis time. They are automatically registered when using `aryeo/tooling-laravel`.

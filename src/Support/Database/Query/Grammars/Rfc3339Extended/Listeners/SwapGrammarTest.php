@@ -1,0 +1,37 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Support\Database\Query\Grammars\Rfc3339Extended\Listeners;
+
+use Illuminate\Database\Events\ConnectionEstablished;
+use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
+
+#[CoversClass(SwapGrammar::class)]
+final class SwapGrammarTest extends TestCase
+{
+    /** @return array<int, array{class-string, class-string}> */
+    public static function grammars(): array
+    {
+        return (new SwapGrammar)->map
+            ->map(fn (string $ours, string $laravel): array => [$laravel, $ours])
+            ->values()
+            ->all();
+    }
+
+    #[DataProvider('grammars')]
+    #[Test]
+    public function it_replaces_laravels_grammar_with_ours(string $laravel, string $ours): void
+    {
+        $connection = DB::connection();
+        $connection->setQueryGrammar(new $laravel($connection));
+
+        (new SwapGrammar)->handle(new ConnectionEstablished($connection));
+
+        $this->assertInstanceOf($ours, $connection->getQueryGrammar());
+    }
+}
