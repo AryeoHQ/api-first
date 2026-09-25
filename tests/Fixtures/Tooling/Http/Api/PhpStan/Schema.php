@@ -10,7 +10,7 @@ final class Schema extends JsonResource implements Contracts\Schema
 {
     use AsSchema;
 
-    public string $id { get => $this->resource->getKey(); }
+    public null|string $id { get => $this->resource->getKey(); }
 
     public string $resourceType = 'example';
 }
