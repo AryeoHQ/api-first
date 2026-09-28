@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "101fb3b9692b5c6bb83cb52dbe2234ae",
+    "content-hash": "f7041f2f4345b270659dbaa6b9326da0",
     "packages": [
         {
             "name": "aryeo/actions",
@@ -634,16 +634,16 @@
         },
         {
             "name": "aryeo/event-log",
-            "version": "0.0.4",
+            "version": "0.0.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/AryeoHQ/event-log.git",
-                "reference": "f68f2e12b8b37c189a9086ee745975654735d0de"
+                "reference": "8ece34b1570177b5f7d671d005b9ce9dba8763c1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/event-log/zipball/f68f2e12b8b37c189a9086ee745975654735d0de",
-                "reference": "f68f2e12b8b37c189a9086ee745975654735d0de",
+                "url": "https://api.github.com/repos/AryeoHQ/event-log/zipball/8ece34b1570177b5f7d671d005b9ce9dba8763c1",
+                "reference": "8ece34b1570177b5f7d671d005b9ce9dba8763c1",
                 "shasum": ""
             },
             "require": {
@@ -718,9 +718,9 @@
                 }
             ],
             "support": {
-                "source": "https://github.com/AryeoHQ/event-log/tree/0.0.4"
+                "source": "https://github.com/AryeoHQ/event-log/tree/0.0.5"
             },
-            "time": "2026-09-24T20:47:22+00:00"
+            "time": "2026-09-28T13:57:41+00:00"
         },
         {
             "name": "aryeo/primitives",
@@ -1122,21 +1122,21 @@
         },
         {
             "name": "aryeo/webhooks",
-            "version": "0.0.1",
+            "version": "0.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/AryeoHQ/webhooks.git",
-                "reference": "443a242b84d2a2ceadbe6b8a3842a0fa61585fed"
+                "reference": "e25c91b85e769218075f7d5ef213360e16b61859"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/webhooks/zipball/443a242b84d2a2ceadbe6b8a3842a0fa61585fed",
-                "reference": "443a242b84d2a2ceadbe6b8a3842a0fa61585fed",
+                "url": "https://api.github.com/repos/AryeoHQ/webhooks/zipball/e25c91b85e769218075f7d5ef213360e16b61859",
+                "reference": "e25c91b85e769218075f7d5ef213360e16b61859",
                 "shasum": ""
             },
             "require": {
                 "aryeo/eloquent-state-machines": "0.0.32",
-                "aryeo/event-log": "0.0.4",
+                "aryeo/event-log": "0.0.5",
                 "cloudevents/sdk-php": "^1.2",
                 "laravel/framework": "^12.37",
                 "nesbot/carbon": "^3.11",
@@ -1205,9 +1205,9 @@
                 }
             ],
             "support": {
-                "source": "https://github.com/AryeoHQ/webhooks/tree/0.0.1"
+                "source": "https://github.com/AryeoHQ/webhooks/tree/0.0.2"
             },
-            "time": "2026-09-24T22:47:43+00:00"
+            "time": "2026-09-28T14:15:33+00:00"
         },
         {
             "name": "brick/math",
