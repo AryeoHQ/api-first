@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "17f1adad7dfd71b7bcfea9bf5c5421ad",
+    "content-hash": "5da71dc0f0115e70160d4de1f8de3b64",
     "packages": [
         {
             "name": "aryeo/actions",
@@ -1122,16 +1122,16 @@
         },
         {
             "name": "aryeo/webhooks",
-            "version": "0.0.3",
+            "version": "0.0.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/AryeoHQ/webhooks.git",
-                "reference": "61546683dc5a91693d6476ca747fb6d53f258e88"
+                "reference": "d9b7a1e366e9151ffe2c1c107833ff29c8c81a12"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/webhooks/zipball/61546683dc5a91693d6476ca747fb6d53f258e88",
-                "reference": "61546683dc5a91693d6476ca747fb6d53f258e88",
+                "url": "https://api.github.com/repos/AryeoHQ/webhooks/zipball/d9b7a1e366e9151ffe2c1c107833ff29c8c81a12",
+                "reference": "d9b7a1e366e9151ffe2c1c107833ff29c8c81a12",
                 "shasum": ""
             },
             "require": {
@@ -1159,8 +1159,8 @@
                 "laravel": {
                     "providers": [
                         "Support\\Webhooks\\Providers\\Provider",
-                        "Support\\Webhooks\\Subscriptions\\Providers\\Provider",
-                        "Support\\Webhooks\\Topics\\Providers\\Provider"
+                        "Support\\Webhooks\\Endpoints\\Providers\\Provider",
+                        "Support\\Webhooks\\Subscriptions\\Providers\\Provider"
                     ]
                 },
                 "tooling": {
@@ -1205,9 +1205,9 @@
                 }
             ],
             "support": {
-                "source": "https://github.com/AryeoHQ/webhooks/tree/0.0.3"
+                "source": "https://github.com/AryeoHQ/webhooks/tree/0.0.4"
             },
-            "time": "2026-09-28T19:17:14+00:00"
+            "time": "2026-09-28T23:19:37+00:00"
         },
         {
             "name": "brick/math",
