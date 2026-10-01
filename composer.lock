@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7ae4fbaee3e8d8c4c6c190d0796b3718",
+    "content-hash": "2752d8ec3087788b9ba9c79d34d80aa7",
     "packages": [
         {
             "name": "aryeo/actions",
@@ -217,16 +217,16 @@
         },
         {
             "name": "aryeo/attribute-routing",
-            "version": "0.0.15",
+            "version": "0.0.16",
             "source": {
                 "type": "git",
                 "url": "https://github.com/AryeoHQ/attribute-routing.git",
-                "reference": "b832548d91aa7d6fe78ed068929386a4e86a91ec"
+                "reference": "da0494a0848e93bd15048a02af6ef52d602562a2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/attribute-routing/zipball/b832548d91aa7d6fe78ed068929386a4e86a91ec",
-                "reference": "b832548d91aa7d6fe78ed068929386a4e86a91ec",
+                "url": "https://api.github.com/repos/AryeoHQ/attribute-routing/zipball/da0494a0848e93bd15048a02af6ef52d602562a2",
+                "reference": "da0494a0848e93bd15048a02af6ef52d602562a2",
                 "shasum": ""
             },
             "require": {
@@ -236,7 +236,7 @@
                 "symfony/http-foundation": "^7.3"
             },
             "require-dev": {
-                "aryeo/tooling-laravel": "0.0.37",
+                "aryeo/tooling-laravel": "0.0.39",
                 "brianium/paratest": "^7.14",
                 "nikic/php-parser": "^5.6",
                 "orchestra/testbench": "^10.6",
@@ -319,10 +319,10 @@
                 "laravel"
             ],
             "support": {
-                "source": "https://github.com/AryeoHQ/attribute-routing/tree/0.0.15",
+                "source": "https://github.com/AryeoHQ/attribute-routing/tree/0.0.16",
                 "issues": "https://github.com/AryeoHQ/attribute-routing/issues"
             },
-            "time": "2026-05-15T20:42:54+00:00"
+            "time": "2026-10-01T18:49:49+00:00"
         },
         {
             "name": "aryeo/eloquent-filters",
@@ -12832,5 +12832,5 @@
         "php": "^8.4"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }
