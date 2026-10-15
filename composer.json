@@ -14,9 +14,9 @@
             "type": "vcs",
             "url": "https://github.com/AryeoHQ/attribute-routing"
         },
-        "eloquent-filters": {
+        "eloquent-search": {
             "type": "vcs",
-            "url": "https://github.com/AryeoHQ/eloquent-filters"
+            "url": "https://github.com/AryeoHQ/eloquent-search"
         },
         "entities": {
             "type": "vcs",
@@ -53,26 +53,26 @@
     },
     "require": {
         "php": "^8.4",
-        "aryeo/api-resource-schema": "0.0.20",
-        "laravel/framework": "^12.37",
+        "aryeo/api-resource-schema": "0.0.21",
+        "laravel/framework": "^12.37 || ^13",
         "laravel/prompts": "^0.3.8",
         "nikic/php-parser": "^5.7",
         "phpstan/phpstan": "^2.1",
-        "symfony/console": "^7.4",
-        "aryeo/tooling-laravel": "0.0.39",
-        "aryeo/attribute-routing": "0.0.16",
-        "aryeo/entities": "0.0.19",
-        "aryeo/request-casts": "0.0.15",
-        "aryeo/request-authorizers-validators": "0.0.13",
-        "aryeo/event-log": "0.0.8",
-        "aryeo/webhooks": "0.0.7"
+        "symfony/console": "^7.4 || ^8.0",
+        "aryeo/tooling-laravel": "0.0.40",
+        "aryeo/attribute-routing": "0.0.17",
+        "aryeo/entities": "0.0.20",
+        "aryeo/request-casts": "0.0.16",
+        "aryeo/request-authorizers-validators": "0.0.14",
+        "aryeo/event-log": "0.0.9",
+        "aryeo/webhooks": "0.0.8"
     },
     "require-dev": {
         "nesbot/carbon": "^3.10",
-        "orchestra/testbench": "^10.6",
-        "orchestra/testbench-core": "^10.7",
+        "orchestra/testbench": "^10.6 || ^11",
+        "orchestra/testbench-core": "^10.7 || ^11",
         "pestphp/pest": "^4.1",
-        "phpunit/phpunit": "^12.4.1"
+        "phpunit/phpunit": "^12.4.1 || ^13"
     },
     "autoload": {
         "psr-4": {
