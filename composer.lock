@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e7a4fe285dec74d69af15e5920607f32",
+    "content-hash": "a0aed8bcfcb93245fb0f6d37c4f253d9",
     "packages": [
         {
             "name": "aryeo/actions",
@@ -121,16 +121,16 @@
         },
         {
             "name": "aryeo/api-resource-schema",
-            "version": "0.0.21",
+            "version": "dev-feat/2026-10-16t0123-optimistic-concurrency-m1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/AryeoHQ/api-resource-schema.git",
-                "reference": "d7b421d66d22b31956c60061fe8b3274c6f8ef8e"
+                "reference": "910f1db1748dbe3fd9f0134eda77b01e037489ff"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/api-resource-schema/zipball/d7b421d66d22b31956c60061fe8b3274c6f8ef8e",
-                "reference": "d7b421d66d22b31956c60061fe8b3274c6f8ef8e",
+                "url": "https://api.github.com/repos/AryeoHQ/api-resource-schema/zipball/910f1db1748dbe3fd9f0134eda77b01e037489ff",
+                "reference": "910f1db1748dbe3fd9f0134eda77b01e037489ff",
                 "shasum": ""
             },
             "require": {
@@ -210,10 +210,10 @@
                 }
             ],
             "support": {
-                "source": "https://github.com/AryeoHQ/api-resource-schema/tree/0.0.21",
+                "source": "https://github.com/AryeoHQ/api-resource-schema/tree/feat/2026-10-16t0123-optimistic-concurrency-m1",
                 "issues": "https://github.com/AryeoHQ/api-resource-schema/issues"
             },
-            "time": "2026-10-15T14:15:13+00:00"
+            "time": "2026-10-16T08:00:29+00:00"
         },
         {
             "name": "aryeo/attribute-routing",
@@ -13448,12 +13448,14 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "aryeo/api-resource-schema": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
         "php": "^8.4"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }

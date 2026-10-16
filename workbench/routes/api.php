@@ -5,6 +5,10 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Route;
 use Tests\Fixtures\Support\Http\Api\Errors\ErrorsController;
 use Tests\Fixtures\Support\Http\Api\Errors\LegacyErrorsController;
+use Tests\Fixtures\Support\Http\Api\Preconditions\ForbiddenUpdateNoteController;
+use Tests\Fixtures\Support\Http\Api\Preconditions\RequiredUpdateNoteController;
+use Tests\Fixtures\Support\Http\Api\Preconditions\ShowNoteController;
+use Tests\Fixtures\Support\Http\Api\Preconditions\UpdateNoteController;
 
 Route::middleware('api')->prefix('api/errors')->group(function (): void {
     Route::get('authenticated', [ErrorsController::class, 'authenticated'])->middleware('auth');
@@ -32,3 +36,10 @@ Route::middleware('api')->prefix('api/errors')->group(function (): void {
 });
 
 Route::post('errors/outside/validate', [ErrorsController::class, 'validate']);
+
+Route::middleware('api')->prefix('api/preconditions')->group(function (): void {
+    Route::get('notes/{note}', ShowNoteController::class);
+    Route::patch('notes/{note}', UpdateNoteController::class);
+    Route::patch('notes/{note}/required', RequiredUpdateNoteController::class);
+    Route::patch('notes/{note}/forbidden', ForbiddenUpdateNoteController::class);
+});
