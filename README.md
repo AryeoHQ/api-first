@@ -142,6 +142,72 @@ The package registers a scoped container binding for `CastableData`. On each req
 
 Controllers are limited to a single `CastableData` parameter — this is enforced by a PHPStan rule (see below).
 
+## Errors
+
+The package renders API errors in the standard error envelope: exactly `errors` and `meta: {}`. Each error object holds a `code`, a `detail`, and an optional `source`:
+
+```json
+{
+    "errors": [
+        {
+            "code": "validation.required",
+            "detail": "The title field is required.",
+            "source": { "pointer": "/title" }
+        }
+    ],
+    "meta": {}
+}
+```
+
+The renderer applies to a matched route that carries one of the configured middleware groups:
+
+```php
+// config/api-first.php
+return [
+    'errors' => [
+        'middleware_groups' => ['api'],
+    ],
+];
+```
+
+Publish the file with `php artisan vendor:publish --tag=api-first:config`.
+
+| Failure                                         | Status | Code                                          |
+| ----------------------------------------------- | ------ | --------------------------------------------- |
+| `AuthenticationException`, no bearer token      | 401    | `auth.missing_token`                          |
+| `AuthenticationException`, with a bearer token  | 401    | `auth.invalid_token`                          |
+| A failed authorizer or policy                   | 403    | `permission.denied`                           |
+| A missing bound model                           | 404    | `not_found.resource`                          |
+| A 405 raised inside a matched route             | 405    | `method.not_allowed`                          |
+| `PreconditionFailed`                            | 412    | `precondition.failed`, with the `ETag` header |
+| A failed validation rule, one object per rule   | 422    | `validation.<rule>`                           |
+| `PreconditionRequired`                          | 428    | `precondition.required`                       |
+| Throttling                                      | 429    | `rate_limit.exceeded`, with `Retry-After`     |
+| Any other throwable                             | 500    | `server.internal_error`                       |
+
+A validation code is the rule name in snake case. A size rule adds the attribute type: `validation.min_numeric`, `validation.max_string`. A rule object uses its class name: `PageSize` gives `validation.page_size`. A body field carries a `pointer` such as `/items/0/name`, and a query key carries a `parameter` such as `filters[status]`.
+
+The framework keeps rendering these errors:
+
+- An error raised before a route matches, such as an unknown path's 404 or the router's 405.
+- A route outside the configured middleware groups.
+- An HTTP exception whose status the table does not list, and an `HttpResponseException`.
+- A validation failure with a message that no failed rule produced, such as one added by an `after` hook.
+
+### Legacy errors
+
+A controller marked `#[LegacyErrors]` keeps the framework's error bodies. `PreconditionFailed` and `PreconditionRequired` still render in the envelope, because those responses have no legacy shape:
+
+```php
+use Support\Http\Api\Errors\Attributes\LegacyErrors;
+
+#[LegacyErrors]
+final class Controller
+{
+    //
+}
+```
+
 ## Request Context
 
 The package adds `actor()` and `subject()` macros to `Illuminate\Http\Request`, providing semantic access to the authenticated user:
