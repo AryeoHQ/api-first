@@ -5,13 +5,20 @@ declare(strict_types=1);
 namespace Support\Http\Api\Errors;
 
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
+use Illuminate\Validation\ValidationException;
 use Orchestra\Testbench\Concerns\WithWorkbench;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\TestWith;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Tests\Fixtures\Support\Articles\Article;
+use Tests\Fixtures\Support\Http\Api\Errors\HiddenArticlePolicy;
 use Tests\TestCase;
 
 #[CoversClass(Renderer::class)]
@@ -194,6 +201,176 @@ final class RendererTest extends TestCase
     public function it_reads_the_middleware_groups_from_config(): void
     {
         config()->set('api-first.errors.middleware_groups', ['api-v2']);
+
+        $this->postJson('api/errors/validate')
+            ->assertUnprocessable()
+            ->assertJsonStructure(['message', 'errors' => ['title']])
+            ->assertJsonMissingPath('meta');
+    }
+
+    #[Test]
+    public function it_renders_an_empty_bearer_token_as_401_missing_token(): void
+    {
+        $this->assertErrors(
+            $this->withHeader('Authorization', 'Bearer ')->getJson('api/errors/authenticated'),
+            Response::HTTP_UNAUTHORIZED,
+            [['code' => 'auth.missing_token', 'detail' => 'The request carries no access token.']],
+        );
+    }
+
+    #[Test]
+    public function it_renders_basic_credentials_as_401_missing_token(): void
+    {
+        $this->assertErrors(
+            $this->withHeader('Authorization', 'Basic dXNlcjpzZWNyZXQ=')->getJson('api/errors/authenticated'),
+            Response::HTTP_UNAUTHORIZED,
+            [['code' => 'auth.missing_token', 'detail' => 'The request carries no access token.']],
+        );
+    }
+
+    #[Test]
+    public function it_renders_a_policy_that_denies_as_not_found_as_403(): void
+    {
+        Gate::policy(Article::class, HiddenArticlePolicy::class);
+
+        $article = Article::factory()->create();
+
+        $this->assertErrors(
+            $this->getJson("api/errors/articles/{$article->getKey()}/hidden"),
+            Response::HTTP_FORBIDDEN,
+            [['code' => 'permission.denied', 'detail' => 'The caller cannot perform this operation.']],
+        );
+    }
+
+    #[Test]
+    public function it_renders_a_missing_passport_scope_as_403_missing_scope(): void
+    {
+        $this->assertErrors(
+            $this->getJson('api/errors/missing-scope'),
+            Response::HTTP_FORBIDDEN,
+            [['code' => 'permission.missing_scope', 'detail' => 'The access token does not grant the articles:write scope.']],
+        );
+    }
+
+    #[Test]
+    public function it_renders_a_bad_request_as_400_malformed(): void
+    {
+        $this->assertErrors(
+            $this->getJson('api/errors/bad-request'),
+            Response::HTTP_BAD_REQUEST,
+            [['code' => 'request.malformed', 'detail' => 'The API cannot parse the request.']],
+        );
+    }
+
+    #[Test]
+    public function it_renders_a_malformed_json_body_as_400_malformed(): void
+    {
+        $this->assertErrors(
+            $this->call('POST', 'api/errors/validate', server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'], content: '{"title":'),
+            Response::HTTP_BAD_REQUEST,
+            [['code' => 'request.malformed', 'detail' => 'The API cannot parse the request.']],
+        );
+    }
+
+    #[Test]
+    public function it_renders_an_unsupported_media_type_as_415(): void
+    {
+        $this->assertErrors(
+            $this->getJson('api/errors/unsupported-media-type'),
+            Response::HTTP_UNSUPPORTED_MEDIA_TYPE,
+            [['code' => 'media_type.unsupported', 'detail' => 'The request body must use the application/json media type.']],
+        );
+    }
+
+    #[Test]
+    public function it_renders_an_unavailable_service_as_503_with_retry_after(): void
+    {
+        $this->assertErrors(
+            $this->getJson('api/errors/unavailable'),
+            Response::HTTP_SERVICE_UNAVAILABLE,
+            [['code' => 'server.unavailable', 'detail' => 'The service cannot serve requests at the moment.']],
+        )->assertHeader('Retry-After', '30');
+    }
+
+    #[Test]
+    #[TestWith([409, 'conflict.unspecified'])]
+    #[TestWith([418, 'request.unspecified'])]
+    #[TestWith([502, 'server.unspecified'])]
+    public function it_renders_an_uncatalogued_http_status_as_the_placeholder_of_its_category(int $status, string $code): void
+    {
+        $response = $this->assertErrors(
+            $this->getJson("api/errors/abort/{$status}"),
+            $status,
+            [['code' => $code, 'detail' => 'The request failed for a reason this API does not catalogue yet.']],
+        );
+
+        $this->assertStringNotContainsString('Tenant A', (string) $response->baseResponse->getContent());
+    }
+
+    #[Test]
+    public function it_logs_each_placeholder_it_renders(): void
+    {
+        $log = Log::spy();
+
+        $this->getJson('api/errors/abort/409')->assertConflict();
+
+        $log->shouldHaveReceived('warning')->with('api-first.errors.uncatalogued', [
+            'status' => 409,
+            'placeholder' => 'conflict.unspecified',
+            'derived_code' => null,
+            'exception' => HttpException::class,
+            'rule' => null,
+            'route' => 'api/errors/abort/{status}',
+            'method' => 'GET',
+        ])->once();
+    }
+
+    #[Test]
+    public function it_logs_nothing_for_a_catalogued_code(): void
+    {
+        $log = Log::spy();
+
+        $this->getJson('api/errors/articles/'.Str::uuid())->assertNotFound();
+
+        $log->shouldNotHaveReceived('warning');
+    }
+
+    #[Test]
+    public function it_renders_a_validation_failure_with_another_status_as_the_placeholder_of_that_status(): void
+    {
+        $log = Log::spy();
+
+        $this->assertErrors(
+            $this->getJson('api/errors/validation-status'),
+            Response::HTTP_BAD_REQUEST,
+            [['code' => 'request.unspecified', 'detail' => 'The request failed for a reason this API does not catalogue yet.']],
+        );
+
+        $log->shouldHaveReceived('warning')->with('api-first.errors.uncatalogued', [
+            'status' => 400,
+            'placeholder' => 'request.unspecified',
+            'derived_code' => null,
+            'exception' => ValidationException::class,
+            'rule' => null,
+            'route' => 'api/errors/validation-status',
+            'method' => 'GET',
+        ])->once();
+    }
+
+    #[Test]
+    public function it_reads_a_single_middleware_group_from_config(): void
+    {
+        config()->set('api-first.errors.middleware_groups', 'api');
+
+        $this->postJson('api/errors/validate', ['title' => 'Dusk shoot', 'photo_count' => -1])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.*.code', ['validation.min_numeric']);
+    }
+
+    #[Test]
+    public function it_leaves_errors_to_the_framework_without_configured_middleware_groups(): void
+    {
+        config()->set('api-first.errors', []);
 
         $this->postJson('api/errors/validate')
             ->assertUnprocessable()
