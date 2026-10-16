@@ -34,6 +34,7 @@ app/Http/Api/
             ├── Authorizer.php
             ├── Controller.php
             ├── ControllerTest.php
+            ├── Precondition.php
             └── Validator.php
 ```
 
@@ -248,6 +249,106 @@ final class Controller
 }
 ```
 
+## Preconditions
+
+A `Precondition` evaluates `If-Match` on an update, a delete, or an instance action. It is a form request that sits between the `Authorizer` and the `Validator`, so the checks run in the order of the OCC evaluation table:
+
+| Step | Check         | Response                                 |
+| ---- | ------------- | ---------------------------------------- |
+| 3    | Lookup        | 404 for a missing bound model            |
+| 4    | Authorization | 403 from the `Authorizer`                |
+| 5    | Preconditions | 428 or 412 from the `Precondition`       |
+| 6    | Validation    | 422 from the `Validator`                 |
+
+A precondition names its `Target`. `EntityTarget` tags a route-bound `Schemable` model with the ETag of its schema at one version:
+
+```php
+use Support\Http\Api\Preconditions\Contracts\Target;
+use Support\Http\Api\Preconditions\Precondition as BasePrecondition;
+use Support\Http\Api\Preconditions\Targets\EntityTarget;
+
+final class Precondition extends BasePrecondition
+{
+    public function target(): Target
+    {
+        /** @var Job $job */
+        $job = $this->route('job');
+
+        return new EntityTarget($job, ApiVersion::V1);
+    }
+}
+```
+
+The controller runs its write through `guard()`:
+
+```php
+public function __invoke(Authorizer $authorizer, Precondition $precondition, Validator $validator, Job $job)
+{
+    $precondition->guard(fn () => $job->update($validator->validated()));
+
+    return $job->toSchema(ApiVersion::V1);
+}
+```
+
+The precondition evaluates `If-Match` when the request resolves:
+
+- A request without `If-Match` passes, unless the precondition sets `$required = true`. A required precondition returns 428.
+- A tag that matches the current ETag by strong comparison passes. `*` matches any current representation.
+- The precondition reads every `If-Match` line as one list, and any listed tag can match. Lines that are each `*` read as one `*`.
+- A weak tag, an empty value, or a stale tag returns 412 with the current `ETag`.
+
+`guard()` makes the check atomic. It opens a transaction on the target's connection, calls `lock()` on the target, and evaluates `If-Match` again against the locked state. When another request commits a write after the first check, `guard()` returns 412, and the closure never runs. Otherwise the closure runs in the same transaction, and `guard()` returns its result.
+
+`guard()` opens the transaction and takes the lock on every call, even on an optional endpoint whose request carries no `If-Match`. A row that another request deletes between route binding and `guard()` returns 404, and the closure never runs.
+
+`EntityTarget::lock()` selects the row `FOR UPDATE` through the model's global scopes, so a row that another request soft-deletes also returns 404. A route that binds trashed models with `withTrashed()` locks a trashed entity as well. The lock refreshes the bound entity's attributes and leaves its loaded relations unchanged, so an eager load that the authorizer constrained stays in place.
+
+After `lock()`, `tag()` hashes the locked row, not the bound entity. That instance holds no loaded relations, so every relation the schema or a `Contributor` reads loads inside the lock. A concurrent change to a relation alone therefore returns 412. The tag must not depend on a relation that the caller constrains, because the recheck loads that relation without the constraint.
+
+### Collection targets
+
+A collection action that changes order must require `If-Match` and compare it with the order tag of its collection. The application supplies a `Target` whose `tag()` returns that tag and whose `connection()` returns the parent's connection, and sets `$required = true`:
+
+```php
+use Illuminate\Database\ConnectionInterface;
+use Support\Http\Api\Preconditions\Contracts\Target;
+use Support\Http\Resources\Schemas\Tags\Tag;
+use Support\Ordering\OrderedCollection;
+
+final readonly class PhotoOrder implements Target
+{
+    public function __construct(private OrderedCollection $photos) {}
+
+    public function tag(): Tag
+    {
+        return new Tag($this->photos->tag());
+    }
+
+    public function connection(): ConnectionInterface
+    {
+        return $this->photos->parent->getConnection();
+    }
+
+    public function lock(): void
+    {
+        $this->photos->parent->newQuery()->whereKey($this->photos->parent->getKey())->lockForUpdate()->firstOrFail();
+    }
+}
+
+final class Precondition extends BasePrecondition
+{
+    protected bool $required = true;
+
+    public function target(): Target
+    {
+        /** @var Place $place */
+        $place = $this->route('place');
+
+        return new PhotoOrder($place->orderedCollection('photos'));
+    }
+}
+```
+
 ## Request Context
 
 The package adds `actor()` and `subject()` macros to `Illuminate\Http\Request`, providing semantic access to the authenticated user:
@@ -261,7 +362,7 @@ $request->subject(); // The user the action is being performed on behalf of
 
 ### make:controller
 
-Scaffolds a controller with a co-located `Authorizer`, `Validator`, and test:
+Scaffolds a controller with a co-located `Authorizer`, `Precondition`, `Validator`, and test:
 
 ```bash
 php artisan make:controller
@@ -275,6 +376,18 @@ The command prompts for:
 For REST, it prompts for which endpoint to generate (index, show, store, update, delete, search). For Action, it prompts for the action name and scope (instance or resource).
 
 Authorizer and Validator generation can be opted out with `--no-authorizer` and `--no-validator`.
+
+The command generates a `Precondition` for an instance-scope update, delete, or action endpoint, and places its parameter between the `Authorizer` and the `Validator`. `--no-precondition` skips it, and `--precondition` adds it to any other instance endpoint, such as show. The generated class targets the route-bound entity with an `EntityTarget`, so `--precondition` on a resource-scope endpoint, such as index or store, fails. Such an endpoint supplies its own `Target`, as [Collection targets](#collection-targets) shows.
+
+### make:precondition
+
+Generates a precondition for an entity in a namespace:
+
+```bash
+php artisan make:precondition Precondition --namespace="App\Http\Api\V1\Jobs\Update" --entity="App\Entities\Jobs\Job" --api-version=V1
+```
+
+The command prompts for each option that the call omits.
 
 ### make:resource
 
@@ -315,3 +428,4 @@ This package provides PHPStan rules that enforce API conventions at static analy
 | `RouteMustBeOnInvoke`                   | The `#[Route]` attribute must only appear on the `__invoke()` method. |
 | `SchemaMustHaveId`                      | Schemas must define a public `$id` property.                          |
 | `SchemaMustHaveResourceType`            | Schemas must define a public `$resourceType` property.                |
+| `PreconditionMustSitBetweenAuthorizerAndValidator` | An `__invoke()` must declare a `Precondition` after every `Authorizer` and before every `Validator`. |
