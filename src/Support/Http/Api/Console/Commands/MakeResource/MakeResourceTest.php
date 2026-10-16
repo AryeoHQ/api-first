@@ -52,6 +52,15 @@ final class MakeResourceTest extends TestCase
                 $contents,
             );
         });
+
+        $this->assertTrue(File::exists($this->reference->collection->filePath->toString()));
+
+        tap(File::get($this->reference->collection->filePath->toString()), function (string $contents) {
+            $this->assertStringContainsString(
+                'namespace '.$this->reference->collection->namespace->after('\\').';',
+                $contents,
+            );
+        });
     }
 
     #[Test]
