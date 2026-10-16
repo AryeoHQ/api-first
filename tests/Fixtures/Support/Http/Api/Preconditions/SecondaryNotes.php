@@ -12,7 +12,7 @@ use Support\Http\Resources\Schemas\Contracts\SchemableCollection;
 /**
  * @extends Collection<int, SecondaryNote>
  */
-#[UseSchemaCollection(Schemas\V1\Notes::class)]
+#[UseSchemaCollection(Schemas\V1\SecondaryNotes::class)]
 final class SecondaryNotes extends Collection implements SchemableCollection
 {
     use TransformsToSchemaCollection;

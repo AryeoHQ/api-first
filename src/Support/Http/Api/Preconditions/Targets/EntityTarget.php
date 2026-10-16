@@ -12,16 +12,18 @@ use Support\Http\Resources\Schemas\Contracts\Schemable;
 use Support\Http\Resources\Schemas\Contracts\Version;
 use Support\Http\Resources\Schemas\Tags\Tag;
 
-final readonly class EntityTarget implements Target
+final class EntityTarget implements Target
 {
+    private null|(Model&Schemable) $locked = null;
+
     public function __construct(
-        private Model&Schemable $entity,
-        private Version $version,
+        private readonly Model&Schemable $entity,
+        private readonly Version $version,
     ) {}
 
     public function tag(): Tag
     {
-        return $this->entity->toTag($this->version);
+        return ($this->locked ?? $this->entity)->toTag($this->version);
     }
 
     public function connection(): ConnectionInterface
@@ -37,10 +39,12 @@ final readonly class EntityTarget implements Target
             $query->withoutGlobalScope(SoftDeletingScope::class);
         }
 
+        /** @var Model&Schemable $locked */
         $locked = $query->whereKey($this->entity->getKey())
             ->lockForUpdate()
             ->firstOrFail();
 
+        $this->locked = $locked;
         $this->entity->setRawAttributes($locked->getAttributes(), true);
     }
 

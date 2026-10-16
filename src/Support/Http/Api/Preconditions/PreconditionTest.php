@@ -257,6 +257,26 @@ final class PreconditionTest extends TestCase
     }
 
     #[Test]
+    public function it_returns_412_when_a_concurrent_write_changes_only_a_relation_before_the_guard(): void
+    {
+        $parent = Note::query()->create(['title' => 'Parent']);
+        $note = Note::query()->create(['title' => 'Draft', 'parent_id' => $parent->getKey()]);
+        $tag = $this->etag($note);
+
+        $this->app->afterResolving(NotePrecondition::class, function () use ($parent): void {
+            Note::query()->whereKey($parent->getKey())->update(['title' => 'Renamed by another request']);
+        });
+
+        $response = $this->assertPreconditionFailed(
+            $this->withHeader('If-Match', $tag)->patchJson($this->uri($note), ['title' => 'Final'])
+        );
+
+        $this->assertSame('Draft', $note->refresh()->title);
+        $this->assertNotSame($tag, $response->headers->get('ETag'));
+        $response->assertHeader('ETag', $this->etag($note));
+    }
+
+    #[Test]
     public function it_returns_404_when_a_concurrent_delete_lands_before_the_guard(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);

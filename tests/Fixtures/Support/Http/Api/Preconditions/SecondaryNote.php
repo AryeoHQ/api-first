@@ -23,7 +23,7 @@ use Support\Http\Resources\Schemas\Contracts\Schemable;
 #[UseEloquentBuilder(SecondaryNoteBuilder::class)]
 #[UseFactory(SecondaryNoteFactory::class)]
 #[UsePolicy(SecondaryNotePolicy::class)]
-#[UseSchema(Schemas\V1\Note::class)]
+#[UseSchema(Schemas\V1\SecondaryNote::class)]
 final class SecondaryNote extends Model implements Entity, Schemable
 {
     /** @use HasFactory<SecondaryNoteFactory> */

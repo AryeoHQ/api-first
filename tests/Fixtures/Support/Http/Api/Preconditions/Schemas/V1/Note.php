@@ -23,4 +23,6 @@ final class Note extends JsonResource implements Schema
     public string $resourceType = 'note';
 
     public string $title { get => $this->resource->title; }
+
+    public null|string $parentTitle { get => $this->resource->parent?->title; }
 }

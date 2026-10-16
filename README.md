@@ -301,7 +301,9 @@ The precondition evaluates `If-Match` when the request resolves:
 
 `guard()` opens the transaction and takes the lock on every call, even on an optional endpoint whose request carries no `If-Match`. A row that another request deletes between route binding and `guard()` returns 404, and the closure never runs.
 
-`EntityTarget::lock()` selects the row `FOR UPDATE` through the model's global scopes, so a row that another request soft-deletes also returns 404. A route that binds trashed models with `withTrashed()` locks a trashed entity as well. The lock refreshes the row's attributes only, and the loaded relations keep the state they had. A `Contributor` must therefore read the state it hashes with a fresh query, not from loaded relations, because the recheck does not reload them.
+`EntityTarget::lock()` selects the row `FOR UPDATE` through the model's global scopes, so a row that another request soft-deletes also returns 404. A route that binds trashed models with `withTrashed()` locks a trashed entity as well. The lock refreshes the bound entity's attributes and leaves its loaded relations unchanged, so an eager load that the authorizer constrained stays in place.
+
+After `lock()`, `tag()` hashes the locked row, not the bound entity. That instance holds no loaded relations, so every relation the schema or a `Contributor` reads loads inside the lock. A concurrent change to a relation alone therefore returns 412. The tag must not depend on a relation that the caller constrains, because the recheck loads that relation without the constraint.
 
 ### Collection targets
 
