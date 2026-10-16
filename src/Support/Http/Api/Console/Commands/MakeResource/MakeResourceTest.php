@@ -26,7 +26,7 @@ final class MakeResourceTest extends TestCase
     }
 
     public Schema $reference {
-        get => new Schema(name: $this->entity->name, baseNamespace: 'App\\Http\\Api\\V1\\'.$this->entity->plural);
+        get => new Schema(name: $this->entity->name, baseNamespace: 'App\\Schemas\\V1');
     }
 
     /** @var array<string, mixed> */
