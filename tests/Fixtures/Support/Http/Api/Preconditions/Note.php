@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Support\Entities\Contracts\Entity;
 use Support\Http\Resources\Schemas\Attributes\UseSchema\UseSchema;
 use Support\Http\Resources\Schemas\Concerns\TransformsToSchema;
@@ -31,6 +33,7 @@ final class Note extends Model implements Entity, Schemable
     use HasFactory;
 
     use HasUuids;
+    use SoftDeletes;
     use TransformsToSchema;
 
     protected $fillable = ['title', 'parent_id'];
@@ -41,5 +44,13 @@ final class Note extends Model implements Entity, Schemable
     public function parent(): BelongsTo
     {
         return $this->belongsTo(self::class);
+    }
+
+    /**
+     * @return HasMany<self, $this>
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id');
     }
 }

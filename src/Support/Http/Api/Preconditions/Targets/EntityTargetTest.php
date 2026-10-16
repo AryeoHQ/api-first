@@ -30,6 +30,7 @@ final class EntityTargetTest extends TestCase
             $table->foreignUuid('parent_id')->nullable();
             $table->string('title');
             $table->timestampsTz();
+            $table->softDeletesTz();
         });
     }
 
@@ -60,16 +61,29 @@ final class EntityTargetTest extends TestCase
     }
 
     #[Test]
-    public function it_reloads_the_loaded_relations_when_it_locks(): void
+    public function it_keeps_a_constrained_relation_when_it_locks(): void
     {
-        $parent = Note::query()->create(['title' => 'Draft']);
-        $note = Note::query()->create(['title' => 'Child', 'parent_id' => $parent->getKey()])->load('parent');
-
-        Note::query()->whereKey($parent->getKey())->update(['title' => 'Final']);
+        $note = Note::query()->create(['title' => 'Draft']);
+        Note::query()->create(['title' => 'Public', 'parent_id' => $note->getKey()]);
+        Note::query()->create(['title' => 'Private', 'parent_id' => $note->getKey()]);
+        $note->load(['children' => fn ($query) => $query->where('title', 'Public')]);
 
         new EntityTarget($note, ApiVersion::V1)->lock();
 
-        $this->assertSame('Final', $note->parent?->title);
+        $this->assertSame(['Public'], $note->children->pluck('title')->all());
+    }
+
+    #[Test]
+    public function it_keeps_a_nested_relation_when_it_locks(): void
+    {
+        $grandparent = Note::query()->create(['title' => 'Grandparent']);
+        $parent = Note::query()->create(['title' => 'Parent', 'parent_id' => $grandparent->getKey()]);
+        $note = Note::query()->create(['title' => 'Child', 'parent_id' => $parent->getKey()])->load('parent.parent');
+
+        new EntityTarget($note, ApiVersion::V1)->lock();
+
+        $this->assertTrue($note->parent?->relationLoaded('parent'));
+        $this->assertSame('Grandparent', $note->parent->parent?->title);
     }
 
     #[Test]
@@ -77,7 +91,7 @@ final class EntityTargetTest extends TestCase
     {
         $note = Note::query()->create(['title' => 'Draft']);
 
-        Note::query()->whereKey($note->getKey())->delete();
+        Note::query()->whereKey($note->getKey())->forceDelete();
 
         $this->expectException(ModelNotFoundException::class);
 
@@ -95,6 +109,6 @@ final class EntityTargetTest extends TestCase
             rescue(fn () => new EntityTarget($note, ApiVersion::V1)->lock(), report: false);
         });
 
-        $this->assertSame("select * from \"notes\" where \"notes\".\"id\" = '{$note->getKey()}' limit 1 for update", $queries[0]['query']);
+        $this->assertSame("select * from \"notes\" where \"notes\".\"id\" = '{$note->getKey()}' and \"notes\".\"deleted_at\" is null limit 1 for update", $queries[0]['query']);
     }
 }

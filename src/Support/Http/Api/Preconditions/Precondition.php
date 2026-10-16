@@ -6,7 +6,6 @@ namespace Support\Http\Api\Preconditions;
 
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\DB;
 use Support\Http\Api\Errors\Exceptions\PreconditionFailed;
 use Support\Http\Api\Errors\Exceptions\PreconditionRequired;
 use Support\Http\Api\Preconditions\Contracts\Target;
@@ -38,9 +37,9 @@ abstract class Precondition extends FormRequest
      */
     final public function guard(Closure $write): mixed
     {
-        return DB::transaction(function () use ($write): mixed {
-            $target = $this->target();
+        $target = $this->target();
 
+        return $target->connection()->transaction(function () use ($target, $write): mixed {
             $target->lock();
 
             $this->evaluate($target);
@@ -64,6 +63,13 @@ abstract class Precondition extends FormRequest
 
         $tag = $target->tag();
 
-        throw_unless($tag->matches(implode(', ', $this->headers->all('If-Match'))), PreconditionFailed::class, (string) $tag);
+        throw_unless($tag->matches($this->ifMatch()), PreconditionFailed::class, (string) $tag);
+    }
+
+    private function ifMatch(): string
+    {
+        $lines = $this->headers->all('If-Match');
+
+        return array_all($lines, fn (null|string $line): bool => trim((string) $line) === '*') ? '*' : implode(', ', $lines);
     }
 }

@@ -64,6 +64,10 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
         $this->resolveEntity();
         $this->resolveController();
 
+        if ($this->option('precondition') === true && $this->controller->scope !== Scope::Instance) {
+            $this->fail('--precondition supports an instance endpoint only, because the generated class targets the route-bound entity. See "Collection targets" in the README.');
+        }
+
         // Does not call parent::handle() to skip base command's operations
         GeneratorCommand::handle();
 

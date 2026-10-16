@@ -4,19 +4,28 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Preconditions;
 
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Database\Events\TransactionBeginning;
+use Illuminate\Database\Events\TransactionCommitted;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
+use Orchestra\Testbench\Attributes\WithConfig;
 use Orchestra\Testbench\Concerns\WithWorkbench;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Note;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Precondition as NotePrecondition;
+use Tests\Fixtures\Support\Http\Api\Preconditions\SecondaryNote;
 use Tests\TestCase;
 
 #[CoversClass(Precondition::class)]
+#[WithConfig('database.connections.secondary', ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''])]
 final class PreconditionTest extends TestCase
 {
     use WithWorkbench;
@@ -30,6 +39,13 @@ final class PreconditionTest extends TestCase
         Schema::create('notes', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->foreignUuid('parent_id')->nullable();
+            $table->string('title');
+            $table->timestampsTz();
+            $table->softDeletesTz();
+        });
+
+        Schema::connection('secondary')->create('secondary_notes', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
             $table->string('title');
             $table->timestampsTz();
         });
@@ -90,6 +106,16 @@ final class PreconditionTest extends TestCase
         $this->withHeaders(['If-Match' => [self::STALE, $this->etag($note)]])
             ->patchJson($this->uri($note), ['title' => 'Final'])
             ->assertOk();
+
+        $this->assertSame('Final', $note->refresh()->title);
+    }
+
+    #[Test]
+    public function it_runs_the_write_when_every_if_match_line_is_a_wildcard(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+
+        $this->withHeaders(['If-Match' => ['*', '*']])->patchJson($this->uri($note), ['title' => 'Final'])->assertOk();
 
         $this->assertSame('Final', $note->refresh()->title);
     }
@@ -228,6 +254,98 @@ final class PreconditionTest extends TestCase
         $this->assertSame('Written by another request', $note->refresh()->title);
         $this->assertNotSame($tag, $response->headers->get('ETag'));
         $response->assertHeader('ETag', $this->etag($note));
+    }
+
+    #[Test]
+    public function it_returns_404_when_a_concurrent_delete_lands_before_the_guard(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+
+        $this->app->afterResolving(NotePrecondition::class, function () use ($note): void {
+            Note::query()->whereKey($note->getKey())->forceDelete();
+        });
+
+        $this->withHeader('If-Match', '*')->patchJson($this->uri($note), ['title' => 'Final'])
+            ->assertNotFound()
+            ->assertJsonPath('errors.*.code', ['not_found.resource']);
+    }
+
+    #[Test]
+    public function it_returns_404_when_a_concurrent_soft_delete_lands_before_the_guard(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+
+        $this->app->afterResolving(NotePrecondition::class, function () use ($note): void {
+            Note::query()->whereKey($note->getKey())->delete();
+        });
+
+        $this->withHeader('If-Match', '*')->patchJson($this->uri($note), ['title' => 'Final'])
+            ->assertNotFound()
+            ->assertJsonPath('errors.*.code', ['not_found.resource']);
+
+        $this->assertSame('Draft', Note::withTrashed()->findOrFail($note->getKey())->title);
+    }
+
+    #[Test]
+    public function it_runs_the_write_on_a_trashed_entity_where_the_route_binds_trashed_entities(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+        $note->delete();
+
+        $this->withHeader('If-Match', '*')->patchJson($this->uri($note, 'trashed'), ['title' => 'Final'])->assertOk();
+
+        $this->assertSame('Final', Note::withTrashed()->findOrFail($note->getKey())->title);
+    }
+
+    #[Test]
+    public function it_locks_inside_a_transaction_on_the_connection_of_the_target(): void
+    {
+        $note = SecondaryNote::query()->create(['title' => 'Draft']);
+        $statements = $this->recordStatements('secondary');
+
+        $this->withHeader('If-Match', '*')->patchJson("api/preconditions/secondary-notes/{$note->getKey()}", ['title' => 'Final'])
+            ->assertOk();
+
+        $this->assertSame(['select at 0', 'begin', 'select at 1', 'update at 1', 'commit'], $statements->all());
+        $this->assertSame('Final', $note->refresh()->title);
+    }
+
+    #[Test]
+    public function it_runs_the_write_in_the_transaction_that_holds_the_lock(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+        $statements = $this->recordStatements(DB::getDefaultConnection());
+        $level = DB::transactionLevel();
+
+        $this->withHeader('If-Match', '*')->patchJson($this->uri($note), ['title' => 'Final'])->assertOk();
+
+        $this->assertSame(["select at {$level}", 'begin', 'select at '.($level + 1), 'update at '.($level + 1), 'commit'], $statements->all());
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    private function recordStatements(string $connection): Collection
+    {
+        $statements = new Collection;
+
+        Event::listen(function (QueryExecuted $query) use ($connection, $statements): void {
+            if ($query->connectionName === $connection) {
+                $statements->push(Str::before($query->sql, ' ').' at '.$query->connection->transactionLevel());
+            }
+        });
+        Event::listen(function (TransactionBeginning $event) use ($connection, $statements): void {
+            if ($event->connectionName === $connection) {
+                $statements->push('begin');
+            }
+        });
+        Event::listen(function (TransactionCommitted $event) use ($connection, $statements): void {
+            if ($event->connectionName === $connection) {
+                $statements->push('commit');
+            }
+        });
+
+        return $statements;
     }
 
     private function uri(Note $note, null|string $suffix = null): string

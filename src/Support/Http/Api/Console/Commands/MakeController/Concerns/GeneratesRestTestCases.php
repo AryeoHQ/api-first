@@ -202,6 +202,25 @@ trait GeneratesRestTestCases
         $this->assertStringContainsString('Authorizer $authorizer, Precondition $precondition, Validator $validator', File::get($this->showController->filePath->toString()));
     }
 
+    #[Test]
+    #[TestWith([Endpoint::Store])]
+    #[TestWith([Endpoint::Index])]
+    public function it_rejects_an_opted_in_precondition_for_a_collection_endpoint(Endpoint $endpoint): void
+    {
+        Composer::fake();
+
+        $this->artisan($this->command, [...$this->restInput(), '--precondition' => true])->expectsChoice(
+            'What endpoint would you like to create?',
+            $endpoint->value,
+            array_column(Endpoint::cases(), 'value')
+        )->expectsOutputToContain('"Collection targets" in the README')->assertFailed();
+
+        $controller = Controller::make(Route::make('V1', $this->entity, EndpointType::Rest, $endpoint->value, scope: $endpoint->scope()));
+
+        $this->assertFalse(File::exists($controller->filePath->toString()));
+        $this->assertFalse(File::exists(new Precondition(name: 'Precondition', baseNamespace: $controller->namespace)->filePath->toString()));
+    }
+
     /**
      * @return array<string, mixed>
      */

@@ -9,6 +9,7 @@ use Tests\Fixtures\Support\Http\Api\Preconditions\ForbiddenUpdateNoteController;
 use Tests\Fixtures\Support\Http\Api\Preconditions\RequiredUpdateNoteController;
 use Tests\Fixtures\Support\Http\Api\Preconditions\ShowNoteController;
 use Tests\Fixtures\Support\Http\Api\Preconditions\UpdateNoteController;
+use Tests\Fixtures\Support\Http\Api\Preconditions\UpdateSecondaryNoteController;
 
 Route::middleware('api')->prefix('api/errors')->group(function (): void {
     Route::get('authenticated', [ErrorsController::class, 'authenticated'])->middleware('auth');
@@ -42,4 +43,6 @@ Route::middleware('api')->prefix('api/preconditions')->group(function (): void {
     Route::patch('notes/{note}', UpdateNoteController::class);
     Route::patch('notes/{note}/required', RequiredUpdateNoteController::class);
     Route::patch('notes/{note}/forbidden', ForbiddenUpdateNoteController::class);
+    Route::patch('notes/{note}/trashed', UpdateNoteController::class)->withTrashed();
+    Route::patch('secondary-notes/{note}', UpdateSecondaryNoteController::class);
 });
