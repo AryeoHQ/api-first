@@ -1,5 +1,7 @@
 {
     "name": "aryeo/api-first",
+    "description": "Conventions for versioned, attribute-routed JSON APIs, with controller and resource generators.",
+    "license": "MIT",
     "type": "library",
     "repositories": {
         "tooling-laravel": {
@@ -53,19 +55,19 @@
     },
     "require": {
         "php": "^8.4",
-        "aryeo/api-resource-schema": "0.0.21",
+        "aryeo/api-resource-schema": "0.0.22",
         "laravel/framework": "^12.37 || ^13",
         "laravel/prompts": "^0.3.8",
         "nikic/php-parser": "^5.7",
         "phpstan/phpstan": "^2.1",
         "symfony/console": "^7.4 || ^8.0",
-        "aryeo/tooling-laravel": "0.0.40",
+        "aryeo/tooling-laravel": "0.0.41",
         "aryeo/attribute-routing": "0.0.17",
-        "aryeo/entities": "0.0.20",
+        "aryeo/entities": "0.0.22",
         "aryeo/request-casts": "0.0.16",
-        "aryeo/request-authorizers-validators": "0.0.14",
-        "aryeo/event-log": "0.0.9",
-        "aryeo/webhooks": "0.0.8"
+        "aryeo/request-authorizers-validators": "0.0.15",
+        "aryeo/event-log": "0.0.10",
+        "aryeo/webhooks": "0.0.9"
     },
     "require-dev": {
         "nesbot/carbon": "^3.10",
