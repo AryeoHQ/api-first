@@ -178,7 +178,7 @@ Generates an API resource schema for an entity:
 php artisan make:resource
 ```
 
-The command prompts for an API version and entity, then generates a schema and its collection in `App\Schemas\<Version>` (e.g., `App\Schemas\V1\Order` and `App\Schemas\V1\Orders`). The generated schema automatically includes `$id` and `$resourceType` properties via the `InjectSchemaProperties` event listener.
+The command prompts for an API version and entity, then generates a schema and its collection in `App\Schemas\<Version>\<Plural>` (e.g., `App\Schemas\V1\Orders\Order` and `App\Schemas\V1\Orders\Orders`). The generated schema automatically includes `$id` and `$resourceType` properties via the `InjectSchemaProperties` event listener.
 
 ## Timestamps
 
