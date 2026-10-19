@@ -305,6 +305,10 @@ The precondition evaluates `If-Match` when the request resolves:
 
 After `lock()`, `tag()` hashes the locked row, not the bound entity. That instance holds no loaded relations, so every relation the schema or a `Contributor` reads loads inside the lock. A concurrent change to a relation alone therefore returns 412. The tag must not depend on a relation that the caller constrains, because the recheck loads that relation without the constraint.
 
+`tag()` hashes the schema alone. A response ETag also covers the schema's `with()` and `additional()` data. An endpoint whose response adds such data therefore cannot use `EntityTarget`, because every write that sends its ETag returns 412.
+
+An item of an ordered collection needs another lock order. `EntityTarget` locks the item row alone, and eloquent-ordering locks the parent row first, so a delete that races a reorder deadlocks. The eloquent-ordering README states the `Target` such an item needs.
+
 ### Collection targets
 
 A collection action that changes order must require `If-Match` and compare it with the order tag of its collection. The application supplies a `Target` whose `tag()` returns that tag and whose `connection()` returns the parent's connection, and sets `$required = true`:
@@ -348,6 +352,8 @@ final class Precondition extends BasePrecondition
     }
 }
 ```
+
+`PhotoOrder` covers a reorder inside one parent. A move between two parents must lock both parent rows in key order, or two opposite moves deadlock. The eloquent-ordering README carries that recipe.
 
 ## Request Context
 
