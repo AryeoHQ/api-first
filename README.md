@@ -174,6 +174,8 @@ return [
 
 Publish the file with `php artisan vendor:publish --tag=api-first:config`.
 
+The default group is `api`, so an upgrade to this release changes the error body of every route in that group. An application whose `api` group serves an API with another error shape publishes the file first. It then names only the groups the renderer serves.
+
 | Failure                                               | Status  | Code                                          |
 | ----------------------------------------------------- | ------- | --------------------------------------------- |
 | A 400 HTTP exception                                  | 400     | `request.malformed`                           |
