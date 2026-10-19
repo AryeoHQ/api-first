@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Support\Database\Query\Grammars\Rfc3339Extended\Providers;
 
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Database\Schema\Builder;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Facade;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Support\Database\Query\Grammars\Rfc3339Extended\Listeners\SwapGrammar;
@@ -26,6 +28,17 @@ final class ProviderTest extends TestCase
             SwapGrammar::class,
             Event::getRawListeners()[ConnectionEstablished::class],
         );
+    }
+
+    #[Test]
+    public function it_leaves_the_event_facade_resolving_the_dispatcher_decorated_after_it_registers(): void
+    {
+        Facade::clearResolvedInstance('events');
+
+        $this->app->register(Provider::class, force: true);
+        $this->app->extend('events', fn (Dispatcher $events): Dispatcher => clone $events);
+
+        $this->assertSame($this->app->make('events'), Event::getFacadeRoot());
     }
 
     #[Test]

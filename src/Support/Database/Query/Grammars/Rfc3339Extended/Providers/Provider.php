@@ -6,9 +6,9 @@ namespace Support\Database\Query\Grammars\Rfc3339Extended\Providers;
 
 use DateTime;
 use DateTimeInterface;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Support\Facades\Date;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Support\Database\Query\Grammars\Rfc3339Extended\Listeners\SwapGrammar;
@@ -32,7 +32,7 @@ class Provider extends ServiceProvider
      */
     private function registerListeners(): void
     {
-        Event::listen(ConnectionEstablished::class, SwapGrammar::class);
+        $this->app->make(Dispatcher::class)->listen(ConnectionEstablished::class, SwapGrammar::class);
     }
 
     private function bootSchemaConfiguration(): void
