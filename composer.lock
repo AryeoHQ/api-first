@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4a1457acc32f4600fb6f397429024d91",
+    "content-hash": "2f44e4b2b9dfc3998a0faf5a100e4918",
     "packages": [
         {
             "name": "aryeo/actions",
@@ -224,7 +224,7 @@
             "version": "0.0.17",
             "source": {
                 "type": "git",
-                "url": "https://github.com/AryeoHQ/attribute-routing",
+                "url": "https://github.com/AryeoHQ/attribute-routing.git",
                 "reference": "80aad6a11f724e1940312007a436a2f68276ffd4"
             },
             "dist": {
@@ -953,7 +953,7 @@
             "version": "0.0.16",
             "source": {
                 "type": "git",
-                "url": "https://github.com/AryeoHQ/request-casts",
+                "url": "https://github.com/AryeoHQ/request-casts.git",
                 "reference": "317a7186a73d5ee50c42eaff50df8ec5ec8bceca"
             },
             "dist": {
