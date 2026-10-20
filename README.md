@@ -307,7 +307,7 @@ The precondition evaluates `If-Match` when the request resolves:
 
 After `lock()`, `tag()` hashes the locked row, not the bound entity. That instance holds no loaded relations, so every relation the schema or a `Contributor` reads loads inside the lock. A concurrent change to a relation alone therefore returns 412. The tag must not depend on a relation that the caller constrains, because the recheck loads that relation without the constraint.
 
-`tag()` hashes the schema alone. A response ETag also covers the schema's `with()` and `additional()` data. An endpoint whose response adds such data therefore cannot use `EntityTarget`, because every write that sends its ETag returns 412.
+`tag()` hashes the schema that the model registers for the version, including that schema's `with()` data. It does not cover data that the endpoint adds with `additional()`, or a schema class that the endpoint renders in place of the registered one. Such an endpoint cannot use `EntityTarget`, because every write that sends its ETag returns 412.
 
 An item of an ordered collection needs another lock order. `EntityTarget` locks the item row alone, and eloquent-ordering locks the parent row first, so a delete that races a reorder deadlocks. The eloquent-ordering README states the `Target` such an item needs.
 
