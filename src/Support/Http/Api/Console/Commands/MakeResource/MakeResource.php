@@ -28,9 +28,10 @@ class MakeResource extends Command
         $this->resolveEntity();
 
         $namespace = $this->entity->baseNamespace->ltrim('\\')->append(
-            '\\Schemas\\', $this->apiVersion->toString(),
+            '\\Http\\Api\\', $this->apiVersion->toString(),
             '\\',
-            $this->entity->plural->toString()
+            $this->entity->plural->toString(),
+            '\\Schemas'
         )->toString();
 
         return $this->call(
