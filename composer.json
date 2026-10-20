@@ -55,7 +55,7 @@
     },
     "require": {
         "php": "^8.4",
-        "aryeo/api-resource-schema": "0.0.22",
+        "aryeo/api-resource-schema": "dev-feat/2026-10-16t0123-optimistic-concurrency-m1",
         "laravel/framework": "^12.37 || ^13",
         "laravel/prompts": "^0.3.8",
         "nikic/php-parser": "^5.7",

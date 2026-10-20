@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2f44e4b2b9dfc3998a0faf5a100e4918",
+    "content-hash": "933fb75a060ed59181ac96fe46187d50",
     "packages": [
         {
             "name": "aryeo/actions",
@@ -121,16 +121,16 @@
         },
         {
             "name": "aryeo/api-resource-schema",
-            "version": "0.0.22",
+            "version": "dev-feat/2026-10-16t0123-optimistic-concurrency-m1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/AryeoHQ/api-resource-schema.git",
-                "reference": "fcdf9c22001cd052d513d591abf56832aa973887"
+                "reference": "ae797fa244b9e0e9534377b9cc5cac243363db02"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/api-resource-schema/zipball/fcdf9c22001cd052d513d591abf56832aa973887",
-                "reference": "fcdf9c22001cd052d513d591abf56832aa973887",
+                "url": "https://api.github.com/repos/AryeoHQ/api-resource-schema/zipball/ae797fa244b9e0e9534377b9cc5cac243363db02",
+                "reference": "ae797fa244b9e0e9534377b9cc5cac243363db02",
                 "shasum": ""
             },
             "require": {
@@ -214,10 +214,10 @@
             ],
             "description": "A typed layer over Laravel API Resources that describes the JSON contract with PHP accessor properties.",
             "support": {
-                "source": "https://github.com/AryeoHQ/api-resource-schema/tree/0.0.22",
+                "source": "https://github.com/AryeoHQ/api-resource-schema/tree/feat/2026-10-16t0123-optimistic-concurrency-m1",
                 "issues": "https://github.com/AryeoHQ/api-resource-schema/issues"
             },
-            "time": "2026-10-19T14:40:17+00:00"
+            "time": "2026-10-19T23:14:31+00:00"
         },
         {
             "name": "aryeo/attribute-routing",
@@ -13465,7 +13465,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "aryeo/api-resource-schema": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {

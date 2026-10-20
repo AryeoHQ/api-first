@@ -12,6 +12,7 @@ use Support\Entities\References\Entity;
 use Support\Http\Api\Console\Commands\MakeController\Concerns\GeneratesAction;
 use Support\Http\Api\Console\Commands\MakeController\Concerns\GeneratesRest;
 use Support\Http\Api\Console\Commands\MakeController\Concerns\ResolvesApiVersion;
+use Support\Http\Api\Console\Commands\MakePrecondition\MakePrecondition;
 use Support\Http\Api\Console\Enums\ActionMethod;
 use Support\Http\Api\Console\Enums\Endpoint;
 use Support\Http\Api\Console\Enums\EndpointType;
@@ -63,6 +64,10 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
         $this->resolveEntity();
         $this->resolveController();
 
+        if ($this->option('precondition') === true && $this->controller->scope !== Scope::Instance) {
+            $this->fail('--precondition supports an instance endpoint only, because the generated class targets the route-bound entity. See "Collection targets" in the README.');
+        }
+
         // Does not call parent::handle() to skip base command's operations
         GeneratorCommand::handle();
 
@@ -70,6 +75,16 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
             $this->call(MakeAuthorizer::class, [
                 'name' => 'Authorizer',
                 '--namespace' => $this->controller->namespace->ltrim('\\')->toString(),
+                '--force' => $this->option('force'),
+            ]);
+        }
+
+        if ($this->generatesPrecondition()) {
+            $this->call(MakePrecondition::class, [
+                'name' => 'Precondition',
+                '--namespace' => $this->controller->namespace->ltrim('\\')->toString(),
+                '--entity' => $this->controller->entity->fqcn->toString(),
+                '--api-version' => $this->apiVersion->toString(),
                 '--force' => $this->option('force'),
             ]);
         }
@@ -125,12 +140,22 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
     {
         return collect()
             ->when($this->option('authorizer'), fn ($p) => $p->push('Authorizer $authorizer'))
+            ->when($this->generatesPrecondition(), fn ($p) => $p->push('Precondition $precondition'))
             ->when($this->option('validator'), fn ($p) => $p->push('Validator $validator'))
             ->when(
                 $this->controller->scope === Scope::Instance,
                 fn ($parameters) => $parameters
                     ->push($this->controller->entity->name.' $'.$this->controller->route->controllerParameterName)
             )->implode(', ');
+    }
+
+    private function generatesPrecondition(): bool
+    {
+        $option = $this->option('precondition');
+
+        return is_bool($option)
+            ? $option
+            : $this->controller->scope === Scope::Instance && $this->controller->route->method !== Method::Get;
     }
 
     private function resolveController(): void
@@ -185,6 +210,7 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
             new InputOption('entity', null, InputOption::VALUE_OPTIONAL, 'The entity FQCN (e.g. App\\Entities\\Posts\\Post).'),
             new InputOption('type', null, InputOption::VALUE_OPTIONAL, 'The endpoint type (Rest or Action).'),
             new InputOption('authorizer', null, InputOption::VALUE_NEGATABLE, 'Generate an Authorizer class.', true),
+            new InputOption('precondition', null, InputOption::VALUE_NEGATABLE, 'Generate a Precondition class (default: instance update, delete, and action endpoints).'),
             new InputOption('validator', null, InputOption::VALUE_NEGATABLE, 'Generate a Validator class.', true),
             new InputOption('force', null, InputOption::VALUE_NONE, 'Create the class even if it already exists.'),
         ];
