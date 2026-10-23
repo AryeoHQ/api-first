@@ -69,6 +69,48 @@ trait WithStructuredMetaFiltersTestCases
     }
 
     #[Test]
+    public function it_returns_casted_filters_values_after_the_request_is_rebound(): void
+    {
+        $paginator = new CursorPaginator(
+            items: [['id' => 1]],
+            perPage: 1,
+        );
+
+        $firstRequest = tap(Request::create('/test', 'GET', [
+            'filters' => ['is_active' => false],
+        ]), fn (Request $request) => $request->setRouteResolver(
+            fn () => tap(new Route('GET', '/test', ['uses' => CastableController::class.'@index']), fn (Route $route) => $route->bind($request))
+        ));
+
+        $this->app->instance('request', $firstRequest);
+
+        $responseOne = Post::collection($paginator)->toResponse($firstRequest);
+
+        $dataOne = $responseOne->getData(assoc: true);
+
+        $this->assertSame([
+            'is_active' => false,
+        ], $dataOne['meta']['filters']);
+
+        $secondRequest = tap(Request::create('/test', 'GET', [
+            'filters' => ['is_active' => true, 'count' => 5],
+        ]), fn (Request $request) => $request->setRouteResolver(
+            fn () => tap(new Route('GET', '/test', ['uses' => CastableController::class.'@index']), fn (Route $route) => $route->bind($request))
+        ));
+
+        $this->app->instance('request', $secondRequest);
+
+        $responseTwo = Post::collection($paginator)->toResponse($secondRequest);
+
+        $dataTwo = $responseTwo->getData(assoc: true);
+
+        $this->assertSame([
+            'is_active' => true,
+            'count' => 5,
+        ], $dataTwo['meta']['filters']);
+    }
+
+    #[Test]
     public function it_returns_raw_filters_values_from_plain_form_request(): void
     {
         $paginator = new CursorPaginator(
