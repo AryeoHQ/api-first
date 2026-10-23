@@ -30,7 +30,8 @@ class MakeResource extends Command
         $namespace = $this->entity->baseNamespace->ltrim('\\')->append(
             '\\Http\\Api\\', $this->apiVersion->toString(),
             '\\',
-            $this->entity->plural->toString()
+            $this->entity->plural->toString(),
+            '\\Schemas'
         )->toString();
 
         return $this->call(
