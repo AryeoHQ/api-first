@@ -110,13 +110,13 @@ final class RendererTest extends TestCase
     }
 
     #[Test]
-    public function it_renders_a_stale_precondition_as_412_with_the_current_etag(): void
+    public function it_renders_a_stale_precondition_as_412_without_an_etag(): void
     {
         $this->assertErrors(
             $this->postJson('api/errors/precondition-failed'),
             Response::HTTP_PRECONDITION_FAILED,
             [['code' => 'precondition.failed', 'detail' => 'The If-Match precondition does not match the current resource.', 'source' => ['header' => 'If-Match']]],
-        )->assertHeader('ETag', '"33a64df5"');
+        )->assertHeaderMissing('ETag');
     }
 
     #[Test]
@@ -185,7 +185,7 @@ final class RendererTest extends TestCase
             $this->postJson('api/errors/legacy/precondition-failed'),
             Response::HTTP_PRECONDITION_FAILED,
             [['code' => 'precondition.failed', 'detail' => 'The If-Match precondition does not match the current resource.', 'source' => ['header' => 'If-Match']]],
-        )->assertHeader('ETag', '"33a64df5"');
+        )->assertHeaderMissing('ETag');
     }
 
     #[Test]

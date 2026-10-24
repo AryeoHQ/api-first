@@ -185,7 +185,7 @@ The default group is `api`, so an upgrade to this release changes the error body
 | Passport's `MissingScopeException`                    | 403     | `permission.missing_scope`                    |
 | A missing bound model                                 | 404     | `not_found.resource`                          |
 | A 405 raised inside a matched route                   | 405     | `method.not_allowed`                          |
-| `PreconditionFailed`                                  | 412     | `precondition.failed`, with the `ETag` header |
+| `PreconditionFailed`                                  | 412     | `precondition.failed`                         |
 | A 415 HTTP exception                                  | 415     | `media_type.unsupported`                      |
 | A failed validation rule, one object per rule         | 422     | `validation.<rule>`                           |
 | `PreconditionRequired`                                | 428     | `precondition.required`                       |

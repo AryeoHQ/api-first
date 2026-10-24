@@ -17,6 +17,6 @@ final class LegacyErrorsController
 
     public function preconditionFailed(): never
     {
-        throw new PreconditionFailed('"33a64df5"');
+        throw new PreconditionFailed;
     }
 }
