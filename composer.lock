@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "202d427e9e83a58aa6c2e08e508af294",
+    "content-hash": "ed13721f9bdac4c87c5418e001ccf2e5",
     "packages": [
         {
             "name": "aryeo/actions",
@@ -110,13 +110,20 @@
         },
         {
             "name": "aryeo/api-resource-schema",
-            "version": "0.0.22",
+            "version": "dev-feat/2026-10-24t1355-occ-versioning-m4",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AryeoHQ/api-resource-schema.git",
+                "reference": "fcbf104c54dee27d166ce009eb9e95e5d83077a3"
+            },
             "dist": {
                 "type": "zip",
-                "url": "https://artifactory.zgtools.net/artifactory/api/composer/listing-and-vendor-management-composer/direct-dists/aryeo/api-resource-schema/api-resource-schema-0.0.22.zip",
-                "reference": "891a773ac0c2c05b947d91f214c2760764869b8d"
+                "url": "https://api.github.com/repos/AryeoHQ/api-resource-schema/zipball/fcbf104c54dee27d166ce009eb9e95e5d83077a3",
+                "reference": "fcbf104c54dee27d166ce009eb9e95e5d83077a3",
+                "shasum": ""
             },
             "require": {
+                "aryeo/eloquent-concurrency": "dev-feat/2026-10-24t1355-occ-versioning-m2",
                 "aryeo/tooling-laravel": "0.0.41",
                 "laravel/framework": "^12.37 || ^13",
                 "laravel/prompts": "^0.3.17",
@@ -195,7 +202,12 @@
                     "email": "justinsel@zillowgroup.com"
                 }
             ],
-            "description": "A typed layer over Laravel API Resources that describes the JSON contract with PHP accessor properties."
+            "description": "A typed layer over Laravel API Resources that describes the JSON contract with PHP accessor properties.",
+            "support": {
+                "source": "https://github.com/AryeoHQ/api-resource-schema/tree/feat/2026-10-24t1355-occ-versioning-m4",
+                "issues": "https://github.com/AryeoHQ/api-resource-schema/issues"
+            },
+            "time": "2026-10-24T23:40:05+00:00"
         },
         {
             "name": "aryeo/attribute-routing",
@@ -294,6 +306,100 @@
                 "actions",
                 "laravel"
             ]
+        },
+        {
+            "name": "aryeo/eloquent-concurrency",
+            "version": "dev-feat/2026-10-24t1355-occ-versioning-m2",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:AryeoHQ/eloquent-concurrency.git",
+                "reference": "76ec03a7944be1aa1b5e8a95c6d8d2275547ad12"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/AryeoHQ/eloquent-concurrency/zipball/76ec03a7944be1aa1b5e8a95c6d8d2275547ad12",
+                "reference": "76ec03a7944be1aa1b5e8a95c6d8d2275547ad12",
+                "shasum": ""
+            },
+            "require": {
+                "aryeo/tooling-laravel": "0.0.41",
+                "laravel/framework": "^12.37 || ^13",
+                "php": "^8.4"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.6 || ^11",
+                "orchestra/testbench-core": "^10.7 || ^11",
+                "phpunit/phpunit": "^12.4.1 || ^13"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Support\\Database\\Eloquent\\Concurrency\\Providers\\Provider"
+                    ]
+                },
+                "tooling": {
+                    "rector": {
+                        "config": {
+                            "paths": [
+                                "src"
+                            ]
+                        },
+                        "configured_rules": "tooling/rector/configured-rules.php"
+                    },
+                    "phpstan": {
+                        "config": {
+                            "paths": [
+                                "src",
+                                "tests",
+                                "workbench"
+                            ]
+                        },
+                        "rules": "tooling/phpstan/rules.neon"
+                    },
+                    "pint": {
+                        "config": {
+                            "paths": [
+                                "src",
+                                "tests",
+                                "workbench"
+                            ]
+                        }
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Support\\": "src/Support/",
+                    "Tooling\\": "src/Tooling/"
+                },
+                "exclude-from-classmap": [
+                    "*Test.php",
+                    "*TestCases.php",
+                    "/tests/"
+                ]
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Workbench\\App\\": "workbench/app/",
+                    "Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Justin Seliga",
+                    "email": "justinsel@zillowgroup.com"
+                }
+            ],
+            "description": "Database-maintained concurrency revisions for Eloquent models",
+            "support": {
+                "source": "https://github.com/AryeoHQ/eloquent-concurrency/tree/feat/2026-10-24t1355-occ-versioning-m2",
+                "issues": "https://github.com/AryeoHQ/eloquent-concurrency/issues"
+            },
+            "time": "2026-10-24T23:38:47+00:00"
         },
         {
             "name": "aryeo/eloquent-search",
@@ -13347,7 +13453,10 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "aryeo/api-resource-schema": 20,
+        "aryeo/eloquent-concurrency": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
