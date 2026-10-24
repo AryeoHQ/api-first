@@ -250,6 +250,92 @@ final class Controller
 }
 ```
 
+## Preconditions
+
+A precondition makes a write endpoint honour `If-Match`. The client sends the `ETag` of a `GET` response, and the write runs only if the revisions that the endpoint names still match. [api-resource-schema](https://github.com/AryeoHQ/api-resource-schema) sets that `ETag`, and [eloquent-concurrency](https://github.com/AryeoHQ/eloquent-concurrency) maintains the revisions.
+
+Extend `Precondition` and return a target. Then resolve the precondition between the authorizer and the validator, and wrap the write in `guard()`:
+
+```php
+use Support\Http\Api\Preconditions\Contracts\Target;
+use Support\Http\Api\Preconditions\Precondition as BasePrecondition;
+use Support\Http\Api\Preconditions\Targets\EntityTarget;
+
+final class Precondition extends BasePrecondition
+{
+    public function target(): Target
+    {
+        return EntityTarget::for($this->route('webhookEndpoint'), ApiVersion::V2)->comparingSelf();
+    }
+}
+
+public function __invoke(Authorizer $authorizer, Precondition $precondition, Validator $validator, WebhookEndpoint $webhookEndpoint): WebhookEndpointSchema
+{
+    $precondition->guard(fn () => $webhookEndpoint->update($validator->validated()));
+
+    return $webhookEndpoint->toSchema(ApiVersion::V2);
+}
+```
+
+`guard($write)` opens one transaction on the target's connection and locks the target's rows. It then compares `If-Match` against the revisions it read under that lock. It runs `$write` only on a match, and returns the closure's result. A concurrent write that lands between the request's start and the lock therefore still fails.
+
+### Optional and required
+
+A precondition is optional by default. A request without `If-Match` then runs the write. Set `$required` to answer such a request with `428`:
+
+```php
+protected bool $required = true;
+```
+
+| `If-Match`                                          | Optional | Required |
+| --------------------------------------------------- | -------- | -------- |
+| Absent                                              | Runs     | 428      |
+| `*`                                                 | Runs     | Runs     |
+| A list in which one tag matches                     | Runs     | Runs     |
+| A weak tag, an empty value, or no tag that matches  | 412      | 412      |
+
+A tag matches when its API version equals the target's, and each compared revision equals the stored one. The comparison ignores the digest and every revision the target does not compare. A `412` carries no `ETag`.
+
+### What a target compares
+
+`EntityTarget::for($model, $api)` takes a `Revisioned` model and starts with nothing to compare. Each method adds to the set:
+
+| Method                          | Compares                                                    |
+| ------------------------------- | ----------------------------------------------------------- |
+| `comparingSelf()`               | The model's own revision                                    |
+| `comparingNamed(...$revisions)` | Each named revision, such as the order of the model's items |
+| `comparingAll()`                | The own revision and every declared named revision          |
+
+A target that compares nothing throws `LogicException` when the precondition evaluates it. A named revision that the model does not declare throws `UndeclaredConcurrencyRevision`.
+
+Compare the revisions that the write depends on. A rename compares `comparingSelf()`. A move compares the order it changes, so a client can send the nested index tag `"v2.place_assets_order=4"`:
+
+```php
+EntityTarget::for($this->route('placeAssetSubsection'), ApiVersion::V2)
+    ->comparingNamed(PlaceAssetSubsectionRevision::PlaceAssetsOrder);
+```
+
+`alsoLocking(...$models)` locks more rows in the same transaction, such as the source parent of a move between parents. The target locks every row in primary-key order, so two requests that lock the same rows cannot deadlock:
+
+```php
+EntityTarget::for($destination, ApiVersion::V2)
+    ->comparingNamed(PlaceAssetSubsectionRevision::PlaceAssetsOrder)
+    ->alsoLocking($source);
+```
+
+The lock re-reads each row, so the write sees the committed attributes. A row that another request deleted gives a `404`.
+
+### Check order
+
+A request fails on the first check that does not pass:
+
+1. `404`, from route model binding.
+2. `403`, from the authorizer.
+3. `428` or `412`, from the precondition.
+4. `422`, from the validator.
+
+The precondition compares the bound model when the container resolves it, which gives this order. The comparison inside `guard()` is the one that protects the write.
+
 ## Request Context
 
 The package adds `actor()` and `subject()` macros to `Illuminate\Http\Request`, providing semantic access to the authenticated user:
