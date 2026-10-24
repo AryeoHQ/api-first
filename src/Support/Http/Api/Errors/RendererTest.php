@@ -120,6 +120,36 @@ final class RendererTest extends TestCase
     }
 
     #[Test]
+    public function it_drops_a_caller_supplied_etag_from_a_412_and_keeps_other_headers(): void
+    {
+        $this->assertErrors(
+            $this->postJson('api/errors/precondition-failed-with-headers'),
+            Response::HTTP_PRECONDITION_FAILED,
+            [['code' => 'precondition.failed', 'detail' => 'The If-Match precondition does not match the current resource.', 'source' => ['header' => 'If-Match']]],
+        )->assertHeaderMissing('ETag')->assertHeader('X-Request-Trace', 'trace-1');
+    }
+
+    #[Test]
+    public function it_renders_symfonys_precondition_failed_exception_as_412_without_an_etag(): void
+    {
+        $this->assertErrors(
+            $this->postJson('api/errors/symfony/precondition-failed'),
+            Response::HTTP_PRECONDITION_FAILED,
+            [['code' => 'precondition.failed', 'detail' => 'The If-Match precondition does not match the current resource.', 'source' => ['header' => 'If-Match']]],
+        )->assertHeaderMissing('ETag');
+    }
+
+    #[Test]
+    public function it_renders_symfonys_precondition_required_exception_as_428(): void
+    {
+        $this->assertErrors(
+            $this->postJson('api/errors/symfony/precondition-required'),
+            Response::HTTP_PRECONDITION_REQUIRED,
+            [['code' => 'precondition.required', 'detail' => 'This operation requires the If-Match header.', 'source' => ['header' => 'If-Match']]],
+        );
+    }
+
+    #[Test]
     public function it_renders_a_missing_precondition_as_428(): void
     {
         $this->assertErrors(
@@ -183,6 +213,16 @@ final class RendererTest extends TestCase
     {
         $this->assertErrors(
             $this->postJson('api/errors/legacy/precondition-failed'),
+            Response::HTTP_PRECONDITION_FAILED,
+            [['code' => 'precondition.failed', 'detail' => 'The If-Match precondition does not match the current resource.', 'source' => ['header' => 'If-Match']]],
+        )->assertHeaderMissing('ETag');
+    }
+
+    #[Test]
+    public function it_renders_symfonys_precondition_failed_exception_on_a_legacy_controller_as_412(): void
+    {
+        $this->assertErrors(
+            $this->postJson('api/errors/legacy/symfony/precondition-failed'),
             Response::HTTP_PRECONDITION_FAILED,
             [['code' => 'precondition.failed', 'detail' => 'The If-Match precondition does not match the current resource.', 'source' => ['header' => 'If-Match']]],
         )->assertHeaderMissing('ETag');

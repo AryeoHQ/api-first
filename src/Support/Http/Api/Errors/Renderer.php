@@ -16,9 +16,9 @@ use Illuminate\Validation\ValidationException;
 use ReflectionClass;
 use stdClass;
 use Support\Http\Api\Errors\Attributes\LegacyErrors;
-use Support\Http\Api\Errors\Exceptions\PreconditionFailed;
-use Support\Http\Api\Errors\Exceptions\PreconditionRequired;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\HttpKernel\Exception\PreconditionFailedHttpException;
+use Symfony\Component\HttpKernel\Exception\PreconditionRequiredHttpException;
 use Throwable;
 
 final class Renderer
@@ -33,7 +33,7 @@ final class Renderer
             return null;
         }
 
-        if ($e instanceof PreconditionFailed || $e instanceof PreconditionRequired) {
+        if ($e instanceof PreconditionFailedHttpException || $e instanceof PreconditionRequiredHttpException) {
             return $this->precondition($e, $request);
         }
 
@@ -65,13 +65,18 @@ final class Renderer
             && new ReflectionClass($controller)->getAttributes(LegacyErrors::class) !== [];
     }
 
-    private function precondition(PreconditionFailed|PreconditionRequired $e, Request $request): JsonResponse
+    private function precondition(PreconditionFailedHttpException|PreconditionRequiredHttpException $e, Request $request): JsonResponse
     {
-        $error = $e instanceof PreconditionFailed
-            ? $this->error($e, $request, 412, 'precondition.failed', 'The If-Match precondition does not match the current resource.', Source::header('If-Match'))
-            : $this->error($e, $request, 428, 'precondition.required', 'This operation requires the If-Match header.', Source::header('If-Match'));
+        if ($e instanceof PreconditionFailedHttpException) {
+            $error = $this->error($e, $request, 412, 'precondition.failed', 'The If-Match precondition does not match the current resource.', Source::header('If-Match'));
+            $headers = array_filter($e->getHeaders(), fn (string $name): bool => strcasecmp($name, 'ETag') !== 0, ARRAY_FILTER_USE_KEY);
 
-        return $this->respond($e->getStatusCode(), [$error], $e->getHeaders());
+            return $this->respond(412, [$error], $headers);
+        }
+
+        $error = $this->error($e, $request, 428, 'precondition.required', 'This operation requires the If-Match header.', Source::header('If-Match'));
+
+        return $this->respond(428, [$error], $e->getHeaders());
     }
 
     private function validation(ValidationException $e, Request $request): JsonResponse

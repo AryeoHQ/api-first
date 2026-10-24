@@ -6,6 +6,7 @@ namespace Tests\Fixtures\Support\Http\Api\Errors;
 
 use Support\Http\Api\Errors\Attributes\LegacyErrors;
 use Support\Http\Api\Errors\Exceptions\PreconditionFailed;
+use Symfony\Component\HttpKernel\Exception\PreconditionFailedHttpException;
 
 #[LegacyErrors]
 final class LegacyErrorsController
@@ -18,5 +19,10 @@ final class LegacyErrorsController
     public function preconditionFailed(): never
     {
         throw new PreconditionFailed;
+    }
+
+    public function symfonyPreconditionFailed(): never
+    {
+        throw new PreconditionFailedHttpException(headers: ['ETag' => '"33a64df5"']);
     }
 }

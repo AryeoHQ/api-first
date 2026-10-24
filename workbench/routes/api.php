@@ -26,9 +26,13 @@ Route::middleware('api')->prefix('api/errors')->group(function (): void {
     Route::get('throttled', [ErrorsController::class, 'throttled'])->middleware('throttle:1,1');
     Route::post('precondition-failed', [ErrorsController::class, 'preconditionFailed']);
     Route::post('precondition-required', [ErrorsController::class, 'preconditionRequired']);
+    Route::post('precondition-failed-with-headers', [ErrorsController::class, 'preconditionFailedWithHeaders']);
+    Route::post('symfony/precondition-failed', [ErrorsController::class, 'symfonyPreconditionFailed']);
+    Route::post('symfony/precondition-required', [ErrorsController::class, 'symfonyPreconditionRequired']);
     Route::get('fail', [ErrorsController::class, 'fail']);
     Route::post('legacy/validate', [LegacyErrorsController::class, 'validate']);
     Route::post('legacy/precondition-failed', [LegacyErrorsController::class, 'preconditionFailed']);
+    Route::post('legacy/symfony/precondition-failed', [LegacyErrorsController::class, 'symfonyPreconditionFailed']);
 });
 
 Route::post('errors/outside/validate', [ErrorsController::class, 'validate']);

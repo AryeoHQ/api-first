@@ -13,6 +13,8 @@ use Support\Http\Api\Errors\Exceptions\PreconditionFailed;
 use Support\Http\Api\Errors\Exceptions\PreconditionRequired;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Symfony\Component\HttpKernel\Exception\PreconditionFailedHttpException;
+use Symfony\Component\HttpKernel\Exception\PreconditionRequiredHttpException;
 use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
 use Symfony\Component\HttpKernel\Exception\UnsupportedMediaTypeHttpException;
 use Tests\Fixtures\Support\Articles\Article;
@@ -114,6 +116,21 @@ final class ErrorsController
     public function preconditionRequired(): never
     {
         throw new PreconditionRequired;
+    }
+
+    public function preconditionFailedWithHeaders(): never
+    {
+        throw new PreconditionFailed(headers: ['etag' => '"33a64df5"', 'X-Request-Trace' => 'trace-1']);
+    }
+
+    public function symfonyPreconditionFailed(): never
+    {
+        throw new PreconditionFailedHttpException(headers: ['ETag' => '"33a64df5"']);
+    }
+
+    public function symfonyPreconditionRequired(): never
+    {
+        throw new PreconditionRequiredHttpException;
     }
 
     public function fail(): never
