@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Console\Commands\MakeController;
 
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Route as Router;
+use Illuminate\Support\Facades\Schema;
 use Orchestra\Testbench\Attributes\WithConfig;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -15,8 +19,10 @@ use Support\Http\Api\Console\Enums\Endpoint;
 use Support\Http\Api\Console\Enums\EndpointType;
 use Support\Http\Api\Console\Enums\Scope;
 use Support\Http\Api\References\Controller;
+use Support\Http\Api\References\Precondition;
 use Support\Http\Api\References\Route;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
+use Tests\Fixtures\Tooling\Http\Api\PhpStan\Preconditions\Entities\Widgets\Widget;
 use Tests\TestCase;
 use Tooling\Composer\Composer;
 use Tooling\GeneratorCommands\References\Contracts\Reference;
@@ -32,6 +38,10 @@ class MakeControllerTest extends TestCase
 
     private Entity $entity {
         get => new Entity(name: class_basename(static::class), baseNamespace: 'App\\');
+    }
+
+    private Entity $revisionedEntity {
+        get => Entity::fromFqcn(Widget::class);
     }
 
     private Controller $controller {
@@ -51,6 +61,17 @@ class MakeControllerTest extends TestCase
             '--entity' => $this->entity->fqcn->toString(),
             '--type' => EndpointType::Rest->value,
         ];
+    }
+
+    protected function defineDatabaseMigrations(): void
+    {
+        parent::defineDatabaseMigrations();
+
+        Schema::create('widgets', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->concurrencyRevision();
+            $table->timestampsTz();
+        });
     }
 
     #[Test]
@@ -90,5 +111,39 @@ class MakeControllerTest extends TestCase
         )->assertSuccessful();
 
         $this->assertTrue(File::exists($this->showController->filePath->toString()));
+    }
+
+    private function assertGeneratedEndpointRejectsAStaleIfMatch(Controller $controller): void
+    {
+        $precondition = new Precondition(name: 'Precondition', baseNamespace: $controller->namespace);
+
+        foreach ([$controller->authorizer, $precondition, $controller->validator, $controller] as $reference) {
+            $this->requireGenerated($reference->filePath->toString());
+        }
+
+        Router::middleware(SubstituteBindings::class)->match(
+            [$controller->route->method->value],
+            $controller->route->uri->toString(),
+            $controller->fqcn->ltrim('\\')->toString(),
+        );
+
+        $widget = Widget::query()->create();
+        $uri = str_replace('{'.$controller->route->routeParameterName.'}', (string) $widget->getKey(), $controller->route->uri->toString());
+
+        $this->json($controller->route->method->value, $uri, [], ['If-Match' => '"v1.999.0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"'])
+            ->assertStatus(412);
+        $this->json($controller->route->method->value, $uri, [], ['If-Match' => '"v1.1.0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"'])
+            ->assertSuccessful();
+    }
+
+    private function requireGenerated(string $path): void
+    {
+        $file = (string) tempnam(sys_get_temp_dir(), 'generated');
+
+        file_put_contents($file, File::get($path));
+
+        require $file;
+
+        unlink($file);
     }
 }

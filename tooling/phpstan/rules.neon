@@ -28,6 +28,14 @@ services:
         tags:
             - phpstan.rules.rule
     -
+        class: Tooling\Http\Api\PhpStan\PreconditionMustSitBetweenAuthorizerAndValidator
+        tags:
+            - phpstan.rules.rule
+    -
+        class: Tooling\Http\Api\PhpStan\WriteEndpointMustOfferPrecondition
+        tags:
+            - phpstan.rules.rule
+    -
         class: Tooling\Http\Api\PhpStan\Extensions\TokenContext
         tags:
             - phpstan.broker.methodsClassReflectionExtension

@@ -386,6 +386,42 @@ For REST, it prompts for which endpoint to generate (index, show, store, update,
 
 Authorizer and Validator generation can be opted out with `--no-authorizer` and `--no-validator`.
 
+For update, delete, and instance-action endpoints, the command also generates a co-located `Precondition` through `make:precondition`. The controller takes it between the authorizer and the validator, and wraps the write in `guard()`:
+
+```php
+public function __invoke(Authorizer $authorizer, Precondition $precondition, Validator $validator, Order $order)
+{
+    $precondition->guard(function (): void {
+        //
+    });
+}
+```
+
+Index, show, store, search, and resource-action endpoints get no precondition.
+
+### make:precondition
+
+Generates a precondition that compares the own revision of the route-bound entity:
+
+```bash
+php artisan make:precondition Precondition --namespace='App\Http\Api\V1\Orders\Update' --entity='App\Entities\Orders\Order' --api-version=V1
+```
+
+```php
+final class Precondition extends BasePrecondition
+{
+    public function target(): Target
+    {
+        /** @var Order $order */
+        $order = $this->route('order');
+
+        return EntityTarget::for($order, ApiVersion::V1)->comparingSelf();
+    }
+}
+```
+
+The command prompts for any option you omit. Change the target when the write depends on a named revision. See [What a target compares](#what-a-target-compares).
+
 ### make:resource
 
 Generates an API resource schema for an entity:
@@ -416,12 +452,14 @@ No configuration is needed. The service provider handles everything through pack
 
 This package provides PHPStan rules that enforce API conventions at static analysis time. They are automatically registered when using `aryeo/tooling-laravel`.
 
-| Rule                                    | Enforces                                                              |
-| --------------------------------------- | --------------------------------------------------------------------- |
-| `ControllerMustBeFinal`                 | Controllers must be declared `final`.                                 |
-| `ControllerMustHaveRoute`               | Controllers must define their endpoint with a `#[Route]` attribute.   |
-| `ControllerMustHaveSingleCastableData`  | Controllers must not have more than one `CastableData` parameter.     |
-| `JsonResourceMustImplementSchema`       | JSON resources must implement the `Schema` contract.                  |
-| `RouteMustBeOnInvoke`                   | The `#[Route]` attribute must only appear on the `__invoke()` method. |
-| `SchemaMustHaveId`                      | Schemas must define a public `$id` property.                          |
-| `SchemaMustHaveResourceType`            | Schemas must define a public `$resourceType` property.                |
+| Rule                                               | Enforces                                                                                                                                                     |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ControllerMustBeFinal`                            | Controllers must be declared `final`.                                                                                                                        |
+| `ControllerMustHaveRoute`                          | Controllers must define their endpoint with a `#[Route]` attribute.                                                                                          |
+| `ControllerMustHaveSingleCastableData`             | Controllers must not have more than one `CastableData` parameter.                                                                                            |
+| `JsonResourceMustImplementSchema`                  | JSON resources must implement the `Schema` contract.                                                                                                         |
+| `PreconditionMustSitBetweenAuthorizerAndValidator` | An `__invoke()` that takes a `Precondition` declares it after every authorizer and before the validator.                                                     |
+| `RouteMustBeOnInvoke`                              | The `#[Route]` attribute must only appear on the `__invoke()` method.                                                                                        |
+| `SchemaMustHaveId`                                 | Schemas must define a public `$id` property.                                                                                                                 |
+| `SchemaMustHaveResourceType`                       | Schemas must define a public `$resourceType` property.                                                                                                       |
+| `WriteEndpointMustOfferPrecondition`               | An `__invoke()` routed by `PUT`, `PATCH`, or `DELETE`, or by `POST` to `/{model}/actions/<action>`, takes a `Precondition`. A `POST` that creates is exempt. |

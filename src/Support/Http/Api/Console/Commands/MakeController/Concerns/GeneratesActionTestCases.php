@@ -10,6 +10,7 @@ use Support\Http\Api\Console\Enums\ActionMethod;
 use Support\Http\Api\Console\Enums\EndpointType;
 use Support\Http\Api\Console\Enums\Scope;
 use Support\Http\Api\References\Controller;
+use Support\Http\Api\References\Precondition;
 use Support\Http\Api\References\Route;
 use Tests\TestCase;
 use Tooling\Composer\Composer;
@@ -30,6 +31,8 @@ trait GeneratesActionTestCases
             Route::make('V1', $this->entity, EndpointType::Action, 'ExportOrders', ActionMethod::Post, Scope::Resource),
         );
     }
+
+    abstract private function assertGeneratedEndpointRejectsAStaleIfMatch(Controller $controller): void;
 
     #[Test]
     public function it_creates_an_instance_scoped_action_endpoint(): void
@@ -104,5 +107,85 @@ trait GeneratesActionTestCases
                 $contents
             );
         });
+    }
+
+    #[Test]
+    public function it_creates_a_precondition_for_an_instance_scoped_action_endpoint(): void
+    {
+        Composer::fake();
+
+        $this->artisan($this->command, $this->actionInput())->expectsQuestion(
+            'What is the name of the action? (ie: PayInvoice, Download, etc.)',
+            'PayInvoice'
+        )->expectsChoice(
+            'What HTTP method should the action use?',
+            ActionMethod::Post->value, array_column(ActionMethod::cases(), 'value')
+        )->expectsChoice(
+            'What is the scope of the action?',
+            Scope::Instance->value, array_column(Scope::cases(), 'value')
+        )->assertSuccessful();
+
+        $this->assertTrue(File::exists(new Precondition(name: 'Precondition', baseNamespace: $this->actionController->namespace)->filePath->toString()));
+
+        tap(File::get($this->actionController->filePath->toString()), function (string $contents): void {
+            $this->assertStringContainsString(
+                'Authorizer $authorizer, Precondition $precondition, Validator $validator, '.$this->actionController->entity->name.' $'.$this->actionController->route->controllerParameterName,
+                $contents,
+            );
+            $this->assertStringContainsString('$precondition->guard(function (): void {', $contents);
+        });
+    }
+
+    #[Test]
+    public function it_generates_an_instance_action_that_rejects_a_stale_if_match(): void
+    {
+        Composer::fake(['autoload' => ['psr-4' => ['Tests\\' => 'tests/']]]);
+
+        $this->artisan($this->command, [...$this->actionInput(), '--entity' => $this->revisionedEntity->fqcn->toString()])->expectsQuestion(
+            'What is the name of the action? (ie: PayInvoice, Download, etc.)',
+            'Archive'
+        )->expectsChoice(
+            'What HTTP method should the action use?',
+            ActionMethod::Post->value, array_column(ActionMethod::cases(), 'value')
+        )->expectsChoice(
+            'What is the scope of the action?',
+            Scope::Instance->value, array_column(Scope::cases(), 'value')
+        )->assertSuccessful();
+
+        $this->assertGeneratedEndpointRejectsAStaleIfMatch(
+            Controller::make(Route::make('V1', $this->revisionedEntity, EndpointType::Action, 'Archive', ActionMethod::Post)),
+        );
+    }
+
+    #[Test]
+    public function it_creates_no_precondition_for_a_resource_scoped_action_endpoint(): void
+    {
+        Composer::fake();
+
+        $this->artisan($this->command, $this->actionInput())->expectsQuestion(
+            'What is the name of the action? (ie: PayInvoice, Download, etc.)',
+            'ExportOrders'
+        )->expectsChoice(
+            'What HTTP method should the action use?',
+            ActionMethod::Post->value, array_column(ActionMethod::cases(), 'value')
+        )->expectsChoice(
+            'What is the scope of the action?',
+            Scope::Resource->value, array_column(Scope::cases(), 'value')
+        )->assertSuccessful();
+
+        $this->assertFalse(File::exists(new Precondition(name: 'Precondition', baseNamespace: $this->resourceActionController->namespace)->filePath->toString()));
+        $this->assertStringNotContainsString('Precondition', File::get($this->resourceActionController->filePath->toString()));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function actionInput(): array
+    {
+        return [
+            '--api-version' => 'V1',
+            '--entity' => $this->entity->fqcn->toString(),
+            '--type' => EndpointType::Action->value,
+        ];
     }
 }

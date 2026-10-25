@@ -12,6 +12,7 @@ use Support\Entities\References\Entity;
 use Support\Http\Api\Console\Commands\MakeController\Concerns\GeneratesAction;
 use Support\Http\Api\Console\Commands\MakeController\Concerns\GeneratesRest;
 use Support\Http\Api\Console\Commands\MakeController\Concerns\ResolvesApiVersion;
+use Support\Http\Api\Console\Commands\MakePrecondition\MakePrecondition;
 use Support\Http\Api\Console\Enums\ActionMethod;
 use Support\Http\Api\Console\Enums\Endpoint;
 use Support\Http\Api\Console\Enums\EndpointType;
@@ -74,6 +75,16 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
             ]);
         }
 
+        if ($this->generatesPrecondition()) {
+            $this->call(MakePrecondition::class, [
+                'name' => 'Precondition',
+                '--namespace' => $this->controller->namespace->ltrim('\\')->toString(),
+                '--entity' => $this->controller->entity->fqcn->toString(),
+                '--api-version' => $this->apiVersion->toString(),
+                '--force' => $this->option('force'),
+            ]);
+        }
+
         if ($this->option('validator')) {
             $this->call(MakeValidator::class, [
                 'name' => 'Validator',
@@ -100,13 +111,17 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
             'Method::'.$this->controller->route->method->name,
         ], $stub);
 
-        return str_replace([
+        $stub = str_replace([
             '{{ imports }}',
             '{{ parameters }}',
         ], [
             $this->buildControllerImports(),
             $this->buildControllerParameters(),
         ], $stub);
+
+        return $this->generatesPrecondition()
+            ? str_replace("        //\n", "        \$precondition->guard(function (): void {\n            //\n        });\n", $stub)
+            : $stub;
     }
 
     private function buildControllerImports(): string
@@ -125,12 +140,18 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
     {
         return collect()
             ->when($this->option('authorizer'), fn ($p) => $p->push('Authorizer $authorizer'))
+            ->when($this->generatesPrecondition(), fn ($p) => $p->push('Precondition $precondition'))
             ->when($this->option('validator'), fn ($p) => $p->push('Validator $validator'))
             ->when(
                 $this->controller->scope === Scope::Instance,
                 fn ($parameters) => $parameters
                     ->push($this->controller->entity->name.' $'.$this->controller->route->controllerParameterName)
             )->implode(', ');
+    }
+
+    private function generatesPrecondition(): bool
+    {
+        return $this->controller->scope === Scope::Instance && $this->controller->route->method !== Method::Get;
     }
 
     private function resolveController(): void
