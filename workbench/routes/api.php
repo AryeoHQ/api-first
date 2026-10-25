@@ -2,7 +2,11 @@
 
 declare(strict_types=1);
 
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
+use Tests\Fixtures\Support\Http\Api\ConditionalGet\CreatedNoteController;
+use Tests\Fixtures\Support\Http\Api\ConditionalGet\ListNotesController;
+use Tests\Fixtures\Support\Http\Api\ConditionalGet\WeakNoteController;
 use Tests\Fixtures\Support\Http\Api\Errors\ErrorsController;
 use Tests\Fixtures\Support\Http\Api\Errors\LegacyErrorsController;
 use Tests\Fixtures\Support\Http\Api\Preconditions\DeleteNoteController;
@@ -54,3 +58,13 @@ Route::middleware('api')->prefix('api/preconditions')->group(function (): void {
     Route::patch('notes/{note}/children-order', ReorderNoteChildrenController::class);
     Route::patch('secondary-notes/{note}', UpdateSecondaryNoteController::class);
 });
+
+Route::middleware('api')->prefix('api/conditional-get')->group(function (): void {
+    Route::get('notes', ListNotesController::class);
+    Route::get('notes/{note}', ShowNoteController::class);
+    Route::get('notes/{note}/created', CreatedNoteController::class);
+    Route::get('notes/{note}/weak', WeakNoteController::class);
+    Route::match(['POST', 'PUT'], 'notes/{note}', ShowNoteController::class);
+});
+
+Route::middleware(SubstituteBindings::class)->get('conditional-get/outside/notes/{note}', ShowNoteController::class);

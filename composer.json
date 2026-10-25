@@ -34,7 +34,8 @@
         "aryeo/request-casts": "0.0.16",
         "aryeo/request-authorizers-validators": "0.0.15",
         "aryeo/event-log": "0.0.10",
-        "aryeo/webhooks": "0.0.9"
+        "aryeo/webhooks": "0.0.9",
+        "symfony/http-foundation": "^7.4 || ^8.0"
     },
     "require-dev": {
         "nesbot/carbon": "^3.10",

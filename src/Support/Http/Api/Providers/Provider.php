@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Support\Http\Api\Providers;
 
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Contracts\Http\Kernel as KernelContract;
 use Illuminate\Foundation\Exceptions\Handler;
+use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use ReflectionNamedType;
@@ -16,6 +19,7 @@ use Support\Http\Api\Console\Commands\MakeController\MakeController;
 use Support\Http\Api\Console\Commands\MakeResource\Listeners\InjectSchemaProperties;
 use Support\Http\Api\Console\Commands\MakeResource\MakeResource;
 use Support\Http\Api\Errors\Renderer;
+use Support\Http\Api\Middleware\ConditionalGet;
 use Support\Http\Api\Request\TokenContext;
 use Support\Http\Requests\Contracts\CastableData;
 use Support\Http\Resources\Schemas\Console\Commands\MakeResource\Events\BuildingSchema;
@@ -29,6 +33,7 @@ class Provider extends ServiceProvider
         $this->registerCursorResolver();
         $this->registerMixins();
         $this->registerErrorRenderer();
+        $this->registerConditionalGet();
     }
 
     public function boot(): void
@@ -48,6 +53,21 @@ class Provider extends ServiceProvider
         $this->callAfterResolving(ExceptionHandler::class, function (ExceptionHandler $handler): void {
             if ($handler instanceof Handler) {
                 $handler->renderable(new Renderer);
+            }
+        });
+    }
+
+    private function registerConditionalGet(): void
+    {
+        $this->callAfterResolving(KernelContract::class, function (KernelContract $kernel): void {
+            if (! $kernel instanceof Kernel) {
+                return;
+            }
+
+            foreach (Arr::wrap(config('api-first.errors.middleware_groups', [])) as $group) {
+                if (array_key_exists($group, $kernel->getMiddlewareGroups())) {
+                    $kernel->appendMiddlewareToGroup($group, ConditionalGet::class);
+                }
             }
         });
     }

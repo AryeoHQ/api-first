@@ -336,6 +336,28 @@ A request fails on the first check that does not pass:
 
 The precondition compares the bound model when the container resolves it, which gives this order. The comparison inside `guard()` is the one that protects the write.
 
+## Conditional GET
+
+A client that holds the `ETag` of a resource can send it back in `If-None-Match`. The package then answers `304 Not Modified` with the same `ETag` and no body, so the client keeps the copy it has.
+
+```http
+GET /api/webhook-endpoints/9d8f HTTP/1.1
+If-None-Match: "v2.17.9f2c1a0b7e3d5c4a9f2c1a0b7e3d5c4a"
+
+HTTP/1.1 304 Not Modified
+ETag: "v2.17.9f2c1a0b7e3d5c4a9f2c1a0b7e3d5c4a"
+```
+
+The `ConditionalGet` middleware needs no setup. The provider adds it to each middleware group in `api-first.errors.middleware_groups`, the groups that the error renderer serves. It acts on a response only when all of these hold:
+
+- The request is a `GET` or `HEAD`.
+- The response is `200` and carries an `ETag`.
+- The request sends `If-None-Match`.
+
+`If-None-Match` matches when it is `*`, or when a tag in its comma-separated list equals the response `ETag`. The comparison is weak, so it ignores a `W/` prefix on either side. It compares the whole tag, digest included, because a changed body must answer `200`. A `304` drops `Content-Length` and `Content-Type`, and it keeps the `ETag`.
+
+Every other request passes through unchanged: a write, a response without an `ETag` such as a list, and a response that is not `200`.
+
 ## Request Context
 
 The package adds `actor()` and `subject()` macros to `Illuminate\Http\Request`, providing semantic access to the authenticated user:
