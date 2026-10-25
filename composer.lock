@@ -114,12 +114,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AryeoHQ/api-resource-schema.git",
-                "reference": "fcbf104c54dee27d166ce009eb9e95e5d83077a3"
+                "reference": "10b74e9693522bd4c48b57a45d12f88205d6d290"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/api-resource-schema/zipball/fcbf104c54dee27d166ce009eb9e95e5d83077a3",
-                "reference": "fcbf104c54dee27d166ce009eb9e95e5d83077a3",
+                "url": "https://api.github.com/repos/AryeoHQ/api-resource-schema/zipball/10b74e9693522bd4c48b57a45d12f88205d6d290",
+                "reference": "10b74e9693522bd4c48b57a45d12f88205d6d290",
                 "shasum": ""
             },
             "require": {
@@ -207,7 +207,7 @@
                 "source": "https://github.com/AryeoHQ/api-resource-schema/tree/feat/2026-10-24t1355-occ-versioning-m4",
                 "issues": "https://github.com/AryeoHQ/api-resource-schema/issues"
             },
-            "time": "2026-10-24T23:40:05+00:00"
+            "time": "2026-10-25T00:10:08+00:00"
         },
         {
             "name": "aryeo/attribute-routing",
@@ -313,12 +313,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:AryeoHQ/eloquent-concurrency.git",
-                "reference": "76ec03a7944be1aa1b5e8a95c6d8d2275547ad12"
+                "reference": "306237ce79677d85e80b392926488878f5ee7883"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/eloquent-concurrency/zipball/76ec03a7944be1aa1b5e8a95c6d8d2275547ad12",
-                "reference": "76ec03a7944be1aa1b5e8a95c6d8d2275547ad12",
+                "url": "https://api.github.com/repos/AryeoHQ/eloquent-concurrency/zipball/306237ce79677d85e80b392926488878f5ee7883",
+                "reference": "306237ce79677d85e80b392926488878f5ee7883",
                 "shasum": ""
             },
             "require": {
@@ -399,7 +399,7 @@
                 "source": "https://github.com/AryeoHQ/eloquent-concurrency/tree/feat/2026-10-24t1355-occ-versioning-m2",
                 "issues": "https://github.com/AryeoHQ/eloquent-concurrency/issues"
             },
-            "time": "2026-10-24T23:38:47+00:00"
+            "time": "2026-10-25T00:09:10+00:00"
         },
         {
             "name": "aryeo/eloquent-search",
