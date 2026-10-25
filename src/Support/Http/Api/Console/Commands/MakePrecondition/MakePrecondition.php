@@ -6,6 +6,7 @@ namespace Support\Http\Api\Console\Commands\MakePrecondition;
 
 use Illuminate\Console\GeneratorCommand;
 use Illuminate\Support\Stringable;
+use Support\Database\Eloquent\Concurrency\Contracts\Revisioned;
 use Support\Entities\Console\Concerns\RetrievesEntityFromOption;
 use Support\Entities\References\Entity;
 use Support\Http\Api\Console\Commands\MakeController\Concerns\ResolvesApiVersion;
@@ -47,6 +48,11 @@ class MakePrecondition extends GeneratorCommand implements GeneratesFile
         ]);
     }
 
+    public static function notRevisioned(Entity $entity): string
+    {
+        return sprintf('The entity [%s] does not implement [%s], so it cannot take a precondition.', $entity->fqcn->ltrim('\\'), Revisioned::class);
+    }
+
     public function handle(): null|bool
     {
         $this->resolveNamespace();
@@ -55,6 +61,10 @@ class MakePrecondition extends GeneratorCommand implements GeneratesFile
         $this->entity = Entity::fromFqcn(
             $this->entityFromOption() ?? str(\Laravel\Prompts\text(label: 'Which entity? (FQCN)', required: true))
         );
+
+        if (! is_subclass_of($this->entity->fqcn->ltrim('\\')->toString(), Revisioned::class)) {
+            $this->fail(self::notRevisioned($this->entity));
+        }
 
         return parent::handle();
     }

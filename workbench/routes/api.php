@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 use Tests\Fixtures\Support\Http\Api\ConditionalGet\CreatedNoteController;
+use Tests\Fixtures\Support\Http\Api\ConditionalGet\ListNoteChildrenController;
 use Tests\Fixtures\Support\Http\Api\ConditionalGet\ListNotesController;
 use Tests\Fixtures\Support\Http\Api\ConditionalGet\WeakNoteController;
 use Tests\Fixtures\Support\Http\Api\Errors\ErrorsController;
@@ -62,6 +63,7 @@ Route::middleware('api')->prefix('api/preconditions')->group(function (): void {
 Route::middleware('api')->prefix('api/conditional-get')->group(function (): void {
     Route::get('notes', ListNotesController::class);
     Route::get('notes/{note}', ShowNoteController::class);
+    Route::get('notes/{note}/children', ListNoteChildrenController::class);
     Route::get('notes/{note}/created', CreatedNoteController::class);
     Route::get('notes/{note}/weak', WeakNoteController::class);
     Route::match(['POST', 'PUT'], 'notes/{note}', ShowNoteController::class);

@@ -128,15 +128,15 @@ trait GeneratesRestTestCases
     #[TestWith([Endpoint::Delete])]
     public function it_creates_a_precondition_between_the_authorizer_and_the_validator_for_an_instance_write(Endpoint $endpoint): void
     {
-        Composer::fake();
+        Composer::fake(['autoload' => ['psr-4' => ['Tests\\' => 'tests/']]]);
 
-        $this->artisan($this->command, $this->restInput())->expectsChoice(
+        $this->artisan($this->command, [...$this->restInput(), '--entity' => $this->revisionedEntity->fqcn->toString()])->expectsChoice(
             'What endpoint would you like to create?',
             $endpoint->value,
             array_column(Endpoint::cases(), 'value')
         )->assertSuccessful();
 
-        $controller = Controller::make(Route::make('V1', $this->entity, EndpointType::Rest, $endpoint->value, scope: $endpoint->scope()));
+        $controller = Controller::make(Route::make('V1', $this->revisionedEntity, EndpointType::Rest, $endpoint->value, scope: $endpoint->scope()));
         $precondition = new Precondition(name: 'Precondition', baseNamespace: $controller->namespace);
 
         tap(File::get($controller->filePath->toString()), function (string $contents) use ($controller): void {

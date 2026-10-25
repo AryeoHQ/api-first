@@ -62,6 +62,22 @@ final class EntityTarget implements Target
 
     public function alsoLocking(Model ...$models): static
     {
+        $connection = $this->model->getConnection()->getName();
+
+        foreach ($models as $model) {
+            throw_if(
+                $model->getConnection()->getName() !== $connection,
+                LogicException::class,
+                sprintf(
+                    'The target for [%s] on connection [%s] cannot also lock [%s] on connection [%s].',
+                    $this->model::class,
+                    $connection,
+                    $model::class,
+                    $model->getConnection()->getName(),
+                ),
+            );
+        }
+
         $this->locking = [...$this->locking, ...array_values($models)];
 
         return $this;

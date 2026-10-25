@@ -7,11 +7,16 @@ namespace Tooling\Http\Api\PhpStan;
 use PhpParser\Node;
 use PhpParser\Node\Attribute;
 use PhpParser\Node\Expr;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\NullsafeMethodCall;
+use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
 use PhpParser\Node\NullableType;
 use PhpParser\Node\Param;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\UnionType;
+use PhpParser\NodeFinder;
 use PHPStan\Analyser\Scope;
 use PHPStan\Reflection\ClassReflection;
 use PHPStan\Type\Constant\ConstantStringType;
@@ -34,12 +39,8 @@ final class WriteEndpointMustOfferPrecondition extends Rule
      */
     public function shouldHandle(Node $node, Scope $scope): bool
     {
-        $route = $this->route($node);
-
         return $node->name->toString() === '__invoke'
-            && $route instanceof Attribute
-            && $this->writesToBoundModel($route, $scope)
-            && ! $this->takesPrecondition($node, $scope);
+            && ($this->lacksPrecondition($node, $scope) || $this->unguardedPreconditions($node, $scope) !== []);
     }
 
     /**
@@ -47,11 +48,30 @@ final class WriteEndpointMustOfferPrecondition extends Rule
      */
     public function handle(Node $node, Scope $scope): void
     {
-        $this->error(
-            message: 'A PUT, PATCH, or DELETE endpoint, or a POST action on a bound model, must take a Precondition parameter.',
-            line: $node->name->getStartLine(),
-            identifier: 'controller.precondition.missing',
-        );
+        if ($this->lacksPrecondition($node, $scope)) {
+            $this->error(
+                message: 'A PUT, PATCH, or DELETE endpoint, or a POST action on a bound model, must take a Precondition parameter.',
+                line: $node->name->getStartLine(),
+                identifier: 'controller.precondition.missing',
+            );
+        }
+
+        foreach ($this->unguardedPreconditions($node, $scope) as $param) {
+            $this->error(
+                message: 'A controller that takes a Precondition must call guard() on it in __invoke().',
+                line: $node->name->getStartLine(),
+                identifier: 'controller.precondition.unguarded',
+            );
+        }
+    }
+
+    private function lacksPrecondition(ClassMethod $method, Scope $scope): bool
+    {
+        $route = $this->route($method);
+
+        return $route instanceof Attribute
+            && $this->writesToBoundModel($route, $scope)
+            && ! $this->takesRequiredPrecondition($method, $scope);
     }
 
     private function route(ClassMethod $method): null|Attribute
@@ -75,7 +95,11 @@ final class WriteEndpointMustOfferPrecondition extends Rule
             return true;
         }
 
-        return in_array(Method::Post->name, $methods, true) && $this->isInstanceAction($route, $scope);
+        if (in_array(Method::Any->name, $methods, true)) {
+            return $this->uriMatches($route, $scope, '#\{[^}]+\}#');
+        }
+
+        return in_array(Method::Post->name, $methods, true) && $this->uriMatches($route, $scope, '#\{[^}]+\}/actions/#');
     }
 
     /**
@@ -95,7 +119,7 @@ final class WriteEndpointMustOfferPrecondition extends Rule
         return array_map(fn (EnumCaseObjectType $case): string => $case->getEnumCaseName(), $cases);
     }
 
-    private function isInstanceAction(Attribute $route, Scope $scope): bool
+    private function uriMatches(Attribute $route, Scope $scope, string $pattern): bool
     {
         $argument = $this->argument($route, 'uri', 1);
 
@@ -105,7 +129,7 @@ final class WriteEndpointMustOfferPrecondition extends Rule
 
         return array_any(
             $scope->getType($argument)->getConstantStrings(),
-            fn (ConstantStringType $uri): bool => preg_match('#\{[^}]+\}/actions/#', $uri->getValue()) === 1,
+            fn (ConstantStringType $uri): bool => preg_match($pattern, $uri->getValue()) === 1,
         );
     }
 
@@ -120,9 +144,33 @@ final class WriteEndpointMustOfferPrecondition extends Rule
         return null;
     }
 
-    private function takesPrecondition(ClassMethod $method, Scope $scope): bool
+    private function takesRequiredPrecondition(ClassMethod $method, Scope $scope): bool
     {
-        return array_any($method->params, fn (Param $param): bool => $this->isPrecondition($param, $scope));
+        return array_any(
+            $method->params,
+            fn (Param $param): bool => $param->type instanceof Name && $param->default === null && ! $param->variadic && $this->isPrecondition($param, $scope),
+        );
+    }
+
+    /**
+     * @return list<Param>
+     */
+    private function unguardedPreconditions(ClassMethod $method, Scope $scope): array
+    {
+        return array_values(array_filter(
+            $method->params,
+            fn (Param $param): bool => $this->isPrecondition($param, $scope) && ! $this->guards($method, $param),
+        ));
+    }
+
+    private function guards(ClassMethod $method, Param $param): bool
+    {
+        return new NodeFinder()->findFirst($method->stmts ?? [], fn (Node $node): bool => ($node instanceof MethodCall || $node instanceof NullsafeMethodCall)
+            && $node->name instanceof Identifier
+            && $node->name->toString() === 'guard'
+            && $node->var instanceof Variable
+            && $param->var instanceof Variable
+            && $node->var->name === $param->var->name) !== null;
     }
 
     private function isPrecondition(Param $param, Scope $scope): bool

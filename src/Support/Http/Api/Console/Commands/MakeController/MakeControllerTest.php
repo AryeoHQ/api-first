@@ -12,9 +12,12 @@ use Illuminate\Support\Facades\Schema;
 use Orchestra\Testbench\Attributes\WithConfig;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\TestWith;
+use Support\Database\Eloquent\Concurrency\Contracts\Revisioned;
 use Support\Entities\References\Entity;
 use Support\Http\Api\Console\Commands\MakeController\Concerns\GeneratesActionTestCases;
 use Support\Http\Api\Console\Commands\MakeController\Concerns\GeneratesRestTestCases;
+use Support\Http\Api\Console\Enums\ActionMethod;
 use Support\Http\Api\Console\Enums\Endpoint;
 use Support\Http\Api\Console\Enums\EndpointType;
 use Support\Http\Api\Console\Enums\Scope;
@@ -22,6 +25,7 @@ use Support\Http\Api\References\Controller;
 use Support\Http\Api\References\Precondition;
 use Support\Http\Api\References\Route;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
+use Tests\Fixtures\Tooling\Http\Api\PhpStan\Preconditions\Entities\Gadgets\Gadget;
 use Tests\Fixtures\Tooling\Http\Api\PhpStan\Preconditions\Entities\Widgets\Widget;
 use Tests\TestCase;
 use Tooling\Composer\Composer;
@@ -42,6 +46,10 @@ class MakeControllerTest extends TestCase
 
     private Entity $revisionedEntity {
         get => Entity::fromFqcn(Widget::class);
+    }
+
+    private Entity $unrevisionedEntity {
+        get => Entity::fromFqcn(Gadget::class);
     }
 
     private Controller $controller {
@@ -111,6 +119,72 @@ class MakeControllerTest extends TestCase
         )->assertSuccessful();
 
         $this->assertTrue(File::exists($this->showController->filePath->toString()));
+    }
+
+    #[Test]
+    #[TestWith([Endpoint::Update])]
+    #[TestWith([Endpoint::Delete])]
+    public function it_refuses_an_instance_write_for_an_entity_that_is_not_revisioned(Endpoint $endpoint): void
+    {
+        Composer::fake(['autoload' => ['psr-4' => ['Tests\\' => 'tests/']]]);
+
+        $this->artisan($this->command, [...$this->baselineInput, '--entity' => $this->unrevisionedEntity->fqcn->toString()])->expectsChoice(
+            'What endpoint would you like to create?',
+            $endpoint->value,
+            array_column(Endpoint::cases(), 'value')
+        )->expectsOutputToContain(Revisioned::class)->assertFailed();
+
+        $this->assertGeneratedNothing(
+            Controller::make(Route::make('V1', $this->unrevisionedEntity, EndpointType::Rest, $endpoint->value, scope: $endpoint->scope())),
+        );
+    }
+
+    #[Test]
+    public function it_refuses_an_instance_action_for_an_entity_that_is_not_revisioned(): void
+    {
+        Composer::fake(['autoload' => ['psr-4' => ['Tests\\' => 'tests/']]]);
+
+        $this->artisan($this->command, [
+            ...$this->baselineInput,
+            '--entity' => $this->unrevisionedEntity->fqcn->toString(),
+            '--type' => EndpointType::Action->value,
+        ])->expectsQuestion(
+            'What is the name of the action? (ie: PayInvoice, Download, etc.)',
+            'Archive'
+        )->expectsChoice(
+            'What HTTP method should the action use?',
+            ActionMethod::Post->value, array_column(ActionMethod::cases(), 'value')
+        )->expectsChoice(
+            'What is the scope of the action?',
+            Scope::Instance->value, array_column(Scope::cases(), 'value')
+        )->expectsOutputToContain(Revisioned::class)->assertFailed();
+
+        $this->assertGeneratedNothing(
+            Controller::make(Route::make('V1', $this->unrevisionedEntity, EndpointType::Action, 'Archive', ActionMethod::Post)),
+        );
+    }
+
+    #[Test]
+    public function it_generates_a_read_endpoint_for_an_entity_that_is_not_revisioned(): void
+    {
+        Composer::fake(['autoload' => ['psr-4' => ['Tests\\' => 'tests/']]]);
+
+        $this->artisan($this->command, [...$this->baselineInput, '--entity' => $this->unrevisionedEntity->fqcn->toString()])->expectsChoice(
+            'What endpoint would you like to create?',
+            Endpoint::Show->value,
+            array_column(Endpoint::cases(), 'value')
+        )->assertSuccessful();
+
+        $this->assertTrue(File::exists(Controller::make(Route::make('V1', $this->unrevisionedEntity, EndpointType::Rest, Endpoint::Show->value))->filePath->toString()));
+    }
+
+    private function assertGeneratedNothing(Controller $controller): void
+    {
+        $precondition = new Precondition(name: 'Precondition', baseNamespace: $controller->namespace);
+
+        foreach ([$controller, $controller->test, $controller->authorizer, $controller->validator, $precondition, $precondition->test] as $reference) {
+            $this->assertFalse(File::exists($reference->filePath->toString()), $reference->filePath->toString());
+        }
     }
 
     private function assertGeneratedEndpointRejectsAStaleIfMatch(Controller $controller): void

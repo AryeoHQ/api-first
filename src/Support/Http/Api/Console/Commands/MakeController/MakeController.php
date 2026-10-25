@@ -7,6 +7,7 @@ namespace Support\Http\Api\Console\Commands\MakeController;
 use Illuminate\Console\GeneratorCommand;
 use Illuminate\Routing\Console\ControllerMakeCommand;
 use Illuminate\Support\Stringable;
+use Support\Database\Eloquent\Concurrency\Contracts\Revisioned;
 use Support\Entities\Console\Concerns\RetrievesEntity;
 use Support\Entities\References\Entity;
 use Support\Http\Api\Console\Commands\MakeController\Concerns\GeneratesAction;
@@ -63,6 +64,10 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
         $this->resolveApiVersion();
         $this->resolveEntity();
         $this->resolveController();
+
+        if ($this->generatesPrecondition() && ! is_subclass_of($this->controller->entity->fqcn->ltrim('\\')->toString(), Revisioned::class)) {
+            $this->fail(MakePrecondition::notRevisioned($this->controller->entity));
+        }
 
         // Does not call parent::handle() to skip base command's operations
         GeneratorCommand::handle();

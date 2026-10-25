@@ -16,6 +16,6 @@ final class CorrectController
     )]
     public function __invoke(Authorizer $authorizer, Precondition $precondition, Validator $validator, \stdClass $model): void
     {
-        //
+        $precondition->guard(fn (): null => null);
     }
 }

@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use LogicException;
+use Orchestra\Testbench\Attributes\WithConfig;
 use Orchestra\Testbench\Concerns\WithWorkbench;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -19,11 +20,13 @@ use Support\Database\Eloquent\Concurrency\ConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Exceptions\UndeclaredConcurrencyRevision;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Note;
 use Tests\Fixtures\Support\Http\Api\Preconditions\NoteRevision;
+use Tests\Fixtures\Support\Http\Api\Preconditions\SecondaryNote;
 use Tests\Fixtures\Support\Http\Api\Preconditions\UndeclaredRevision;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\TestCase;
 
 #[CoversClass(EntityTarget::class)]
+#[WithConfig('database.connections.secondary', ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''])]
 final class EntityTargetTest extends TestCase
 {
     use WithWorkbench;
@@ -157,6 +160,30 @@ final class EntityTargetTest extends TestCase
         $this->assertSame('Renamed', $source->title);
         $this->assertSame(4, $source->concurrencyRevision());
         $this->assertFalse($source->isDirty());
+    }
+
+    #[Test]
+    public function it_refuses_to_also_lock_a_model_on_another_connection(): void
+    {
+        $note = Note::query()->create(['title' => 'Primary']);
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('on connection [secondary]');
+
+        EntityTarget::for($note, ApiVersion::V1)->alsoLocking(new SecondaryNote(['title' => 'Other']));
+    }
+
+    #[Test]
+    public function it_also_locks_a_model_that_names_the_connection_of_the_target(): void
+    {
+        $note = Note::query()->create(['title' => 'Primary'])->setConnection(null);
+        $other = Note::query()->create(['title' => 'Other']);
+
+        $this->assertNotSame($note->getConnectionName(), $other->getConnectionName());
+
+        EntityTarget::for($note, ApiVersion::V1)->alsoLocking($other)->lock();
+
+        $this->assertSame('Other', $other->title);
     }
 
     #[Test]

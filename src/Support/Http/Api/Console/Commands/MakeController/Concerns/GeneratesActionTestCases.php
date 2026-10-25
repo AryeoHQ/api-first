@@ -22,7 +22,7 @@ trait GeneratesActionTestCases
 {
     private Controller $actionController {
         get => Controller::make(
-            Route::make('V1', $this->entity, EndpointType::Action, 'PayInvoice', ActionMethod::Post),
+            Route::make('V1', $this->revisionedEntity, EndpointType::Action, 'PayInvoice', ActionMethod::Post),
         );
     }
 
@@ -37,11 +37,11 @@ trait GeneratesActionTestCases
     #[Test]
     public function it_creates_an_instance_scoped_action_endpoint(): void
     {
-        Composer::fake();
+        Composer::fake(['autoload' => ['psr-4' => ['Tests\\' => 'tests/']]]);
 
         $input = [
             '--api-version' => 'V1',
-            '--entity' => $this->entity->fqcn->toString(),
+            '--entity' => $this->revisionedEntity->fqcn->toString(),
             '--type' => EndpointType::Action->value,
         ];
 
@@ -112,9 +112,9 @@ trait GeneratesActionTestCases
     #[Test]
     public function it_creates_a_precondition_for_an_instance_scoped_action_endpoint(): void
     {
-        Composer::fake();
+        Composer::fake(['autoload' => ['psr-4' => ['Tests\\' => 'tests/']]]);
 
-        $this->artisan($this->command, $this->actionInput())->expectsQuestion(
+        $this->artisan($this->command, [...$this->actionInput(), '--entity' => $this->revisionedEntity->fqcn->toString()])->expectsQuestion(
             'What is the name of the action? (ie: PayInvoice, Download, etc.)',
             'PayInvoice'
         )->expectsChoice(

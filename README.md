@@ -265,7 +265,10 @@ final class Precondition extends BasePrecondition
 {
     public function target(): Target
     {
-        return EntityTarget::for($this->route('webhookEndpoint'), ApiVersion::V2)->comparingSelf();
+        /** @var WebhookEndpoint $webhookEndpoint */
+        $webhookEndpoint = $this->route('webhook_endpoint');
+
+        return EntityTarget::for($webhookEndpoint, ApiVersion::V2)->comparingSelf();
     }
 }
 
@@ -311,7 +314,10 @@ A target that compares nothing throws `LogicException` when the precondition eva
 Compare the revisions that the write depends on. A rename compares `comparingSelf()`. A move compares the order it changes, so a client can send the nested index tag `"v2.place_assets_order=4"`:
 
 ```php
-EntityTarget::for($this->route('placeAssetSubsection'), ApiVersion::V2)
+/** @var PlaceAssetSubsection $placeAssetSubsection */
+$placeAssetSubsection = $this->route('place_asset_subsection');
+
+EntityTarget::for($placeAssetSubsection, ApiVersion::V2)
     ->comparingNamed(PlaceAssetSubsectionRevision::PlaceAssetsOrder);
 ```
 
@@ -323,7 +329,7 @@ EntityTarget::for($destination, ApiVersion::V2)
     ->alsoLocking($source);
 ```
 
-The lock re-reads each row, so the write sees the committed attributes. A row that another request deleted gives a `404`.
+The lock re-reads each row, so the write sees the committed attributes. A row that another request deleted gives a `404`. Every model must use the target's connection, because the transaction covers that connection only. `alsoLocking()` throws `LogicException` for a model on another connection.
 
 ### Check order
 
@@ -334,7 +340,7 @@ A request fails on the first check that does not pass:
 3. `428` or `412`, from the precondition.
 4. `422`, from the validator.
 
-The precondition compares the bound model when the container resolves it, which gives this order. The comparison inside `guard()` is the one that protects the write.
+The precondition compares the bound model when the container resolves it, which gives this order. The comparison inside `guard()` is the one that protects the write. `WriteEndpointMustOfferPrecondition` reports an `__invoke()` that takes a `Precondition` and never calls `guard()` on it.
 
 ## Conditional GET
 
@@ -351,12 +357,14 @@ ETag: "v2.17.9f2c1a0b7e3d5c4a9f2c1a0b7e3d5c4a"
 The `ConditionalGet` middleware needs no setup. The provider adds it to each middleware group in `api-first.errors.middleware_groups`, the groups that the error renderer serves. It acts on a response only when all of these hold:
 
 - The request is a `GET` or `HEAD`.
-- The response is `200` and carries an `ETag`.
-- The request sends `If-None-Match`.
+- The response is `200` and carries a representation `ETag`, the tag of a single resource. That tag ends in a digest of the body.
+- The request sends a well-formed `If-None-Match`.
 
-`If-None-Match` matches when it is `*`, or when a tag in its comma-separated list equals the response `ETag`. The comparison is weak, so it ignores a `W/` prefix on either side. It compares the whole tag, digest included, because a changed body must answer `200`. A `304` drops `Content-Length` and `Content-Type`, and it keeps the `ETag`.
+`If-None-Match` matches when an element of its comma-separated list is `*`, or a tag that equals the response `ETag`. The middleware joins every `If-None-Match` line into one list. Each element must be `*`, `"…"`, or `W/"…"`, and a list with any other element gets no `304`. The comparison is weak, so it ignores a `W/` prefix on either side. It compares the whole tag, digest included, because a changed body must answer `200`. A `304` drops `Content-Length` and `Content-Type`, and it keeps the `ETag`.
 
-Every other request passes through unchanged: a write, a response without an `ETag` such as a list, and a response that is not `200`.
+A nested index carries a tag such as `"v2.place_assets_order=4"`, but it never gets a `304`. That tag changes when the order changes, and it stays the same when an item changes.
+
+Every other request passes through unchanged: a write, a response without an `ETag` such as a plain list, a nested index, and a response that is not `200`.
 
 ## Request Context
 
@@ -399,6 +407,8 @@ public function __invoke(Authorizer $authorizer, Precondition $precondition, Val
 
 Index, show, store, search, and resource-action endpoints get no precondition.
 
+A precondition needs an entity that implements `Support\Database\Eloquent\Concurrency\Contracts\Revisioned`. For any other entity, an update, delete, or instance-action endpoint fails. The command then writes no file, and it exits non-zero with a message that names `Revisioned`.
+
 ### make:precondition
 
 Generates a precondition that compares the own revision of the route-bound entity:
@@ -421,6 +431,8 @@ final class Precondition extends BasePrecondition
 ```
 
 The command prompts for any option you omit. Change the target when the write depends on a named revision. See [What a target compares](#what-a-target-compares).
+
+The entity must implement `Revisioned`. For any other entity, the command writes no file, and it exits non-zero with a message that names `Revisioned`.
 
 ### make:resource
 
@@ -462,4 +474,4 @@ This package provides PHPStan rules that enforce API conventions at static analy
 | `RouteMustBeOnInvoke`                              | The `#[Route]` attribute must only appear on the `__invoke()` method.                                                                                        |
 | `SchemaMustHaveId`                                 | Schemas must define a public `$id` property.                                                                                                                 |
 | `SchemaMustHaveResourceType`                       | Schemas must define a public `$resourceType` property.                                                                                                       |
-| `WriteEndpointMustOfferPrecondition`               | An `__invoke()` routed by `PUT`, `PATCH`, or `DELETE`, or by `POST` to `/{model}/actions/<action>`, takes a `Precondition`. A `POST` that creates is exempt. |
+| `WriteEndpointMustOfferPrecondition`               | An `__invoke()` routed by `PUT`, `PATCH`, or `DELETE`, by `ANY` to a URI with a `{model}`, or by `POST` to `/{model}/actions/<action>`, takes a required `Precondition`: not nullable, with no default (`controller.precondition.missing`). A `POST` that creates is exempt. An `__invoke()` that takes a `Precondition` calls `guard()` on it (`controller.precondition.unguarded`). |
