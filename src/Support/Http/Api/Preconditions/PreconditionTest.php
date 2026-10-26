@@ -19,11 +19,13 @@ use Orchestra\Testbench\Concerns\WithWorkbench;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Support\Database\Eloquent\Concurrency\ConcurrencyRevision;
+use Support\Http\Resources\Schemas\Tags\EntityTag;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Note;
 use Tests\Fixtures\Support\Http\Api\Preconditions\NoteRevision;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Precondition as NotePrecondition;
 use Tests\Fixtures\Support\Http\Api\Preconditions\SecondaryNote;
+use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\TestCase;
 
 #[CoversClass(Precondition::class)]
@@ -257,6 +259,38 @@ final class PreconditionTest extends TestCase
             ->assertNoContent();
 
         $this->assertSame('Final', $note->refresh()->title);
+    }
+
+    #[Test]
+    public function it_answers_a_reorder_with_the_nested_index_tag_that_reflects_the_write(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+        $sent = '"v1.children_order=1"';
+
+        $response = $this->withHeader('If-Match', $sent)->patchJson($this->uri($note, 'children-order'), ['title' => 'Final'])
+            ->assertNoContent();
+
+        $current = (string) EntityTag::forNamedRevision($note->refresh(), NoteRevision::ChildrenOrder, ApiVersion::V1);
+
+        $this->assertNotSame($sent, $current);
+        $response->assertHeader('ETag', $current);
+    }
+
+    #[Test]
+    public function it_runs_the_next_reorder_with_the_tag_of_the_previous_answer(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+
+        $tag = $this->withHeader('If-Match', '"v1.children_order=1"')->patchJson($this->uri($note, 'children-order'), ['title' => 'First'])
+            ->assertNoContent()
+            ->headers->get('ETag');
+
+        $this->assertIsString($tag);
+
+        $this->withHeader('If-Match', $tag)->patchJson($this->uri($note, 'children-order'), ['title' => 'Second'])
+            ->assertNoContent();
+
+        $this->assertSame('Second', $note->refresh()->title);
     }
 
     #[Test]

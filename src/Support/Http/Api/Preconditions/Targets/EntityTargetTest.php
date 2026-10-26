@@ -15,6 +15,7 @@ use LogicException;
 use Orchestra\Testbench\Attributes\WithConfig;
 use Orchestra\Testbench\Concerns\WithWorkbench;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Support\Database\Eloquent\Concurrency\ConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Exceptions\UndeclaredConcurrencyRevision;
@@ -43,6 +44,13 @@ final class EntityTargetTest extends TestCase
             $table->namedConcurrencyRevision(NoteRevision::ChildrenOrder->value);
             $table->timestampsTz();
             $table->softDeletesTz();
+        });
+
+        Schema::create('secondary_notes', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->string('title');
+            $table->concurrencyRevision();
+            $table->timestampsTz();
         });
     }
 
@@ -145,6 +153,39 @@ final class EntityTargetTest extends TestCase
         EntityTarget::for($middle, ApiVersion::V1)->alsoLocking($high, $low)->lock();
 
         $this->assertSame([$low->getKey(), $middle->getKey(), $high->getKey()], $locked);
+    }
+
+    #[DataProvider('keyOrders')]
+    #[Test]
+    public function it_locks_models_of_different_classes_in_morph_class_order_whatever_their_keys(string $noteKey, string $auxiliaryKey): void
+    {
+        $note = (new Note(['title' => 'Draft']))->forceFill(['id' => $noteKey]);
+        $note->save();
+        $auxiliary = (new SecondaryNote(['title' => 'Draft']))->setConnection(null)->forceFill(['id' => $auxiliaryKey]);
+        $auxiliary->save();
+        $locked = [];
+
+        Event::listen(function (QueryExecuted $query) use (&$locked): void {
+            $locked[] = $query->bindings[0];
+        });
+
+        EntityTarget::for($note, ApiVersion::V1)->alsoLocking($auxiliary)->lock();
+
+        $this->assertSame([$auxiliaryKey, $noteKey], $locked);
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function keyOrders(): array
+    {
+        $low = '00000000-0000-4000-8000-000000000001';
+        $high = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+
+        return [
+            'the note has the lower key' => [$low, $high],
+            'the auxiliary note has the lower key' => [$high, $low],
+        ];
     }
 
     #[Test]

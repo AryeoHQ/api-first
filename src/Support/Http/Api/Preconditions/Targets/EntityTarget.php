@@ -97,7 +97,7 @@ final class EntityTarget implements Target
     {
         $models = [$this->model, ...$this->locking];
 
-        usort($models, fn (Model $a, Model $b): int => [$a->getKey(), $a->getTable()] <=> [$b->getKey(), $b->getTable()]);
+        usort($models, fn (Model $a, Model $b): int => [$a->getMorphClass(), $a->getKey()] <=> [$b->getMorphClass(), $b->getKey()]);
 
         foreach ($models as $model) {
             $this->lockRow($model);

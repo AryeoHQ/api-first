@@ -39,4 +39,9 @@ final class SecondaryNote extends Model implements Entity, Revisioned, Schemable
     protected $connection = 'secondary';
 
     protected $fillable = ['title'];
+
+    public function getMorphClass(): string
+    {
+        return 'auxiliary_note';
+    }
 }

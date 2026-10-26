@@ -321,7 +321,7 @@ EntityTarget::for($placeAssetSubsection, ApiVersion::V2)
     ->comparingNamed(PlaceAssetSubsectionRevision::PlaceAssetsOrder);
 ```
 
-`alsoLocking(...$models)` locks more rows in the same transaction, such as the source parent of a move between parents. The target locks every row in primary-key order, so two requests that lock the same rows cannot deadlock:
+`alsoLocking(...$models)` locks more rows in the same transaction, such as the source parent of a move between parents:
 
 ```php
 EntityTarget::for($destination, ApiVersion::V2)
@@ -329,7 +329,24 @@ EntityTarget::for($destination, ApiVersion::V2)
     ->alsoLocking($source);
 ```
 
+The target locks every row in morph class order, then in key order. [eloquent-ordering](https://github.com/AryeoHQ/eloquent-ordering) locks the parents of a move in the same order. A request and an ordering call that lock the same rows therefore take them in one order, and they do not wait on each other in a cycle. Each model needs a morph class, from a morph map or from `Relation::requireMorphMap(false)`.
+
 The lock re-reads each row, so the write sees the committed attributes. A row that another request deleted gives a `404`. Every model must use the target's connection, because the transaction covers that connection only. `alsoLocking()` throws `LogicException` for a model on another connection.
+
+### Answering a move or reorder
+
+A `204` from a move or reorder carries the nested index tag of the order after the write. The route-bound parent holds the revision from before the write, because the lock reads it first. A tag built from that parent is stale, and the client's next request with it gets `412`. Build the tag from a parent that reflects the write:
+
+```php
+$change = $precondition->guard(fn () => $asset->move(Placement::last()->in($destination), expected: null));
+
+return response()->noContent()->header(
+    'ETag',
+    (string) EntityTag::forNamedRevision($change->relation->parent, PlaceAssetSubsectionRevision::PlaceAssetsOrder, ApiVersion::V2),
+);
+```
+
+The example uses eloquent-ordering. `$change` is the `OrderChange` that `move()` or `reorder()` returns, and `$change->relation->parent` is the parent that package refreshed after the write. api-first does not depend on that package. Any parent instance that reflects the write works.
 
 ### Check order
 

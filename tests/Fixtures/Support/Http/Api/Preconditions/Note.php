@@ -44,6 +44,11 @@ final class Note extends Model implements Entity, Revisioned, Schemable
 
     protected $fillable = ['title', 'parent_id'];
 
+    public function getMorphClass(): string
+    {
+        return 'note';
+    }
+
     /**
      * @return BelongsTo<self, $this>
      */
