@@ -45,7 +45,7 @@ final class Renderer
             $e instanceof ValidationException => $this->validation($e, $request),
             $e instanceof AuthenticationException => $this->respond(401, [$this->unauthenticated($e, $request)]),
             $e instanceof HttpExceptionInterface => $this->http($e, $request),
-            default => $this->respond(500, [$this->error($e, $request, 500, 'server.internal_error', 'The server failed to complete the request.')]),
+            default => $this->respond(500, [$this->error($e, $request, 500, ErrorCode::InternalError, 'The server failed to complete the request.')]),
         };
     }
 
@@ -68,13 +68,13 @@ final class Renderer
     private function precondition(PreconditionFailedHttpException|PreconditionRequiredHttpException $e, Request $request): JsonResponse
     {
         if ($e instanceof PreconditionFailedHttpException) {
-            $error = $this->error($e, $request, 412, 'precondition.failed', 'The If-Match precondition does not match the current resource.', Source::header('If-Match'));
+            $error = $this->error($e, $request, 412, ErrorCode::PreconditionFailed, 'The If-Match precondition does not match the current resource.', Source::header('If-Match'));
             $headers = array_filter($e->getHeaders(), fn (string $name): bool => strcasecmp($name, 'ETag') !== 0, ARRAY_FILTER_USE_KEY);
 
             return $this->respond(412, [$error], $headers);
         }
 
-        $error = $this->error($e, $request, 428, 'precondition.required', 'This operation requires the If-Match header.', Source::header('If-Match'));
+        $error = $this->error($e, $request, 428, ErrorCode::PreconditionRequired, 'This operation requires the If-Match header.', Source::header('If-Match'));
 
         return $this->respond(428, [$error], $e->getHeaders());
     }
@@ -82,7 +82,7 @@ final class Renderer
     private function validation(ValidationException $e, Request $request): JsonResponse
     {
         if ($this->isMalformed($request)) {
-            return $this->respond(400, [$this->error($e, $request, 400, 'request.malformed', 'The API cannot parse the request.')]);
+            return $this->respond(400, [$this->error($e, $request, 400, ErrorCode::MalformedRequest, 'The API cannot parse the request.')]);
         }
 
         if ($e->status !== 422) {
@@ -107,8 +107,8 @@ final class Renderer
     private function unauthenticated(AuthenticationException $e, Request $request): ErrorObject
     {
         return filled($request->bearerToken())
-            ? $this->error($e, $request, 401, 'auth.invalid_token', 'The access token is invalid or expired.')
-            : $this->error($e, $request, 401, 'auth.missing_token', 'The request carries no access token.');
+            ? $this->error($e, $request, 401, ErrorCode::InvalidToken, 'The access token is invalid or expired.')
+            : $this->error($e, $request, 401, ErrorCode::MissingToken, 'The request carries no access token.');
     }
 
     private function http(HttpExceptionInterface $e, Request $request): JsonResponse
@@ -121,13 +121,13 @@ final class Renderer
         }
 
         [$code, $detail] = match ($status) {
-            400 => ['request.malformed', 'The API cannot parse the request.'],
+            400 => [ErrorCode::MalformedRequest, 'The API cannot parse the request.'],
             403 => $this->forbidden($previous),
-            404 => ['not_found.resource', 'No resource exists at this path.'],
-            405 => ['method.not_allowed', "The {$request->method()} method is not allowed on this path."],
-            415 => ['media_type.unsupported', 'The request body must use the application/json media type.'],
-            429 => ['rate_limit.exceeded', 'The request exceeds a rate limit.'],
-            503 => ['server.unavailable', 'The service cannot serve requests at the moment.'],
+            404 => [ErrorCode::ResourceNotFound, 'No resource exists at this path.'],
+            405 => [ErrorCode::MethodNotAllowed, "The {$request->method()} method is not allowed on this path."],
+            415 => [ErrorCode::UnsupportedMediaType, 'The request body must use the application/json media type.'],
+            429 => [ErrorCode::RateLimitExceeded, 'The request exceeds a rate limit.'],
+            503 => [ErrorCode::Unavailable, 'The service cannot serve requests at the moment.'],
             default => [null, Placeholder::DETAIL],
         };
 
@@ -135,7 +135,7 @@ final class Renderer
     }
 
     /**
-     * @return array{string, string}
+     * @return array{ErrorCode, string}
      */
     private function forbidden(null|Throwable $previous): array
     {
@@ -144,12 +144,14 @@ final class Renderer
             : null;
 
         return is_string($scope)
-            ? ['permission.missing_scope', "The access token does not grant the {$scope} scope."]
-            : ['permission.denied', 'The caller cannot perform this operation.'];
+            ? [ErrorCode::MissingScope, "The access token does not grant the {$scope} scope."]
+            : [ErrorCode::PermissionDenied, 'The caller cannot perform this operation.'];
     }
 
-    private function error(Throwable $e, Request $request, int $status, null|string $code, string $detail, null|Source $source = null, null|string $rule = null): ErrorObject
+    private function error(Throwable $e, Request $request, int $status, null|ErrorCode|string $code, string $detail, null|Source $source = null, null|string $rule = null): ErrorObject
     {
+        $code = $code instanceof ErrorCode ? $code->value : $code;
+
         if ($code !== null && Catalog::load()->has($code)) {
             return new ErrorObject($code, $detail, $source);
         }

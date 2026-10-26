@@ -7,7 +7,6 @@ namespace Support\Http\Api\Console\Commands\MakeController;
 use Illuminate\Console\GeneratorCommand;
 use Illuminate\Routing\Console\ControllerMakeCommand;
 use Illuminate\Support\Stringable;
-use Support\Database\Eloquent\Concurrency\Contracts\Revisioned;
 use Support\Entities\Console\Concerns\RetrievesEntity;
 use Support\Entities\References\Entity;
 use Support\Http\Api\Console\Commands\MakeController\Concerns\GeneratesAction;
@@ -65,7 +64,7 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
         $this->resolveEntity();
         $this->resolveController();
 
-        if ($this->generatesPrecondition() && ! is_subclass_of($this->controller->entity->fqcn->ltrim('\\')->toString(), Revisioned::class)) {
+        if ($this->generatesPrecondition() && ! MakePrecondition::isRevisioned($this->controller->entity)) {
             $this->fail(MakePrecondition::notRevisioned($this->controller->entity));
         }
 
@@ -116,17 +115,15 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
             'Method::'.$this->controller->route->method->name,
         ], $stub);
 
-        $stub = str_replace([
+        return str_replace([
             '{{ imports }}',
             '{{ parameters }}',
+            '{{ body }}',
         ], [
             $this->buildControllerImports(),
             $this->buildControllerParameters(),
+            $this->buildControllerBody(),
         ], $stub);
-
-        return $this->generatesPrecondition()
-            ? str_replace("        //\n", "        \$precondition->guard(function (): void {\n            //\n        });\n", $stub)
-            : $stub;
     }
 
     private function buildControllerImports(): string
@@ -139,6 +136,13 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
             fn ($imports) => $imports
                 ->push('use '.$this->controller->entity->fqcn.';')
         )->sort()->values()->implode("\n");
+    }
+
+    private function buildControllerBody(): string
+    {
+        return $this->generatesPrecondition()
+            ? "\$precondition->guard(function (): void {\n            //\n        });"
+            : '//';
     }
 
     private function buildControllerParameters(): string

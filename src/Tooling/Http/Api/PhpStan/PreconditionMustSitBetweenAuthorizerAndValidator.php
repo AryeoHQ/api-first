@@ -5,17 +5,13 @@ declare(strict_types=1);
 namespace Tooling\Http\Api\PhpStan;
 
 use PhpParser\Node;
-use PhpParser\Node\Name;
-use PhpParser\Node\NullableType;
 use PhpParser\Node\Param;
 use PhpParser\Node\Stmt\ClassMethod;
-use PhpParser\Node\UnionType;
 use PHPStan\Analyser\Scope;
-use PHPStan\Reflection\ClassReflection;
-use PHPStan\Type\ObjectType;
 use Support\Http\Api\Preconditions\Precondition;
 use Support\Http\Authorizer;
 use Support\Http\Validator;
+use Tooling\Http\Api\PhpStan\Concerns\ResolvesParameterClasses;
 use Tooling\PhpStan\Rules\Rule;
 use Tooling\Rules\Attributes\NodeType;
 
@@ -25,6 +21,8 @@ use Tooling\Rules\Attributes\NodeType;
 #[NodeType(ClassMethod::class)]
 final class PreconditionMustSitBetweenAuthorizerAndValidator extends Rule
 {
+    use ResolvesParameterClasses;
+
     /**
      * @param  ClassMethod  $node
      */
@@ -65,25 +63,11 @@ final class PreconditionMustSitBetweenAuthorizerAndValidator extends Rule
 
     private function kind(Param $param, Scope $scope): null|string
     {
-        $type = match (true) {
-            $param->type instanceof NullableType => $param->type->type,
-            $param->type instanceof UnionType => collect($param->type->types)->first(fn (Node $member): bool => $member instanceof Name),
-            default => $param->type,
-        };
-
-        if (! $type instanceof Name) {
-            return null;
-        }
-
-        $reflection = new ObjectType($scope->resolveName($type))->getClassReflection();
-
-        if (! $reflection instanceof ClassReflection) {
-            return null;
-        }
-
-        foreach ([Authorizer::class, Precondition::class, Validator::class] as $kind) {
-            if ($reflection->getName() === $kind || $this->inherits($reflection, $kind)) {
-                return $kind;
+        foreach ($this->parameterClasses($param, $scope) as $reflection) {
+            foreach ([Authorizer::class, Precondition::class, Validator::class] as $kind) {
+                if ($reflection->getName() === $kind || $this->inherits($reflection, $kind)) {
+                    return $kind;
+                }
             }
         }
 

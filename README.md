@@ -168,12 +168,15 @@ return [
         'middleware_groups' => ['api'],
         'codes' => [],
     ],
+    'conditional_get' => [
+        'middleware_groups' => ['api'],
+    ],
 ];
 ```
 
 Publish the file with `php artisan vendor:publish --tag=api-first:config`.
 
-The default group is `api`, so an upgrade to this release changes the error body of every route in that group whose controller lacks `#[LegacyErrors]`. An application whose `api` group serves an API with another error shape publishes the file first. It then names only the groups the renderer serves.
+The default group is `api`, so an upgrade to this release changes the error body of every route in that group whose controller lacks `#[LegacyErrors]`. An application whose `api` group serves an API with another error shape publishes the file first. It then names only the groups the renderer serves. Conditional GET reads its own key, `api-first.conditional_get.middleware_groups`, so a group removed here still answers `304`.
 
 | Failure                                               | Status  | Code                                          |
 | ----------------------------------------------------- | ------- | --------------------------------------------- |
@@ -371,7 +374,7 @@ HTTP/1.1 304 Not Modified
 ETag: "v2.17.9f2c1a0b7e3d5c4a9f2c1a0b7e3d5c4a"
 ```
 
-The `ConditionalGet` middleware needs no setup. The provider adds it to each middleware group in `api-first.errors.middleware_groups`, the groups that the error renderer serves. It acts on a response only when all of these hold:
+The `ConditionalGet` middleware needs no setup. The provider adds it to each middleware group in `api-first.conditional_get.middleware_groups`, which defaults to `['api']`. That key is separate from `api-first.errors.middleware_groups`, so a group that keeps the framework's error bodies still answers `304`. It acts on a response only when all of these hold:
 
 - The request is a `GET` or `HEAD`.
 - The response is `200` and carries a representation `ETag`, the tag of a single resource. That tag ends in a digest of the body.

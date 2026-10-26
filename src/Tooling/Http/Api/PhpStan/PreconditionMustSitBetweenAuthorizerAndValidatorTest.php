@@ -60,6 +60,14 @@ final class PreconditionMustSitBetweenAuthorizerAndValidatorTest extends RuleTes
     }
 
     #[Test]
+    public function it_fails_when_a_precondition_in_a_union_follows_a_validator(): void
+    {
+        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/Preconditions/UnionAfterValidatorController.php')], [
+            [self::MESSAGE, 12],
+        ]);
+    }
+
+    #[Test]
     public function it_ignores_methods_other_than_invoke(): void
     {
         $this->analyse([$this->getFixturePath('Http/Api/PhpStan/Preconditions/NonInvokableController.php')], []);

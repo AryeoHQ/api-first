@@ -48,6 +48,11 @@ class MakePrecondition extends GeneratorCommand implements GeneratesFile
         ]);
     }
 
+    public static function isRevisioned(Entity $entity): bool
+    {
+        return is_subclass_of($entity->fqcn->ltrim('\\')->toString(), Revisioned::class);
+    }
+
     public static function notRevisioned(Entity $entity): string
     {
         return sprintf('The entity [%s] does not implement [%s], so it cannot take a precondition.', $entity->fqcn->ltrim('\\'), Revisioned::class);
@@ -62,7 +67,7 @@ class MakePrecondition extends GeneratorCommand implements GeneratesFile
             $this->entityFromOption() ?? str(\Laravel\Prompts\text(label: 'Which entity? (FQCN)', required: true))
         );
 
-        if (! is_subclass_of($this->entity->fqcn->ltrim('\\')->toString(), Revisioned::class)) {
+        if (! self::isRevisioned($this->entity)) {
             $this->fail(self::notRevisioned($this->entity));
         }
 

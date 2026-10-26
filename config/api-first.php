@@ -7,4 +7,7 @@ return [
         'middleware_groups' => ['api'],
         'codes' => [],
     ],
+    'conditional_get' => [
+        'middleware_groups' => ['api'],
+    ],
 ];

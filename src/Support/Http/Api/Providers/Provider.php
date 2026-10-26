@@ -65,7 +65,7 @@ class Provider extends ServiceProvider
                 return;
             }
 
-            foreach (Arr::wrap(config('api-first.errors.middleware_groups', [])) as $group) {
+            foreach (Arr::wrap(config('api-first.conditional_get.middleware_groups', [])) as $group) {
                 if (array_key_exists($group, $kernel->getMiddlewareGroups())) {
                     $kernel->appendMiddlewareToGroup($group, ConditionalGet::class);
                 }

@@ -7,6 +7,7 @@ namespace Support\Http\Api\Middleware;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
+use Orchestra\Testbench\Attributes\WithConfig;
 use Orchestra\Testbench\Concerns\WithWorkbench;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -270,6 +271,29 @@ final class ConditionalGetTest extends TestCase
         $etag = $this->etag($note);
 
         $this->getJson('conditional-get/outside/notes/'.$note->getKey(), ['If-None-Match' => $etag])
+            ->assertOk()
+            ->assertHeader('ETag', $etag)
+            ->assertJsonPath('data.title', 'Draft');
+    }
+
+    #[Test]
+    #[WithConfig('api-first.errors.middleware_groups', [])]
+    public function it_answers_not_modified_on_a_group_that_the_error_renderer_does_not_serve(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+        $etag = $this->etag($note);
+
+        $this->notModified($this->getJson($this->uri($note), ['If-None-Match' => $etag]), $etag);
+    }
+
+    #[Test]
+    #[WithConfig('api-first.conditional_get.middleware_groups', [])]
+    public function it_reads_its_middleware_groups_from_its_own_config_key(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+        $etag = $this->etag($note);
+
+        $this->getJson($this->uri($note), ['If-None-Match' => $etag])
             ->assertOk()
             ->assertHeader('ETag', $etag)
             ->assertJsonPath('data.title', 'Draft');

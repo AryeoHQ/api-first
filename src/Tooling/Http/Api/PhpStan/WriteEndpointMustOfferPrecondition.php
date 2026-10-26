@@ -12,19 +12,17 @@ use PhpParser\Node\Expr\NullsafeMethodCall;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
-use PhpParser\Node\NullableType;
 use PhpParser\Node\Param;
 use PhpParser\Node\Stmt\ClassMethod;
-use PhpParser\Node\UnionType;
 use PhpParser\NodeFinder;
 use PHPStan\Analyser\Scope;
 use PHPStan\Reflection\ClassReflection;
 use PHPStan\Type\Constant\ConstantStringType;
 use PHPStan\Type\Enum\EnumCaseObjectType;
-use PHPStan\Type\ObjectType;
 use Support\Http\Api\Preconditions\Precondition;
 use Support\Routing\Attributes\Route;
 use Support\Routing\Enums\Method;
+use Tooling\Http\Api\PhpStan\Concerns\ResolvesParameterClasses;
 use Tooling\PhpStan\Rules\Rule;
 use Tooling\Rules\Attributes\NodeType;
 
@@ -34,6 +32,8 @@ use Tooling\Rules\Attributes\NodeType;
 #[NodeType(ClassMethod::class)]
 final class WriteEndpointMustOfferPrecondition extends Rule
 {
+    use ResolvesParameterClasses;
+
     /**
      * @param  ClassMethod  $node
      */
@@ -175,24 +175,9 @@ final class WriteEndpointMustOfferPrecondition extends Rule
 
     private function isPrecondition(Param $param, Scope $scope): bool
     {
-        $types = match (true) {
-            $param->type instanceof NullableType => [$param->type->type],
-            $param->type instanceof UnionType => $param->type->types,
-            default => [$param->type],
-        };
-
-        foreach ($types as $type) {
-            if (! $type instanceof Name) {
-                continue;
-            }
-
-            $reflection = new ObjectType($scope->resolveName($type))->getClassReflection();
-
-            if ($reflection instanceof ClassReflection && $this->inherits($reflection, Precondition::class)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any(
+            $this->parameterClasses($param, $scope),
+            fn (ClassReflection $reflection): bool => $this->inherits($reflection, Precondition::class),
+        );
     }
 }
