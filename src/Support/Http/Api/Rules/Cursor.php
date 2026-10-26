@@ -9,46 +9,50 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
+use Support\Http\Api\Pagination\CursorSignature;
 
 final class Cursor implements ValidationRule
 {
+    public const int MAX_LENGTH = 1024;
+
     private const array DATE_FORMATS = [
         DateTimeInterface::RFC3339_EXTENDED,
         'Y-m-d\TH:i:s.uP',
         'Y-m-d H:i:s',
     ];
 
-    /** @var null|list<string> */
-    private null|array $parameters;
+    private null|string $fingerprint;
 
-    /** @var list<string> */
-    private array $dateFormats;
-
-    /**
-     * @param  null|list<string>  $parameters
-     * @param  list<string>  $dateFormats
-     */
-    public function __construct(null|array $parameters = null, array $dateFormats = [])
+    public function __construct(null|string $fingerprint = null)
     {
-        $this->parameters = $parameters;
-        $this->dateFormats = [...self::DATE_FORMATS, ...$dateFormats];
+        $this->fingerprint = $fingerprint;
     }
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        $parameters = self::decode($value);
+        $parameters = self::decode($this->payload($value));
 
-        if ($parameters === null || ! $this->accepts($parameters)) {
+        if ($parameters === null || ! self::accepts($parameters)) {
             $fail('The :attribute is not a cursor that this list issued.');
         }
+    }
+
+    private function payload(mixed $value): null|string
+    {
+        if (! is_string($value) || strlen($value) > self::MAX_LENGTH || preg_match('/\A[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\z/', $value) !== 1) {
+            return null;
+        }
+
+        return $this->fingerprint === null ? Str::before($value, '.') : CursorSignature::verify($value, $this->fingerprint);
     }
 
     /**
      * @return null|array<array-key, mixed>
      */
-    private static function decode(mixed $value): null|array
+    private static function decode(null|string $payload): null|array
     {
-        $json = is_string($value) ? base64_decode(str_replace(['-', '_'], ['+', '/'], $value), true) : false;
+        $json = $payload === null ? false : base64_decode(strtr($payload, '-_', '+/'), true);
         $decoded = $json === false ? null : json_decode($json, true);
 
         if (! is_array($decoded) || ! is_bool($decoded['_pointsToNextItems'] ?? null)) {
@@ -61,36 +65,22 @@ final class Cursor implements ValidationRule
     /**
      * @param  array<array-key, mixed>  $parameters
      */
-    private function accepts(array $parameters): bool
+    private static function accepts(array $parameters): bool
     {
-        return collect($parameters)->every(fn (mixed $parameter): bool => is_scalar($parameter) && $this->isNotAnImpossibleDate($parameter))
-            && $this->hasExpectedNames($parameters);
+        return collect($parameters)->every(fn (mixed $parameter): bool => is_scalar($parameter) && self::isNotAnImpossibleDate($parameter));
     }
 
-    private function isNotAnImpossibleDate(bool|float|int|string $parameter): bool
+    private static function isNotAnImpossibleDate(bool|float|int|string $parameter): bool
     {
         if (! is_string($parameter)) {
             return true;
         }
 
-        $parsed = collect($this->dateFormats)
+        $parsed = collect(self::DATE_FORMATS)
             ->mapWithKeys(fn (string $format): array => [$format => DateTimeImmutable::createFromFormat('!'.$format, $parameter)])
             ->filter();
 
         return $parsed->isEmpty()
             || $parsed->contains(fn (DateTimeImmutable $date, string $format): bool => $date->format($format) === $parameter);
-    }
-
-    /**
-     * @param  array<array-key, mixed>  $parameters
-     */
-    private function hasExpectedNames(array $parameters): bool
-    {
-        if ($this->parameters === null) {
-            return true;
-        }
-
-        return collect($this->parameters)->unique()->sort()->values()->all()
-            === collect(array_keys($parameters))->map(fn (int|string $name): string => (string) $name)->sort()->values()->all();
     }
 }

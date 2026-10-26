@@ -7,15 +7,19 @@ namespace Support\Http\Api\Rules;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Cursor as PaginationCursor;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
+use Support\Http\Api\Pagination\CursorSignature;
 use Tests\Fixtures\Support\Database\Query\Grammars\Rfc3339Extended\Rfc3339ExtendedTestModel;
 use Tests\TestCase;
 
 #[CoversClass(Cursor::class)]
 final class CursorTest extends TestCase
 {
+    private const string MAC = 'bWFj';
+
     /**
      * @return array<string, array{mixed}>
      */
@@ -23,12 +27,15 @@ final class CursorTest extends TestCase
     {
         return [
             'an undecodable string' => ['not-a-cursor'],
-            'a cursor with a character outside base64url' => [(new PaginationCursor(['id' => 1]))->encode().'!'],
-            'an encoded scalar' => [rtrim(base64_encode('1'), '=')],
-            'an encoded object without a direction' => [rtrim(base64_encode('{"created_at":"2026-10-25 21:00:00"}'), '=')],
+            'a cursor without a mac' => [(new PaginationCursor(['id' => 1]))->encode()],
+            'a cursor with a character outside base64url' => [self::withMac((new PaginationCursor(['id' => 1]))->encode().'!')],
+            'a cursor with two macs' => [self::withMac(self::withMac((new PaginationCursor(['id' => 1]))->encode()))],
+            'a cursor that is not strict base64' => [self::withMac((new PaginationCursor(['id' => 123]))->encode().'A')],
+            'an encoded scalar' => [self::withMac(rtrim(base64_encode('1'), '='))],
+            'an encoded object without a direction' => [self::withMac(rtrim(base64_encode('{"created_at":"2026-10-25 21:00:00"}'), '='))],
             'a list' => [['not-a-cursor']],
-            'a parameter that is not a scalar' => [(new PaginationCursor(['created_at' => ['2026-10-25 21:00:00']]))->encode()],
-            'a null parameter' => [(new PaginationCursor(['created_at' => null]))->encode()],
+            'a parameter that is not a scalar' => [self::withMac((new PaginationCursor(['created_at' => ['2026-10-25 21:00:00']]))->encode())],
+            'a null parameter' => [self::withMac((new PaginationCursor(['created_at' => null]))->encode())],
         ];
     }
 
@@ -58,16 +65,50 @@ final class CursorTest extends TestCase
     }
 
     #[Test]
-    public function it_accepts_a_cursor_that_cursor_pagination_issued(): void
+    public function it_accepts_a_cursor_that_cursor_pagination_issued_and_this_list_signed(): void
     {
         Rfc3339ExtendedTestModel::factory()->create(['created_at' => '2026-10-25T21:00:00.100+00:00']);
         Rfc3339ExtendedTestModel::factory()->create(['created_at' => '2026-10-25T21:00:00.400+00:00']);
 
         $this->app->instance('request', Request::create('/test', 'GET'));
 
-        $cursor = Rfc3339ExtendedTestModel::query()->orderBy('created_at')->orderBy('id')->cursorPaginate(1)->nextCursor()?->encode();
+        $query = Rfc3339ExtendedTestModel::query()->orderBy('created_at')->orderBy('id');
+        $fingerprint = CursorSignature::fingerprint($query);
+        $cursor = CursorSignature::sign((string) $query->cursorPaginate(1)->nextCursor()?->encode(), $fingerprint);
 
-        $this->assertTrue($this->passes($cursor, new Cursor(['created_at', 'id'])));
+        $this->assertTrue($this->passes($cursor, new Cursor($fingerprint)));
+    }
+
+    #[Test]
+    public function it_fails_a_cursor_signed_for_another_list(): void
+    {
+        $cursor = CursorSignature::sign((new PaginationCursor(['id' => 1]))->encode(), 'another list');
+
+        $this->assertFalse($this->passes($cursor, new Cursor('list')));
+    }
+
+    #[Test]
+    public function it_fails_a_cursor_with_a_changed_payload(): void
+    {
+        $mac = Str::afterLast(CursorSignature::sign((new PaginationCursor(['id' => 1]))->encode(), 'list'), '.');
+
+        $this->assertFalse($this->passes((new PaginationCursor(['id' => 2]))->encode().'.'.$mac, new Cursor('list')));
+    }
+
+    #[Test]
+    public function it_fails_a_cursor_longer_than_1024_bytes(): void
+    {
+        $cursor = CursorSignature::sign((new PaginationCursor(['id' => str_repeat('a', 701)]))->encode(), 'list');
+
+        $this->assertSame([1026, false, false], [strlen($cursor), $this->passes($cursor), $this->passes($cursor, new Cursor('list'))]);
+    }
+
+    #[Test]
+    public function it_accepts_a_cursor_of_1024_bytes(): void
+    {
+        $cursor = CursorSignature::sign((new PaginationCursor(['id' => str_repeat('a', 700)]))->encode(), 'list');
+
+        $this->assertSame([1024, true], [strlen($cursor), $this->passes($cursor, new Cursor('list'))]);
     }
 
     #[DataProvider('valuesThatAreNotCursors')]
@@ -81,65 +122,20 @@ final class CursorTest extends TestCase
     #[Test]
     public function it_fails_an_impossible_date_in_a_supported_format(string $date): void
     {
-        $this->assertFalse($this->passes((new PaginationCursor(['created_at' => $date]))->encode()));
+        $this->assertFalse($this->passes(self::withMac((new PaginationCursor(['created_at' => $date]))->encode())));
     }
 
     #[DataProvider('possibleDates')]
     #[Test]
     public function it_accepts_a_possible_date_in_each_supported_format(string $date): void
     {
-        $this->assertTrue($this->passes((new PaginationCursor(['created_at' => $date]))->encode()));
+        $this->assertTrue($this->passes(self::withMac((new PaginationCursor(['created_at' => $date]))->encode())));
     }
 
     #[Test]
     public function it_accepts_a_string_that_no_supported_format_parses(): void
     {
-        $this->assertTrue($this->passes((new PaginationCursor(['title' => '2026-02-31 launch notes', 'created_at' => '2026-02-31 00:00:00.000000']))->encode()));
-    }
-
-    #[Test]
-    public function it_fails_an_impossible_date_in_a_given_format(): void
-    {
-        $this->assertFalse($this->passes(
-            (new PaginationCursor(['created_at' => '2026-02-31 00:00:00.000000']))->encode(),
-            new Cursor(dateFormats: ['Y-m-d H:i:s.u']),
-        ));
-    }
-
-    #[Test]
-    public function it_accepts_a_possible_date_in_a_given_format(): void
-    {
-        $this->assertTrue($this->passes(
-            (new PaginationCursor(['created_at' => '2026-10-25 21:00:00.100000']))->encode(),
-            new Cursor(dateFormats: ['Y-m-d H:i:s.u']),
-        ));
-    }
-
-    #[Test]
-    public function it_fails_a_cursor_without_an_expected_parameter(): void
-    {
-        $this->assertFalse($this->passes(
-            (new PaginationCursor(['created_at' => '2026-10-25 21:00:00']))->encode(),
-            new Cursor(['created_at', 'id']),
-        ));
-    }
-
-    #[Test]
-    public function it_fails_a_cursor_with_an_unexpected_parameter(): void
-    {
-        $this->assertFalse($this->passes(
-            (new PaginationCursor(['created_at' => '2026-10-25 21:00:00', 'id' => 1, 'title' => 'a']))->encode(),
-            new Cursor(['created_at', 'id']),
-        ));
-    }
-
-    #[Test]
-    public function it_accepts_the_expected_parameters_in_any_order(): void
-    {
-        $this->assertTrue($this->passes(
-            (new PaginationCursor(['id' => 1, 'created_at' => '2026-10-25 21:00:00'], false))->encode(),
-            new Cursor(['created_at', 'id']),
-        ));
+        $this->assertTrue($this->passes(self::withMac((new PaginationCursor(['title' => '2026-02-31 launch notes', 'created_at' => '2026-02-31 00:00:00.000000']))->encode())));
     }
 
     #[Test]
@@ -150,6 +146,11 @@ final class CursorTest extends TestCase
         $validator->fails();
 
         $this->assertSame(['paging.after' => [Cursor::class => []]], $validator->failed());
+    }
+
+    private static function withMac(string $encoded): string
+    {
+        return $encoded.'.'.self::MAC;
     }
 
     private function passes(mixed $value, Cursor $rule = new Cursor): bool

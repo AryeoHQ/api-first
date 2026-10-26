@@ -10,9 +10,9 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Pagination\Cursor as PaginationCursor;
 use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Fluent;
+use Support\Http\Api\Pagination\CursorSignature;
 use Support\Http\Api\Rules\Cursor;
 
 /**
@@ -25,19 +25,7 @@ trait PagesByCursor
      */
     public function pagingRules(): array
     {
-        return [
-            'paging.size' => ['sometimes', 'integer', 'min:1', 'max:100'],
-            'paging.after' => ['sometimes', 'string', new Cursor],
-            'paging.before' => ['sometimes', 'string', new Cursor, 'prohibits:paging.after'],
-        ];
-    }
-
-    /**
-     * @return array<array-key, mixed>
-     */
-    public function validationData(): array
-    {
-        return $this->query->all();
+        return self::pagingRulesFor(new Cursor);
     }
 
     public function size(): int
@@ -53,9 +41,19 @@ trait PagesByCursor
      */
     public function paginate(Builder $query): CursorPaginator
     {
+        $fingerprint = CursorSignature::fingerprint($query);
+
+        $validator = Validator::make($this->query->all(), self::pagingRulesFor(new Cursor($fingerprint)), $this->messages(), $this->attributes());
+
+        if ($validator->fails()) {
+            $this->failedValidation($validator);
+        }
+
+        request()->attributes->set(CursorSignature::class, $fingerprint);
+
         $key = $this->queryInput()->filled('paging.before') ? 'paging.before' : 'paging.after';
 
-        return $query->cursorPaginate($this->size(), cursorName: $key, cursor: $this->cursor($key, $query));
+        return $query->cursorPaginate($this->size(), cursorName: $key, cursor: $this->cursor($key, $fingerprint));
     }
 
     /**
@@ -66,29 +64,13 @@ trait PagesByCursor
         return new Fluent($this->query->all());
     }
 
-    /**
-     * @template TModel of Model
-     *
-     * @param  Builder<TModel>  $query
-     */
-    private function cursor(string $key, Builder $query): null|PaginationCursor
+    private function cursor(string $key, string $fingerprint): null|PaginationCursor
     {
         if (! $this->queryInput()->filled($key)) {
             return null;
         }
 
-        $encoded = $this->queryInput()->get($key);
-
-        $validator = Validator::make(
-            Arr::undot([$key => $encoded]),
-            [$key => [new Cursor(self::cursorParameters($query), [$query->getModel()->getDateFormat()])]],
-            $this->messages(),
-            $this->attributes(),
-        );
-
-        if ($validator->fails()) {
-            $this->failedValidation($validator);
-        }
+        $encoded = CursorSignature::verify($this->queryInput()->string($key)->toString(), $fingerprint);
 
         return new PaginationCursor(
             Arr::except(PaginationCursor::fromEncoded($encoded)?->toArray() ?? [], '_pointsToNextItems'),
@@ -97,19 +79,14 @@ trait PagesByCursor
     }
 
     /**
-     * @template TModel of Model
-     *
-     * @param  Builder<TModel>  $query
-     * @return list<string>
+     * @return array<string, mixed>
      */
-    private static function cursorParameters(Builder $query): array
+    private static function pagingRulesFor(Cursor $cursor): array
     {
-        return collect($query->getQuery()->unionOrders)
-            ->whenEmpty(fn (): Collection => collect($query->getQuery()->orders))
-            ->whenEmpty(fn (): Collection => collect([['column' => $query->getModel()->getQualifiedKeyName(), 'direction' => 'asc']]))
-            ->filter(fn (array $order): bool => Arr::has($order, 'direction'))
-            ->map(fn (array $order): string => (string) $order['column'])
-            ->values()
-            ->all();
+        return [
+            'paging.size' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'paging.after' => ['sometimes', 'string', 'max:'.Cursor::MAX_LENGTH, $cursor],
+            'paging.before' => ['sometimes', 'string', 'max:'.Cursor::MAX_LENGTH, $cursor, 'prohibits:paging.after'],
+        ];
     }
 }

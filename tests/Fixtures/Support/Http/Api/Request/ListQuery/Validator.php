@@ -18,4 +18,12 @@ final class Validator extends BaseValidator
     {
         return $this->pagingRules();
     }
+
+    /**
+     * @return array<array-key, mixed>
+     */
+    public function validationData(): array
+    {
+        return $this->query->all();
+    }
 }

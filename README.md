@@ -121,7 +121,7 @@ With `WithStructuredMeta`, cursor pagination uses `paging[cursor]` as the query 
 
 #### Standards paging (opt-in)
 
-A list can page by `paging[after]`, `paging[before]`, and `paging[size]` instead. It opts in with two traits: `PagesByCursor` on its validator, and `WithDirectionalMeta` on its resource and collection.
+A list can page by `paging[after]`, `paging[before]`, and `paging[size]` instead. It opts in with two traits, and it must use both: `PagesByCursor` on its validator, and `WithDirectionalMeta` on its resource and collection. `WithDirectionalMeta` throws a `LogicException` when it must emit a cursor that `paginate()` did not produce.
 
 ```php
 use Support\Http\Api\Request\Concerns\PagesByCursor;
@@ -135,6 +135,11 @@ final class Validator extends BaseValidator
     {
         return $this->pagingRules();
     }
+
+    public function validationData(): array
+    {
+        return $this->query->all();
+    }
 }
 ```
 
@@ -142,10 +147,13 @@ final class Validator extends BaseValidator
 return new Jobs($validator->paginate(Job::query()->orderBy('created_at')->orderBy('id')));
 ```
 
-- The validator validates and reads the query string only. A JSON body never changes the page.
+- `paginate()` validates `paging[size]`, `paging[after]`, and `paging[before]` from the query string, and it reads them from there. A JSON body never changes the page.
+- `pagingRules()` validates whatever `validationData()` returns. A list request should return the query bag there, as above, so that its paging errors arrive with its other field errors.
 - `paging[size]` defaults to 10, accepts 1 to 100, and returns 422 for any other value.
 - The key sets the direction: `paging[after]` returns the items that follow the cursor, and `paging[before]` the items that precede it.
-- A value that is not a cursor this list issued returns 422 on `paging.after` or `paging.before`. That covers an undecodable value, a cursor for another sort order, and a date that does not exist. The `Support\Http\Api\Rules\Cursor` rule reports the failure.
+- Each cursor the list issues carries a signature made with the application key. The signature binds the cursor to the model's table and to the list's order columns and directions. Two lists on one table with the same order therefore accept each other's cursors.
+- A value that fails verification returns 422 on `paging.after` or `paging.before`, and the `Support\Http\Api\Rules\Cursor` rule reports the failure. That covers a value longer than 1024 bytes, and an unsigned or undecodable value. It also covers a changed payload or signature, and a cursor signed for another table, order column, or direction.
+- A change to `APP_KEY` invalidates every outstanding cursor. A client that sends one gets 422 once, and it must start again from the first page.
 - A request with both keys returns 422 on `paging.before`.
 - The list ignores `paging[cursor]`.
 - `WithDirectionalMeta` writes `meta.paging` with the same keys. Each URL repeats the request's query keys and carries its own `paging[after]` or `paging[before]` cursor.

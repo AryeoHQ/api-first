@@ -7,13 +7,16 @@ namespace Support\Http\Api\Request\Concerns;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\CoversTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
+use Support\Http\Api\Pagination\CursorSignature;
 use Support\Routing\RouteRegistrar;
 use Tests\Fixtures\Support\Database\Query\Grammars\Rfc3339Extended\Rfc3339ExtendedTestModel;
 use Tests\Fixtures\Support\Http\Api\Pagination\MicrosecondsDateFormatTestModel;
+use Tests\Fixtures\Support\Http\Api\Request\ListQuery\CastingController;
 use Tests\Fixtures\Support\Http\Api\Request\ListQuery\Controller;
 use Tests\TestCase;
 
@@ -36,6 +39,28 @@ final class PagesByCursorTest extends TestCase
     }
 
     /**
+     * @return array<string, array{array<string, mixed>}>
+     */
+    public static function forgedParameters(): array
+    {
+        return [
+            'a date that does not exist' => [['created_at' => '2026-02-31', 'id' => self::ID]],
+            'a boolean date' => [['created_at' => true, 'id' => self::ID]],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function cursorKeys(): array
+    {
+        return [
+            'after' => ['after'],
+            'before' => ['before'],
+        ];
+    }
+
+    /**
      * @return array<string, array{string}>
      */
     public static function sizesOutOfRange(): array
@@ -53,6 +78,7 @@ final class PagesByCursorTest extends TestCase
     protected function defineRoutes($router): void
     {
         app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(Controller::class))->getFileName());
+        app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(CastingController::class))->getFileName());
     }
 
     #[Test]
@@ -111,6 +137,74 @@ final class PagesByCursorTest extends TestCase
             ->assertOnlyJsonValidationErrors(['paging.before']);
     }
 
+    #[DataProvider('cursorKeys')]
+    #[Test]
+    public function it_answers_an_unsigned_cursor_with_422(string $key): void
+    {
+        $ids = $this->createModelsAt(Rfc3339ExtendedTestModel::class, '2026-10-25T21:00:00.100+00:00', '2026-10-25T21:00:00.400+00:00');
+
+        $cursor = (new Cursor(['created_at' => '2026-10-25T21:00:00.100+00:00', 'id' => $ids[0]]))->encode();
+
+        $this->getJson('list-query/rfc3339?'.Arr::query(['paging' => [$key => $cursor]]))
+            ->assertUnprocessable()
+            ->assertOnlyJsonValidationErrors(["paging.{$key}"]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $parameters
+     */
+    #[DataProvider('forgedParameters')]
+    #[Test]
+    public function it_answers_a_forged_payload_under_a_mac_this_list_issued_with_422(array $parameters): void
+    {
+        $this->createModelsAt(Rfc3339ExtendedTestModel::class, '2026-10-25T21:00:00.100+00:00', '2026-10-25T21:00:00.400+00:00');
+
+        [, $mac] = $this->payloadAndMac($this->getJson('list-query/rfc3339?paging[size]=1')->assertOk()->json('meta.paging.after'));
+
+        $this->getJson('list-query/rfc3339?'.Arr::query(['paging' => ['after' => (new Cursor($parameters))->encode().'.'.$mac]]))
+            ->assertUnprocessable()
+            ->assertOnlyJsonValidationErrors(['paging.after']);
+    }
+
+    #[Test]
+    public function it_answers_a_cursor_with_a_tampered_mac_with_422(): void
+    {
+        $this->createModelsAt(Rfc3339ExtendedTestModel::class, '2026-10-25T21:00:00.100+00:00', '2026-10-25T21:00:00.400+00:00');
+
+        [$payload, $mac] = $this->payloadAndMac($this->getJson('list-query/rfc3339?paging[size]=1')->assertOk()->json('meta.paging.after'));
+
+        $tampered = $payload.'.'.($mac[0] === 'A' ? 'B' : 'A').substr($mac, 1);
+
+        $this->getJson('list-query/rfc3339?'.Arr::query(['paging' => ['after' => $tampered]]))
+            ->assertUnprocessable()
+            ->assertOnlyJsonValidationErrors(['paging.after']);
+    }
+
+    #[Test]
+    public function it_answers_a_cursor_from_the_opposite_sort_with_422(): void
+    {
+        $this->createModelsAt(Rfc3339ExtendedTestModel::class, '2026-10-25T21:00:00.100+00:00', '2026-10-25T21:00:00.400+00:00');
+
+        $after = $this->getJson('list-query/rfc3339?'.Arr::query(['sort' => 'created_at', 'paging' => ['size' => 1]]))->assertOk()->json('meta.paging.after');
+
+        $this->getJson('list-query/rfc3339?'.Arr::query(['sort' => '-created_at', 'paging' => ['size' => 1, 'after' => $after]]))
+            ->assertUnprocessable()
+            ->assertOnlyJsonValidationErrors(['paging.after']);
+    }
+
+    #[Test]
+    public function it_answers_a_cursor_longer_than_1024_bytes_with_422(): void
+    {
+        $cursor = CursorSignature::sign(
+            (new Cursor(['created_at' => '2026-10-25T21:00:00.100+00:00', 'id' => str_repeat('a', 1024)]))->encode(),
+            CursorSignature::fingerprint(Rfc3339ExtendedTestModel::query()->orderBy('created_at')->orderBy('id')),
+        );
+
+        $this->getJson('list-query/rfc3339?'.Arr::query(['paging' => ['after' => $cursor]]))
+            ->assertUnprocessable()
+            ->assertOnlyJsonValidationErrors(['paging.after']);
+    }
+
     #[Test]
     public function it_answers_a_date_that_does_not_exist_in_the_models_own_format_with_422(): void
     {
@@ -124,7 +218,9 @@ final class PagesByCursorTest extends TestCase
     #[Test]
     public function it_answers_both_directions_with_422(): void
     {
-        $cursor = (new Cursor(['created_at' => '2026-10-25T21:00:00.100+00:00', 'id' => self::ID]))->encode();
+        $this->createModelsAt(Rfc3339ExtendedTestModel::class, '2026-10-25T21:00:00.100+00:00', '2026-10-25T21:00:00.400+00:00');
+
+        $cursor = $this->getJson('list-query/rfc3339?paging[size]=1')->assertOk()->json('meta.paging.after');
 
         $this->getJson('list-query/rfc3339?'.Arr::query(['paging' => ['after' => $cursor, 'before' => $cursor]]))
             ->assertUnprocessable()
@@ -172,6 +268,20 @@ final class PagesByCursorTest extends TestCase
     }
 
     #[Test]
+    public function it_validates_and_sizes_paging_from_the_query_when_the_validator_validates_all_input(): void
+    {
+        $this->createModelsAt(Rfc3339ExtendedTestModel::class, '2026-10-25T21:00:00.100+00:00', '2026-10-25T21:00:00.400+00:00');
+
+        $this->json('GET', 'list-query-casting?'.Arr::query(['paging' => ['size' => 101]]), ['paging' => ['size' => 5]])
+            ->assertUnprocessable()
+            ->assertOnlyJsonValidationErrors(['paging.size']);
+
+        $this->json('GET', 'list-query-casting?'.Arr::query(['paging' => ['size' => 1]]), ['paging' => ['size' => 5]])
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+    }
+
+    #[Test]
     public function it_ignores_paging_cursor(): void
     {
         $ids = $this->createModelsAt(Rfc3339ExtendedTestModel::class, '2026-10-25T21:00:00.100+00:00', '2026-10-25T21:00:00.400+00:00');
@@ -193,7 +303,8 @@ final class PagesByCursorTest extends TestCase
             '2026-10-25T21:00:00.700+00:00',
         );
 
-        $cursor = (new Cursor(['created_at' => '2026-10-25T21:00:00.400+00:00', 'id' => $ids[1]], false))->encode();
+        $first = $this->getJson('list-query/rfc3339?paging[size]=1')->assertOk()->json('meta.paging.after');
+        $cursor = $this->getJson('list-query/rfc3339?'.Arr::query(['paging' => ['size' => 1, 'after' => $first]]))->assertOk()->json('meta.paging.before');
 
         $this->getJson('list-query/rfc3339?'.Arr::query(['paging' => ['size' => 1, 'after' => $cursor]]))
             ->assertOk()
@@ -210,6 +321,16 @@ final class PagesByCursorTest extends TestCase
             fn (string $timestamp): string => $model::query()->forceCreate(['created_at' => $timestamp])->getKey(),
             array_values($timestamps),
         );
+    }
+
+    /**
+     * @return array{string, string}
+     */
+    private function payloadAndMac(string $cursor): array
+    {
+        $this->assertMatchesRegularExpression('/\A[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\z/', $cursor);
+
+        return [Str::before($cursor, '.'), Str::after($cursor, '.')];
     }
 
     /**

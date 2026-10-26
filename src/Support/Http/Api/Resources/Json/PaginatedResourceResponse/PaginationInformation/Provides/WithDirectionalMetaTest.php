@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Resources\Json\PaginatedResourceResponse\PaginationInformation\Provides;
 
-use Illuminate\Pagination\Cursor;
 use Illuminate\Support\Arr;
 use PHPUnit\Framework\Attributes\CoversTrait;
 use PHPUnit\Framework\Attributes\Test;
@@ -54,9 +53,9 @@ final class WithDirectionalMetaTest extends TestCase
     #[Test]
     public function it_replaces_the_requested_cursor_in_each_url(): void
     {
-        $ids = $this->createModelsAt('2026-10-25T21:00:00.100+00:00', '2026-10-25T21:00:00.400+00:00', '2026-10-25T21:00:00.700+00:00');
+        $this->createModelsAt('2026-10-25T21:00:00.100+00:00', '2026-10-25T21:00:00.400+00:00', '2026-10-25T21:00:00.700+00:00');
 
-        $cursor = (new Cursor(['created_at' => '2026-10-25T21:00:00.100+00:00', 'id' => $ids[0]]))->encode();
+        $cursor = $this->getJson('list-query/rfc3339?'.Arr::query(['paging' => ['size' => 1]]))->assertOk()->json('meta.paging.after');
 
         $response = $this->getJson('list-query/rfc3339?'.Arr::query(['paging' => ['size' => 1, 'after' => $cursor]]))->assertOk();
 

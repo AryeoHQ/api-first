@@ -7,6 +7,8 @@ namespace Support\Http\Api\Resources\Json\PaginatedResourceResponse\PaginationIn
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Uri;
+use LogicException;
+use Support\Http\Api\Pagination\CursorSignature;
 
 final class DirectionalPaging
 {
@@ -16,8 +18,8 @@ final class DirectionalPaging
      */
     public static function from(Request $request, array $paginated): null|array
     {
-        $before = data_get($paginated, 'prev_cursor');
-        $after = data_get($paginated, 'next_cursor');
+        $before = self::sign($request, data_get($paginated, 'prev_cursor'));
+        $after = self::sign($request, data_get($paginated, 'next_cursor'));
 
         return match ($before === null && $after === null) {
             true => null,
@@ -31,9 +33,24 @@ final class DirectionalPaging
         };
     }
 
-    private static function url(Request $request, string $direction, mixed $cursor): null|string
+    private static function sign(Request $request, mixed $cursor): null|string
     {
         if (! is_string($cursor)) {
+            return null;
+        }
+
+        $fingerprint = $request->attributes->get(CursorSignature::class);
+
+        if (! is_string($fingerprint)) {
+            throw new LogicException('A cursor needs the list fingerprint that PagesByCursor::paginate() records on the request.');
+        }
+
+        return CursorSignature::sign($cursor, $fingerprint);
+    }
+
+    private static function url(Request $request, string $direction, null|string $cursor): null|string
+    {
+        if ($cursor === null) {
             return null;
         }
 
