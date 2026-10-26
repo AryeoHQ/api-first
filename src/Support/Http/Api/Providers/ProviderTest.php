@@ -82,16 +82,21 @@ final class ProviderTest extends TestCase
     #[Test]
     public function it_ignores_a_json_body_paging_cursor_on_get(): void
     {
+        $first = Rfc3339ExtendedTestModel::factory()->create(['created_at' => '2026-10-25T21:00:00.100+00:00']);
+        Rfc3339ExtendedTestModel::factory()->create(['created_at' => '2026-10-25T21:00:00.400+00:00']);
+
         $this->app->instance('request', Request::create(
             '/test',
             'GET',
             server: ['CONTENT_TYPE' => 'application/json'],
             content: (string) json_encode([
-                'paging' => ['cursor' => 'eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0'],
+                'paging' => ['cursor' => (new Cursor(['created_at' => '2026-10-25T21:00:00.100+00:00']))->encode()],
             ]),
         ));
 
-        $this->assertNull(UpstreamCursorPaginator::resolveCurrentCursor());
+        $page = Rfc3339ExtendedTestModel::query()->orderBy('created_at')->cursorPaginate(1);
+
+        $this->assertSame([$first->getKey()], $page->pluck('id')->all());
     }
 
     #[Test]
