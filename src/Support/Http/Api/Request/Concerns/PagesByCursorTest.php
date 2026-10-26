@@ -192,17 +192,31 @@ final class PagesByCursorTest extends TestCase
             ->assertOnlyJsonValidationErrors(['paging.after']);
     }
 
+    #[DataProvider('cursorKeys')]
     #[Test]
-    public function it_answers_a_cursor_longer_than_1024_bytes_with_422(): void
+    public function it_answers_a_cursor_longer_than_1024_bytes_with_the_cursor_rule_alone(string $key): void
     {
         $cursor = CursorSignature::sign(
             (new Cursor(['created_at' => '2026-10-25T21:00:00.100+00:00', 'id' => str_repeat('a', 1024)]))->encode(),
             CursorSignature::fingerprint(Rfc3339ExtendedTestModel::query()->orderBy('created_at')->orderBy('id')),
         );
 
-        $this->getJson('list-query/rfc3339?'.Arr::query(['paging' => ['after' => $cursor]]))
+        $response = $this->getJson('list-query/rfc3339?'.Arr::query(['paging' => [$key => $cursor]]))
             ->assertUnprocessable()
-            ->assertOnlyJsonValidationErrors(['paging.after']);
+            ->assertOnlyJsonValidationErrors(["paging.{$key}"]);
+
+        $this->assertCount(1, $response->json('errors')["paging.{$key}"]);
+    }
+
+    #[DataProvider('cursorKeys')]
+    #[Test]
+    public function it_answers_a_cursor_that_is_not_a_string_with_the_cursor_rule_alone(string $key): void
+    {
+        $response = $this->getJson("list-query/rfc3339?paging[{$key}][]=x")
+            ->assertUnprocessable()
+            ->assertOnlyJsonValidationErrors(["paging.{$key}"]);
+
+        $this->assertCount(1, $response->json('errors')["paging.{$key}"]);
     }
 
     #[Test]

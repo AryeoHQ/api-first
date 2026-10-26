@@ -85,8 +85,8 @@ trait PagesByCursor
     {
         return [
             'paging.size' => ['sometimes', 'integer', 'min:1', 'max:100'],
-            'paging.after' => ['sometimes', 'string', 'max:'.Cursor::MAX_LENGTH, $cursor],
-            'paging.before' => ['sometimes', 'string', 'max:'.Cursor::MAX_LENGTH, $cursor, 'prohibits:paging.after'],
+            'paging.after' => ['sometimes', $cursor],
+            'paging.before' => ['sometimes', $cursor, 'prohibits:paging.after'],
         ];
     }
 }
