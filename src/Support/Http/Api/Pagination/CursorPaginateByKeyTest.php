@@ -28,6 +28,7 @@ use Tests\Fixtures\Support\Http\Api\Request\ListQuery\ColumnValueController;
 use Tests\Fixtures\Support\Http\Api\Request\ListQuery\Controller;
 use Tests\Fixtures\Support\Http\Api\Request\ListQuery\PlainController;
 use Tests\Fixtures\Support\Http\Api\Request\ListQuery\RelationController;
+use Tests\Fixtures\Support\Http\Api\Request\ListQuery\ScopedOrderController;
 use Tests\TestCase;
 
 #[CoversClass(CursorPaginateByKey::class)]
@@ -129,6 +130,7 @@ final class CursorPaginateByKeyTest extends TestCase
         app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(CastingController::class))->getFileName());
         app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(RelationController::class))->getFileName());
         app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(ColumnValueController::class))->getFileName());
+        app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(ScopedOrderController::class))->getFileName());
         app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(Controller::class))->getFileName());
     }
 
@@ -304,6 +306,35 @@ final class CursorPaginateByKeyTest extends TestCase
         $this->getJson('list-query-plain/rfc3339?'.Arr::query(['paging' => ['after' => (new Cursor($parameters))->encode().'.'.$mac]]))
             ->assertUnprocessable()
             ->assertOnlyJsonValidationErrors(['paging.after']);
+    }
+
+    #[Test]
+    public function it_rejects_a_cursor_from_a_list_whose_order_differs_only_through_a_global_scope(): void
+    {
+        $ids = $this->createModelsAt(
+            Rfc3339ExtendedTestModel::class,
+            '2026-10-25T21:00:00.100+00:00',
+            '2026-10-25T21:00:00.400+00:00',
+            '2026-10-25T21:00:00.700+00:00',
+        );
+
+        sort($ids);
+
+        $forward = $this->follow('list-query-scoped-order/scoped?paging[size]=1', 'after_url', maxPages: count($ids) + 1);
+        $backward = $this->follow($forward['last']['before_url'], 'before_url', maxPages: count($ids) + 1);
+
+        $this->assertSame([$ids, [$ids[1], $ids[0]]], [$forward['ids'], $backward['ids']]);
+
+        $scoped = $this->getJson('list-query-scoped-order/scoped?paging[size]=1')->assertOk()->json('meta.paging.after');
+        $explicit = $this->getJson('list-query-scoped-order/explicit?paging[size]=1')->assertOk()->json('meta.paging.after');
+
+        foreach ([['scoped', $explicit], ['explicit', $scoped]] as [$list, $cursor]) {
+            $response = $this->getJson("list-query-scoped-order/{$list}?".Arr::query(['paging' => ['size' => 1, 'after' => $cursor]]))
+                ->assertUnprocessable()
+                ->assertOnlyJsonValidationErrors(['paging.after']);
+
+            $this->assertCount(1, $response->json('errors')['paging.after']);
+        }
     }
 
     #[Test]
