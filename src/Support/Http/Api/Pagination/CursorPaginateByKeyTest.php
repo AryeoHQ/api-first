@@ -21,7 +21,11 @@ use Tests\Fixtures\Support\Http\Api\Pagination\MicrosecondsDateFormatTestModel;
 use Tests\Fixtures\Support\Http\Api\Pagination\PagingGroupTestModel;
 use Tests\Fixtures\Support\Http\Api\Pagination\PagingItemTestModel;
 use Tests\Fixtures\Support\Http\Api\Pagination\PagingOwnerTestModel;
+use Tests\Fixtures\Support\Http\Api\Pagination\PagingTitledTestModel;
+use Tests\Fixtures\Support\Http\Api\Pagination\ZuluDateFormatTestModel;
 use Tests\Fixtures\Support\Http\Api\Request\ListQuery\CastingController;
+use Tests\Fixtures\Support\Http\Api\Request\ListQuery\ColumnValueController;
+use Tests\Fixtures\Support\Http\Api\Request\ListQuery\Controller;
 use Tests\Fixtures\Support\Http\Api\Request\ListQuery\PlainController;
 use Tests\Fixtures\Support\Http\Api\Request\ListQuery\RelationController;
 use Tests\TestCase;
@@ -39,8 +43,6 @@ final class CursorPaginateByKeyTest extends TestCase
         return [
             'an undecodable value' => ['not-a-cursor'],
             'a cursor for another order' => [(new Cursor(['id' => self::ID]))->encode()],
-            'a seconds date that does not exist' => [(new Cursor(['created_at' => '2026-02-31 00:00:00', 'id' => self::ID]))->encode()],
-            'a milliseconds date that does not exist' => [(new Cursor(['created_at' => '2026-02-31T00:00:00.000+00:00', 'id' => self::ID]))->encode()],
         ];
     }
 
@@ -105,6 +107,12 @@ final class CursorPaginateByKeyTest extends TestCase
             $table->uuid('group_id');
             $table->timestampsTz();
         });
+
+        Schema::create('paging_titled_test_models', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->string('title');
+            $table->timestampsTz();
+        });
     }
 
     /**
@@ -115,6 +123,8 @@ final class CursorPaginateByKeyTest extends TestCase
         app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(PlainController::class))->getFileName());
         app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(CastingController::class))->getFileName());
         app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(RelationController::class))->getFileName());
+        app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(ColumnValueController::class))->getFileName());
+        app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(Controller::class))->getFileName());
     }
 
     #[Test]
@@ -153,6 +163,36 @@ final class CursorPaginateByKeyTest extends TestCase
         $forward = $this->follow('list-query-plain/unordered?paging[size]=1', 'after_url', maxPages: count($ids) + 1);
 
         $this->assertSame($ids, $forward['ids']);
+    }
+
+    #[Test]
+    public function it_walks_a_model_whose_date_format_ends_in_z_forward_and_back(): void
+    {
+        $ids = $this->createModelsAt(
+            ZuluDateFormatTestModel::class,
+            '2026-10-25T21:00:00.100Z',
+            '2026-10-25T21:00:00.400Z',
+            '2026-10-25T21:00:00.700Z',
+        );
+
+        $forward = $this->follow('list-query-values/zulu?paging[size]=1', 'after_url', maxPages: count($ids) + 1);
+        $backward = $this->follow($forward['last']['before_url'], 'before_url', maxPages: count($ids) + 1);
+
+        $this->assertSame([$ids, [$ids[1], $ids[0]]], [$forward['ids'], $backward['ids']]);
+    }
+
+    #[Test]
+    public function it_walks_past_a_text_column_that_reads_as_a_date_that_does_not_exist(): void
+    {
+        $ids = array_map(
+            fn (string $title): string => PagingTitledTestModel::query()->forceCreate(['title' => $title])->getKey(),
+            ['2026-02-31 00:00:00', '2026-10-25 24:00:00', 'launch notes'],
+        );
+
+        $forward = $this->follow('list-query-values/titled?paging[size]=1', 'after_url', maxPages: count($ids) + 1);
+        $backward = $this->follow($forward['last']['before_url'], 'before_url', maxPages: count($ids) + 1);
+
+        $this->assertSame([$ids, [$ids[1], $ids[0]]], [$forward['ids'], $backward['ids']]);
     }
 
     #[Test]
@@ -315,13 +355,30 @@ final class CursorPaginateByKeyTest extends TestCase
     }
 
     #[Test]
-    public function it_answers_a_date_that_does_not_exist_in_the_models_own_format_with_422(): void
+    public function it_answers_a_nul_byte_in_a_cursor_on_the_validator_route_with_its_other_field_errors(): void
     {
-        $cursor = (new Cursor(['created_at' => '2026-02-31 00:00:00.000000', 'id' => self::ID]))->encode();
+        $cursor = (new Cursor(['created_at' => "2026-10-25T21:00:00.100+00:00\0", 'id' => self::ID]))->encode().'.unsigned';
 
-        $this->getJson('list-query-plain/microseconds?'.Arr::query(['paging' => ['after' => $cursor]]))
+        $response = $this->getJson('list-query/rfc3339?'.Arr::query(['sort' => 'name', 'paging' => ['after' => $cursor]]))
+            ->assertUnprocessable()
+            ->assertOnlyJsonValidationErrors(['sort', 'paging.after']);
+
+        $this->assertCount(1, $response->json('errors')['paging.after']);
+    }
+
+    #[Test]
+    public function it_answers_a_nul_byte_in_a_cursor_this_list_signed_with_422(): void
+    {
+        $cursor = CursorSignature::sign(
+            (new Cursor(['created_at' => "2026-10-25T21:00:00.100+00:00\0", 'id' => self::ID]))->encode(),
+            CursorSignature::fingerprint(Rfc3339ExtendedTestModel::query()->orderBy('created_at')->orderBy('id')),
+        );
+
+        $response = $this->getJson('list-query-plain/rfc3339?'.Arr::query(['paging' => ['after' => $cursor]]))
             ->assertUnprocessable()
             ->assertOnlyJsonValidationErrors(['paging.after']);
+
+        $this->assertCount(1, $response->json('errors')['paging.after']);
     }
 
     #[Test]

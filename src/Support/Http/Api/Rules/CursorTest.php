@@ -36,31 +36,26 @@ final class CursorTest extends TestCase
             'a list' => [['not-a-cursor']],
             'a parameter that is not a scalar' => [self::withMac((new PaginationCursor(['created_at' => ['2026-10-25 21:00:00']]))->encode())],
             'a null parameter' => [self::withMac((new PaginationCursor(['created_at' => null]))->encode())],
+            'a parameter with a NUL byte' => [self::withMac((new PaginationCursor(['created_at' => "2026-10-25 21:00:00\0"]))->encode())],
+            'a NUL byte in the encoded JSON' => [self::withMac(rtrim(strtr(base64_encode("{\"created_at\":\"2026-10-25 21:00:00\0\",\"_pointsToNextItems\":true}"), '+/', '-_'), '='))],
         ];
     }
 
     /**
      * @return array<string, array{string}>
      */
-    public static function impossibleDates(): array
-    {
-        return [
-            'seconds' => ['2026-02-31 00:00:00'],
-            'milliseconds' => ['2026-02-31T00:00:00.000+00:00'],
-            'microseconds' => ['2026-02-31T00:00:00.000000+00:00'],
-            'an hour past midnight' => ['2026-10-25 24:00:00'],
-        ];
-    }
-
-    /**
-     * @return array<string, array{string}>
-     */
-    public static function possibleDates(): array
+    public static function stringsThatReadAsDates(): array
     {
         return [
             'seconds' => ['2026-10-25 21:00:00'],
             'milliseconds' => ['2026-10-25T21:00:00.100+00:00'],
             'microseconds' => ['2026-10-25T21:00:00.123456+00:00'],
+            'milliseconds with a Z offset' => ['2026-10-25T21:00:00.100Z'],
+            'a seconds date that does not exist' => ['2026-02-31 00:00:00'],
+            'a milliseconds date that does not exist' => ['2026-02-31T00:00:00.000+00:00'],
+            'a microseconds date that does not exist' => ['2026-02-31T00:00:00.000000+00:00'],
+            'an hour past midnight' => ['2026-10-25 24:00:00'],
+            'a title that starts with a date that does not exist' => ['2026-02-31 launch notes'],
         ];
     }
 
@@ -118,24 +113,11 @@ final class CursorTest extends TestCase
         $this->assertFalse($this->passes($value));
     }
 
-    #[DataProvider('impossibleDates')]
+    #[DataProvider('stringsThatReadAsDates')]
     #[Test]
-    public function it_fails_an_impossible_date_in_a_supported_format(string $date): void
+    public function it_accepts_a_string_parameter_whether_or_not_it_reads_as_a_date_that_exists(string $value): void
     {
-        $this->assertFalse($this->passes(self::withMac((new PaginationCursor(['created_at' => $date]))->encode())));
-    }
-
-    #[DataProvider('possibleDates')]
-    #[Test]
-    public function it_accepts_a_possible_date_in_each_supported_format(string $date): void
-    {
-        $this->assertTrue($this->passes(self::withMac((new PaginationCursor(['created_at' => $date]))->encode())));
-    }
-
-    #[Test]
-    public function it_accepts_a_string_that_no_supported_format_parses(): void
-    {
-        $this->assertTrue($this->passes(self::withMac((new PaginationCursor(['title' => '2026-02-31 launch notes', 'created_at' => '2026-02-31 00:00:00.000000']))->encode())));
+        $this->assertTrue($this->passes(self::withMac((new PaginationCursor(['created_at' => $value]))->encode())));
     }
 
     #[Test]

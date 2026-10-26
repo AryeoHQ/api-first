@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Support\Http\Api\Rules;
 
 use Closure;
-use DateTimeImmutable;
-use DateTimeInterface;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -15,12 +13,6 @@ use Support\Http\Api\Pagination\CursorSignature;
 final class Cursor implements ValidationRule
 {
     public const int MAX_LENGTH = 1024;
-
-    private const array DATE_FORMATS = [
-        DateTimeInterface::RFC3339_EXTENDED,
-        'Y-m-d\TH:i:s.uP',
-        'Y-m-d H:i:s',
-    ];
 
     private null|string $fingerprint;
 
@@ -67,20 +59,6 @@ final class Cursor implements ValidationRule
      */
     private static function accepts(array $parameters): bool
     {
-        return collect($parameters)->every(fn (mixed $parameter): bool => is_scalar($parameter) && self::isNotAnImpossibleDate($parameter));
-    }
-
-    private static function isNotAnImpossibleDate(bool|float|int|string $parameter): bool
-    {
-        if (! is_string($parameter)) {
-            return true;
-        }
-
-        $parsed = collect(self::DATE_FORMATS)
-            ->mapWithKeys(fn (string $format): array => [$format => DateTimeImmutable::createFromFormat('!'.$format, $parameter)])
-            ->filter();
-
-        return $parsed->isEmpty()
-            || $parsed->contains(fn (DateTimeImmutable $date, string $format): bool => $date->format($format) === $parameter);
+        return collect($parameters)->every(fn (mixed $parameter): bool => is_scalar($parameter) && ! str_contains((string) $parameter, "\0"));
     }
 }
