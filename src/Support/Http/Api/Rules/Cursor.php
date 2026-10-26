@@ -26,7 +26,7 @@ final class Cursor implements ValidationRule
         $parameters = self::decode($this->payload($value));
 
         if ($parameters === null || ! self::accepts($parameters)) {
-            $fail('The :attribute is not a cursor that this list issued.');
+            $fail('The :attribute is not a valid cursor for this list.');
         }
     }
 

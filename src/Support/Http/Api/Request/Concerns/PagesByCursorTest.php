@@ -20,7 +20,7 @@ use Tests\TestCase;
 final class PagesByCursorTest extends TestCase
 {
     /**
-     * @return array<string, array{array<string, mixed>, string}>
+     * @return array<string, array{array<string, mixed>|string, string}>
      */
     public static function pagingErrors(): array
     {
@@ -31,6 +31,8 @@ final class PagesByCursorTest extends TestCase
             'an undecodable after cursor' => [['after' => 'not-a-cursor'], 'paging.after'],
             'an undecodable before cursor' => [['before' => 'not-a-cursor'], 'paging.before'],
             'both directions' => [['after' => $cursor, 'before' => $cursor], 'paging.before'],
+            'an unknown paging key' => [['offset' => '20'], 'paging.offset'],
+            'a paging value that is not an array' => ['x', 'paging'],
         ];
     }
 
@@ -44,11 +46,11 @@ final class PagesByCursorTest extends TestCase
     }
 
     /**
-     * @param  array<string, mixed>  $paging
+     * @param  array<string, mixed>|string  $paging
      */
     #[DataProvider('pagingErrors')]
     #[Test]
-    public function it_batches_a_paging_error_with_other_field_errors(array $paging, string $key): void
+    public function it_batches_a_paging_error_with_other_field_errors(array|string $paging, string $key): void
     {
         $this->getJson('list-query/rfc3339?'.Arr::query(['sort' => 'name', 'paging' => $paging]))
             ->assertUnprocessable()

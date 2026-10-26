@@ -13,7 +13,11 @@ use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Fluent;
+use Illuminate\Validation\Rule;
 use Support\Http\Api\Rules\Cursor;
+use Support\Http\Api\Rules\PageSize;
+use Support\Http\Api\Rules\ProhibitsParameter;
+use Support\Http\Api\Rules\UnknownParameter;
 
 final class CursorPaginateByKey
 {
@@ -22,10 +26,16 @@ final class CursorPaginateByKey
      */
     public static function rules(Cursor $cursor): array
     {
-        return [
-            'paging.size' => ['sometimes', 'integer', 'min:1', 'max:100'],
+        $rules = [
+            'paging.size' => ['sometimes', new PageSize],
             'paging.after' => ['sometimes', $cursor],
-            'paging.before' => ['sometimes', $cursor, 'prohibits:paging.after'],
+            'paging.before' => ['sometimes', $cursor, new ProhibitsParameter('paging.after')],
+        ];
+
+        return [
+            ...$rules,
+            'paging' => ['sometimes', Rule::when(fn (Fluent $query): bool => ! is_array($query->get('paging')), [new UnknownParameter])],
+            'paging.*' => Rule::forEach(fn (mixed $value, string $attribute): array => array_key_exists($attribute, $rules) ? [] : [new UnknownParameter]),
         ];
     }
 

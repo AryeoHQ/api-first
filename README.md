@@ -153,13 +153,13 @@ final class Validator extends BaseValidator
 
 - `cursorPaginateByKey()` validates `paging[size]`, `paging[after]`, and `paging[before]` from the query string, and it reads them from there. A JSON body never changes the page. The macro needs no validator.
 - `pagingRules()` validates whatever `validationData()` returns. A list request should return the query bag there, as above.
-- `paging[size]` defaults to 10, accepts 1 to 100, and returns 422 for any other value.
+- `paging[size]` defaults to 10, accepts 1 to 100, and returns 422 for any other value. The OCC error renderer renders it as `validation.page_size`.
 - The key sets the direction: `paging[after]` returns the items that follow the cursor, and `paging[before]` the items that precede it.
 - Each cursor the list issues carries a signature made with the application key. The signature binds the cursor to the model's table and to the list's order columns and directions. Two lists on one table with the same order therefore accept each other's cursors.
 - A value that fails verification throws a `ValidationException` on `paging.after` or `paging.before`, and the `Support\Http\Api\Rules\Cursor` rule reports the failure. That covers a value longer than 1024 bytes, and an unsigned or undecodable value. It also covers a changed payload or signature, and a cursor signed for another table, order column, or direction. The OCC error renderer renders it as `validation.cursor`. Without that renderer, Laravel's default 422 shape applies.
 - A change to `APP_KEY` invalidates every outstanding cursor. A client that sends one gets 422 once, and it must start again from the first page.
-- A request with both keys returns 422 on `paging.before`.
-- The list ignores `paging[cursor]`.
+- A request with both keys returns 422 on `paging.before`. The OCC error renderer renders it as `validation.prohibits_parameter`.
+- Any other `paging[...]` key, such as `paging[cursor]` or `paging[offset]`, returns 422 on that key, for example `paging.cursor`. A `paging` value that is not an array returns 422 on `paging`. The OCC error renderer renders both as `validation.unknown_parameter`.
 - `WithDirectionalMeta` writes `meta.paging` with the same keys. Each URL repeats the request's query keys and carries its own `paging[after]` or `paging[before]` cursor.
 
 ### Filters & Sort

@@ -69,14 +69,19 @@ final class CursorPaginateByKeyTest extends TestCase
     }
 
     /**
-     * @return array<string, array{string}>
+     * @return array<string, array{array<string, mixed>, string, string}>
      */
-    public static function sizesOutOfRange(): array
+    public static function pagingErrors(): array
     {
         return [
-            'zero' => ['0'],
-            'above the maximum' => ['101'],
-            'not an integer' => ['ten'],
+            'a size of zero' => [['paging' => ['size' => '0']], 'paging.size', 'The paging.size must be an integer from 1 to 100.'],
+            'a size above the maximum' => [['paging' => ['size' => '101']], 'paging.size', 'The paging.size must be an integer from 1 to 100.'],
+            'a size that is not an integer' => [['paging' => ['size' => 'abc']], 'paging.size', 'The paging.size must be an integer from 1 to 100.'],
+            'an undecodable cursor' => [['paging' => ['after' => 'not-a-cursor']], 'paging.after', 'The paging.after is not a valid cursor for this list.'],
+            'paging cursor' => [['paging' => ['cursor' => 'x']], 'paging.cursor', 'The paging.cursor is not a parameter this list accepts.'],
+            'paging offset' => [['paging' => ['offset' => '20']], 'paging.offset', 'The paging.offset is not a parameter this list accepts.'],
+            'an unknown paging key with a nested value' => [['paging' => ['offset' => ['x' => '20']]], 'paging.offset', 'The paging.offset is not a parameter this list accepts.'],
+            'a paging value that is not an array' => [['paging' => 'x'], 'paging', 'The paging is not a parameter this list accepts.'],
         ];
     }
 
@@ -388,18 +393,25 @@ final class CursorPaginateByKeyTest extends TestCase
 
         $cursor = $this->getJson('list-query-plain/rfc3339?paging[size]=1')->assertOk()->json('meta.paging.after');
 
-        $this->getJson('list-query-plain/rfc3339?'.Arr::query(['paging' => ['after' => $cursor, 'before' => $cursor]]))
+        $response = $this->getJson('list-query-plain/rfc3339?'.Arr::query(['paging' => ['after' => $cursor, 'before' => $cursor]]))
             ->assertUnprocessable()
             ->assertOnlyJsonValidationErrors(['paging.before']);
+
+        $this->assertSame(['The paging.before cannot be sent with paging[after].'], $response->json('errors')['paging.before']);
     }
 
-    #[DataProvider('sizesOutOfRange')]
+    /**
+     * @param  array<string, mixed>  $query
+     */
+    #[DataProvider('pagingErrors')]
     #[Test]
-    public function it_answers_a_size_out_of_range_with_422(string $size): void
+    public function it_answers_a_paging_error_with_one_message_on_its_key(array $query, string $key, string $message): void
     {
-        $this->getJson('list-query-plain/rfc3339?'.Arr::query(['paging' => ['size' => $size]]))
+        $response = $this->getJson('list-query-plain/rfc3339?'.Arr::query($query))
             ->assertUnprocessable()
-            ->assertOnlyJsonValidationErrors(['paging.size']);
+            ->assertOnlyJsonValidationErrors([$key]);
+
+        $this->assertSame([$message], $response->json('errors')[$key]);
     }
 
     #[Test]
@@ -448,15 +460,17 @@ final class CursorPaginateByKeyTest extends TestCase
     }
 
     #[Test]
-    public function it_ignores_paging_cursor(): void
+    public function it_answers_paging_cursor_with_422_on_paging_cursor(): void
     {
         $ids = $this->createModelsAt(Rfc3339ExtendedTestModel::class, '2026-10-25T21:00:00.100+00:00', '2026-10-25T21:00:00.400+00:00');
 
         $cursor = (new Cursor(['created_at' => '2026-10-25T21:00:00.100+00:00', 'id' => $ids[0]]))->encode();
 
-        $this->getJson('list-query-plain/rfc3339?'.Arr::query(['paging' => ['size' => 1, 'cursor' => $cursor]]))
-            ->assertOk()
-            ->assertJsonPath('data.*.id', [$ids[0]]);
+        $response = $this->getJson('list-query-plain/rfc3339?'.Arr::query(['paging' => ['size' => 1, 'cursor' => $cursor]]))
+            ->assertUnprocessable()
+            ->assertOnlyJsonValidationErrors(['paging.cursor']);
+
+        $this->assertCount(1, $response->json('errors')['paging.cursor']);
     }
 
     #[Test]
