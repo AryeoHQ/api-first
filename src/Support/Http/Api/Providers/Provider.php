@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Providers;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator as UpstreamCursorPaginator;
@@ -13,6 +14,7 @@ use ReflectionNamedType;
 use Support\Http\Api\Console\Commands\MakeController\MakeController;
 use Support\Http\Api\Console\Commands\MakeResource\Listeners\InjectSchemaProperties;
 use Support\Http\Api\Console\Commands\MakeResource\MakeResource;
+use Support\Http\Api\Pagination\CursorPaginateByKey;
 use Support\Http\Api\Pagination\CursorPaginator;
 use Support\Http\Api\Request\TokenContext;
 use Support\Http\Requests\Contracts\CastableData;
@@ -36,6 +38,10 @@ class Provider extends ServiceProvider
     private function registerMixins(): void
     {
         Request::mixin(new TokenContext);
+
+        Builder::macro('cursorPaginateByKey', function (): UpstreamCursorPaginator {
+            return (new CursorPaginateByKey)($this, request());
+        });
     }
 
     private function registerCursorResolver(): void

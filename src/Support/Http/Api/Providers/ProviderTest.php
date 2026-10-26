@@ -129,4 +129,18 @@ final class ProviderTest extends TestCase
             Rfc3339ExtendedTestModel::query()->cursorPaginate(1),
         );
     }
+
+    #[Test]
+    public function it_pages_an_eloquent_builder_by_key_from_the_request_query(): void
+    {
+        $first = Rfc3339ExtendedTestModel::factory()->create(['created_at' => '2026-10-25T21:00:00.100+00:00']);
+        Rfc3339ExtendedTestModel::factory()->create(['created_at' => '2026-10-25T21:00:00.400+00:00']);
+
+        $this->app->instance('request', Request::create('/test', 'GET', ['paging' => ['size' => 1]]));
+
+        $page = Rfc3339ExtendedTestModel::query()->orderBy('created_at')->cursorPaginateByKey();
+
+        $this->assertInstanceOf(CursorPaginator::class, $page);
+        $this->assertSame([$first->getKey()], $page->pluck('id')->all());
+    }
 }

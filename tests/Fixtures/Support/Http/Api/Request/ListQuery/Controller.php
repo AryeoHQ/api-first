@@ -20,10 +20,12 @@ final class Controller
     {
         $direction = $validator->query('sort') === '-created_at' ? 'desc' : 'asc';
 
-        return new Collection($validator->paginate(match ($model) {
+        $query = match ($model) {
             'microseconds' => MicrosecondsDateFormatTestModel::query()->orderBy('created_at')->orderBy('id'),
             'unordered' => Rfc3339ExtendedTestModel::query(),
             default => Rfc3339ExtendedTestModel::query()->orderBy('created_at', $direction)->orderBy('id', $direction),
-        }));
+        };
+
+        return new Collection($query->cursorPaginateByKey());
     }
 }

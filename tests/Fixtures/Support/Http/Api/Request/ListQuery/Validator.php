@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Fixtures\Support\Http\Api\Request\ListQuery;
 
+use Illuminate\Validation\Rule;
 use Support\Http\Api\Request\Concerns\PagesByCursor;
 use Support\Http\Validator as BaseValidator;
 
@@ -16,7 +17,7 @@ final class Validator extends BaseValidator
      */
     public function rules(): array
     {
-        return $this->pagingRules();
+        return [...$this->pagingRules(), 'sort' => ['sometimes', Rule::in(['created_at', '-created_at'])]];
     }
 
     /**

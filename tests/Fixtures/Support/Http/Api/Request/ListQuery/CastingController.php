@@ -17,6 +17,6 @@ final class CastingController
     )]
     public function __invoke(CastingValidator $validator): Collection
     {
-        return new Collection($validator->paginate(Rfc3339ExtendedTestModel::query()->orderBy('created_at')->orderBy('id')));
+        return new Collection(Rfc3339ExtendedTestModel::query()->orderBy('created_at')->orderBy('id')->cursorPaginateByKey());
     }
 }
