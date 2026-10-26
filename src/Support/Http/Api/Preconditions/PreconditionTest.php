@@ -11,6 +11,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
@@ -435,6 +436,44 @@ final class PreconditionTest extends TestCase
     }
 
     #[Test]
+    public function it_runs_the_write_without_if_match_where_the_route_binds_a_note_without_its_revisions(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+        $this->bindNotesWithoutRevisions();
+
+        $this->patchJson($this->uri($note), ['title' => 'Final'])->assertOk();
+
+        $this->assertSame('Final', $note->refresh()->title);
+    }
+
+    #[Test]
+    public function it_runs_the_write_for_the_current_tag_where_the_route_binds_a_note_without_its_revisions(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+        $tag = $this->etag($note);
+        $this->bindNotesWithoutRevisions();
+
+        $this->withHeader('If-Match', $tag)->patchJson($this->uri($note), ['title' => 'Final'])->assertOk();
+
+        $this->assertSame('Final', $note->refresh()->title);
+    }
+
+    #[Test]
+    public function it_returns_412_for_a_stale_tag_where_the_route_binds_a_note_without_its_revisions(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+        $tag = $this->etag($note);
+        $this->revise($note, ConcurrencyRevision::COLUMN, 2);
+        $this->bindNotesWithoutRevisions();
+
+        $this->assertPreconditionFailed(
+            $this->withHeader('If-Match', $tag)->patchJson($this->uri($note), ['title' => 'Final'])
+        );
+
+        $this->assertSame('Draft', $note->refresh()->title);
+    }
+
+    #[Test]
     public function it_returns_412_when_a_concurrent_write_lands_before_the_guard(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);
@@ -547,6 +586,11 @@ final class PreconditionTest extends TestCase
     private function revise(Note $note, string $column, int $revision): void
     {
         DB::table('notes')->where('id', $note->getKey())->update([$column => $revision]);
+    }
+
+    private function bindNotesWithoutRevisions(): void
+    {
+        Route::bind('note', fn (string $id): Note => Note::query()->findOrFail($id, ['id', 'title']));
     }
 
     private function uri(Note $note, null|string $suffix = null): string

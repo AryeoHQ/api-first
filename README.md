@@ -314,7 +314,9 @@ The precondition joins every `If-Match` line into one list. `*` matches only whe
 | `comparingNamed(...$revisions)` | Each named revision, such as the order of the model's items |
 | `comparingAll()`                | The own revision and every declared named revision          |
 
-A target that compares nothing throws `LogicException` when the precondition evaluates it. A named revision that the model does not declare throws `UndeclaredConcurrencyRevision`, and so does an application revision whose value is `self`. A compared revision whose column the model did not load throws `LogicException`, rather than comparing `0`.
+A target that compares nothing throws `LogicException` when the precondition evaluates a request that sends `If-Match`. A named revision that the model does not declare throws `UndeclaredConcurrencyRevision`, and so does an application revision whose value is `self`. A compared revision whose column the model did not load throws `UnloadedConcurrencyRevision`, a `LogicException`, rather than comparing `0`.
+
+A request without `If-Match` reads no revision. The precondition first compares the route-bound model, before the lock. When that model lacks a compared column, the precondition skips that comparison. `guard()` then compares after `lock()`, which loads every column.
 
 Compare the revisions that the write depends on. A rename compares `comparingSelf()`. A move compares the order it changes, so a client can send the nested index tag `"v2.place_assets_order=4"`:
 

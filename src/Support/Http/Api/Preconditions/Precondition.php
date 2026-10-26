@@ -9,6 +9,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Support\Http\Api\Errors\Exceptions\PreconditionFailed;
 use Support\Http\Api\Errors\Exceptions\PreconditionRequired;
 use Support\Http\Api\Preconditions\Contracts\Target;
+use Support\Http\Api\Preconditions\Exceptions\UnloadedConcurrencyRevision;
 use Support\Http\Resources\Schemas\Tags\EntityTagList;
 
 abstract class Precondition extends FormRequest
@@ -51,18 +52,22 @@ abstract class Precondition extends FormRequest
 
     final protected function passedValidation(): void
     {
-        $this->evaluate($this->target());
+        try {
+            $this->evaluate($this->target());
+        } catch (UnloadedConcurrencyRevision) {
+            return;
+        }
     }
 
     private function evaluate(Target $target): void
     {
-        $compared = $target->compared();
-
         if (! $this->headers->has('If-Match')) {
             throw_if($this->required, PreconditionRequired::class);
 
             return;
         }
+
+        $compared = $target->compared();
 
         throw_unless(EntityTagList::parse($this->headers->all('If-Match'))?->matchesRevisions($target->apiVersion(), $compared) ?? false, PreconditionFailed::class);
     }

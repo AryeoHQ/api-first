@@ -13,6 +13,7 @@ use Support\Database\Eloquent\Concurrency\Contracts\NamesConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Contracts\Revisioned;
 use Support\Database\Eloquent\Concurrency\Revisions;
 use Support\Http\Api\Preconditions\Contracts\Target;
+use Support\Http\Api\Preconditions\Exceptions\UnloadedConcurrencyRevision;
 use Support\Http\Resources\Schemas\Contracts\Version;
 
 final class EntityTarget implements Target
@@ -121,7 +122,7 @@ final class EntityTarget implements Target
             return Revisions::of($own, $named);
         }
 
-        return $this->model->concurrencyRevisions() ?? throw new LogicException(
+        return $this->model->concurrencyRevisions() ?? throw new UnloadedConcurrencyRevision(
             sprintf('The concurrency revisions of [%s] are not loaded.', $this->model::class),
         );
     }
@@ -130,7 +131,7 @@ final class EntityTarget implements Target
     {
         throw_unless(
             array_key_exists($this->model->concurrencyRevisionColumn($revision), $this->model->getAttributes()),
-            LogicException::class,
+            UnloadedConcurrencyRevision::class,
             sprintf('The [%s] concurrency revision of [%s] is not loaded.', $revision->value, $this->model::class),
         );
 
