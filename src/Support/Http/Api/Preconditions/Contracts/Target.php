@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Support\Http\Api\Preconditions\Contracts;
 
 use Illuminate\Database\ConnectionInterface;
+use Support\Database\Eloquent\Concurrency\Revisions;
 use Support\Http\Resources\Schemas\Contracts\Version;
 
 interface Target
@@ -15,8 +16,5 @@ interface Target
 
     public function lock(): void;
 
-    /**
-     * @return array<string, int>
-     */
-    public function compared(): array;
+    public function compared(): Revisions;
 }

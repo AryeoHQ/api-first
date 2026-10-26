@@ -9,7 +9,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Support\Http\Api\Errors\Exceptions\PreconditionFailed;
 use Support\Http\Api\Errors\Exceptions\PreconditionRequired;
 use Support\Http\Api\Preconditions\Contracts\Target;
-use Support\Http\Resources\Schemas\Tags\EntityTag;
+use Support\Http\Resources\Schemas\Tags\EntityTagList;
 
 abstract class Precondition extends FormRequest
 {
@@ -64,13 +64,6 @@ abstract class Precondition extends FormRequest
             return;
         }
 
-        throw_unless(EntityTag::matchesAny($this->ifMatch(), $target->apiVersion(), $compared), PreconditionFailed::class);
-    }
-
-    private function ifMatch(): string
-    {
-        $lines = $this->headers->all('If-Match');
-
-        return array_all($lines, fn (null|string $line): bool => trim((string) $line) === '*') ? '*' : implode(', ', $lines);
+        throw_unless(EntityTagList::parse($this->headers->all('If-Match'))?->matchesRevisions($target->apiVersion(), $compared) ?? false, PreconditionFailed::class);
     }
 }

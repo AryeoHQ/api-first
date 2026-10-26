@@ -6,15 +6,13 @@ namespace Support\Http\Api\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Support\Http\Resources\Schemas\Tags\EntityTag;
+use Support\Http\Resources\Schemas\Tags\EntityTagList;
 use Symfony\Component\HttpFoundation\Response;
 
 final class ConditionalGet
 {
-    private const string WEAK = '#^W/#';
-
-    private const string ELEMENT = '#\G[ \t]*(\*|(?:W/)?"[\x21\x23-\x7E\x80-\xFF]*")[ \t]*(?:,|\z)#';
-
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
@@ -36,26 +34,13 @@ final class ConditionalGet
 
     private function representationTag(Response $response): null|string
     {
-        $tag = (string) preg_replace(self::WEAK, '', trim((string) $response->headers->get('ETag')));
+        $tag = Str::chopStart(trim((string) $response->headers->get('ETag')), 'W/');
 
         return EntityTag::parse($tag)?->digest !== null ? $tag : null;
     }
 
     private function matches(Request $request, string $tag): bool
     {
-        $candidates = $this->candidates(implode(', ', $request->headers->all('If-None-Match')));
-
-        return in_array('*', $candidates, true)
-            || in_array($tag, array_map(fn (string $candidate): string => (string) preg_replace(self::WEAK, '', $candidate), $candidates), true);
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function candidates(string $field): array
-    {
-        preg_match_all(self::ELEMENT, $field, $elements);
-
-        return strlen(implode('', $elements[0])) === strlen($field) ? $elements[1] : [];
+        return EntityTagList::parse($request->headers->all('If-None-Match'))?->matchesWeakly($tag) ?? false;
     }
 }

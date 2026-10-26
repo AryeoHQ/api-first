@@ -11,14 +11,16 @@ use LogicException;
 use Support\Database\Eloquent\Concurrency\ConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Contracts\NamesConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Contracts\Revisioned;
-use Support\Database\Eloquent\Concurrency\Exceptions\UndeclaredConcurrencyRevision;
+use Support\Database\Eloquent\Concurrency\Revisions;
 use Support\Http\Api\Preconditions\Contracts\Target;
 use Support\Http\Resources\Schemas\Contracts\Version;
 
 final class EntityTarget implements Target
 {
-    /** @var array<string, string> */
-    private array $compared = [];
+    /** @var list<NamesConcurrencyRevision> */
+    private array $revisions = [];
+
+    private bool $all = false;
 
     /** @var list<Model> */
     private array $locking = [];
@@ -40,22 +42,14 @@ final class EntityTarget implements Target
 
     public function comparingNamed(NamesConcurrencyRevision ...$revisions): static
     {
-        $columns = $this->model->concurrencyRevisionColumns();
-
-        foreach ($revisions as $revision) {
-            $name = (string) $revision->value;
-
-            throw_unless(array_key_exists($name, $columns), UndeclaredConcurrencyRevision::class, $this->model, $revision);
-
-            $this->compared[$name] = $columns[$name];
-        }
+        $this->revisions = [...$this->revisions, ...array_values($revisions)];
 
         return $this;
     }
 
     public function comparingAll(): static
     {
-        $this->compared += $this->model->concurrencyRevisionColumns();
+        $this->all = true;
 
         return $this;
     }
@@ -104,18 +98,43 @@ final class EntityTarget implements Target
         }
     }
 
-    /**
-     * @return array<string, int>
-     */
-    public function compared(): array
+    public function compared(): Revisions
     {
         throw_if(
-            $this->compared === [],
+            ! $this->all && $this->revisions === [],
             LogicException::class,
             sprintf('The target for [%s] compares no concurrency revision.', $this->model::class),
         );
 
-        return array_map(fn (string $column): int => intval($this->model->getAttribute($column)), $this->compared);
+        $own = null;
+        $named = [];
+
+        foreach ($this->revisions as $revision) {
+            if ($revision === ConcurrencyRevision::Self) {
+                $own = $this->revision($revision);
+            } else {
+                $named[(string) $revision->value] = $this->revision($revision);
+            }
+        }
+
+        if (! $this->all) {
+            return Revisions::of($own, $named);
+        }
+
+        return $this->model->concurrencyRevisions() ?? throw new LogicException(
+            sprintf('The concurrency revisions of [%s] are not loaded.', $this->model::class),
+        );
+    }
+
+    private function revision(NamesConcurrencyRevision $revision): int
+    {
+        throw_unless(
+            array_key_exists($this->model->concurrencyRevisionColumn($revision), $this->model->getAttributes()),
+            LogicException::class,
+            sprintf('The [%s] concurrency revision of [%s] is not loaded.', $revision->value, $this->model::class),
+        );
+
+        return $this->model->concurrencyRevision($revision);
     }
 
     private function lockRow(Model $model): void

@@ -293,14 +293,16 @@ A precondition is optional by default. A request without `If-Match` then runs th
 protected bool $required = true;
 ```
 
-| `If-Match`                                          | Optional | Required |
-| --------------------------------------------------- | -------- | -------- |
-| Absent                                              | Runs     | 428      |
-| `*`                                                 | Runs     | Runs     |
-| A list in which one tag matches                     | Runs     | Runs     |
-| A weak tag, an empty value, or no tag that matches  | 412      | 412      |
+| `If-Match`                                                           | Optional | Required |
+| -------------------------------------------------------------------- | -------- | -------- |
+| Absent                                                               | Runs     | 428      |
+| `*`                                                                  | Runs     | Runs     |
+| A list in which one tag matches                                      | Runs     | Runs     |
+| A weak tag, an empty value, a malformed list, or no tag that matches | 412      | 412      |
 
 A tag matches when its API version equals the target's, and each compared revision equals the stored one. The comparison ignores the digest and every revision the target does not compare. A `412` carries no `ETag`.
+
+The precondition joins every `If-Match` line into one list. `*` matches only when it stands alone, so `*` beside a tag or on two lines is malformed. A malformed list matches nothing, even when it holds the current tag.
 
 ### What a target compares
 
@@ -312,7 +314,7 @@ A tag matches when its API version equals the target's, and each compared revisi
 | `comparingNamed(...$revisions)` | Each named revision, such as the order of the model's items |
 | `comparingAll()`                | The own revision and every declared named revision          |
 
-A target that compares nothing throws `LogicException` when the precondition evaluates it. A named revision that the model does not declare throws `UndeclaredConcurrencyRevision`.
+A target that compares nothing throws `LogicException` when the precondition evaluates it. A named revision that the model does not declare throws `UndeclaredConcurrencyRevision`, and so does an application revision whose value is `self`. A compared revision whose column the model did not load throws `LogicException`, rather than comparing `0`.
 
 Compare the revisions that the write depends on. A rename compares `comparingSelf()`. A move compares the order it changes, so a client can send the nested index tag `"v2.place_assets_order=4"`:
 
@@ -380,7 +382,7 @@ The `ConditionalGet` middleware needs no setup. The provider adds it to each mid
 - The response is `200` and carries a representation `ETag`, the tag of a single resource. That tag ends in a digest of the body.
 - The request sends a well-formed `If-None-Match`.
 
-`If-None-Match` matches when an element of its comma-separated list is `*`, or a tag that equals the response `ETag`. The middleware joins every `If-None-Match` line into one list. Each element must be `*`, `"…"`, or `W/"…"`, and a list with any other element gets no `304`. The comparison is weak, so it ignores a `W/` prefix on either side. It compares the whole tag, digest included, because a changed body must answer `200`. A `304` drops `Content-Length` and `Content-Type`, and it keeps the `ETag`.
+`If-None-Match` matches when it is `*` alone, or when an element of its comma-separated list equals the response `ETag`. The middleware joins every `If-None-Match` line into one list, and it ignores empty elements. Each element must be `"…"` or `W/"…"`. `*` beside a tag or on two lines is malformed, and a malformed list gets no `304`. The comparison is weak, so it ignores a `W/` prefix on either side. It compares the whole tag, digest included, because a changed body must answer `200`. A `304` drops `Content-Length` and `Content-Type`, and it keeps the `ETag`.
 
 A nested index carries a tag such as `"v2.place_assets_order=4"`, but it never gets a `304`. That tag changes when the order changes, and it stays the same when an item changes.
 

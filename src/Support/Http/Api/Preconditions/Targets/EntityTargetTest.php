@@ -19,9 +19,11 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Support\Database\Eloquent\Concurrency\ConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Exceptions\UndeclaredConcurrencyRevision;
+use Support\Database\Eloquent\Concurrency\Revisions;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Note;
 use Tests\Fixtures\Support\Http\Api\Preconditions\NoteRevision;
 use Tests\Fixtures\Support\Http\Api\Preconditions\SecondaryNote;
+use Tests\Fixtures\Support\Http\Api\Preconditions\ShadowingRevision;
 use Tests\Fixtures\Support\Http\Api\Preconditions\UndeclaredRevision;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\TestCase;
@@ -69,7 +71,7 @@ final class EntityTargetTest extends TestCase
     {
         $note = $this->note(self: 3, childrenOrder: 5);
 
-        $this->assertSame(['self' => 3], EntityTarget::for($note, ApiVersion::V1)->comparingSelf()->compared());
+        $this->assertEquals(Revisions::of(3), EntityTarget::for($note, ApiVersion::V1)->comparingSelf()->compared());
     }
 
     #[Test]
@@ -77,7 +79,7 @@ final class EntityTargetTest extends TestCase
     {
         $note = $this->note(self: 3, childrenOrder: 5);
 
-        $this->assertSame(['children_order' => 5], EntityTarget::for($note, ApiVersion::V1)->comparingNamed(NoteRevision::ChildrenOrder)->compared());
+        $this->assertEquals(Revisions::of(null, ['children_order' => 5]), EntityTarget::for($note, ApiVersion::V1)->comparingNamed(NoteRevision::ChildrenOrder)->compared());
     }
 
     #[Test]
@@ -85,8 +87,8 @@ final class EntityTargetTest extends TestCase
     {
         $note = $this->note(self: 3, childrenOrder: 5);
 
-        $this->assertSame(
-            ['self' => 3, 'children_order' => 5],
+        $this->assertEquals(
+            Revisions::of(3, ['children_order' => 5]),
             EntityTarget::for($note, ApiVersion::V1)->comparingSelf()->comparingNamed(NoteRevision::ChildrenOrder)->compared(),
         );
     }
@@ -96,7 +98,7 @@ final class EntityTargetTest extends TestCase
     {
         $note = $this->note(self: 3, childrenOrder: 5);
 
-        $this->assertSame(['self' => 3, 'children_order' => 5], EntityTarget::for($note, ApiVersion::V1)->comparingAll()->compared());
+        $this->assertEquals(Revisions::of(3, ['children_order' => 5]), EntityTarget::for($note, ApiVersion::V1)->comparingAll()->compared());
     }
 
     #[Test]
@@ -106,7 +108,47 @@ final class EntityTargetTest extends TestCase
 
         $this->expectException(UndeclaredConcurrencyRevision::class);
 
-        EntityTarget::for($note, ApiVersion::V1)->comparingNamed(UndeclaredRevision::Attachments);
+        EntityTarget::for($note, ApiVersion::V1)->comparingNamed(UndeclaredRevision::Attachments)->compared();
+    }
+
+    #[Test]
+    public function it_refuses_an_application_revision_named_like_the_own_revision(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+
+        $this->expectException(UndeclaredConcurrencyRevision::class);
+
+        EntityTarget::for($note, ApiVersion::V1)->comparingNamed(ShadowingRevision::Own)->compared();
+    }
+
+    #[Test]
+    public function it_refuses_to_compare_a_named_revision_whose_column_is_not_loaded(): void
+    {
+        $note = $this->partialNote();
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('is not loaded');
+
+        EntityTarget::for($note, ApiVersion::V1)->comparingNamed(NoteRevision::ChildrenOrder)->compared();
+    }
+
+    #[Test]
+    public function it_refuses_to_compare_every_revision_when_a_column_is_not_loaded(): void
+    {
+        $note = $this->partialNote();
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('are not loaded');
+
+        EntityTarget::for($note, ApiVersion::V1)->comparingAll()->compared();
+    }
+
+    #[Test]
+    public function it_compares_a_revision_whose_column_is_loaded_when_another_is_not(): void
+    {
+        $note = $this->partialNote();
+
+        $this->assertEquals(Revisions::of(1), EntityTarget::for($note, ApiVersion::V1)->comparingSelf()->compared());
     }
 
     #[Test]
@@ -127,11 +169,11 @@ final class EntityTargetTest extends TestCase
 
         DB::table('notes')->where('id', $note->getKey())->update(['title' => 'Final', ConcurrencyRevision::COLUMN => 2]);
 
-        $this->assertSame(['self' => 1, 'children_order' => 1], $target->compared());
+        $this->assertEquals(Revisions::of(1, ['children_order' => 1]), $target->compared());
 
         $target->lock();
 
-        $this->assertSame(['self' => 2, 'children_order' => 1], $target->compared());
+        $this->assertEquals(Revisions::of(2, ['children_order' => 1]), $target->compared());
         $this->assertSame('Final', $note->title);
         $this->assertFalse($note->isDirty());
     }
@@ -277,6 +319,13 @@ final class EntityTargetTest extends TestCase
         });
 
         $this->assertSame("select * from \"notes\" where \"notes\".\"id\" = '{$note->getKey()}' and \"notes\".\"deleted_at\" is null limit 1 for update", $queries[0]['query']);
+    }
+
+    private function partialNote(): Note
+    {
+        $key = Note::query()->create(['title' => 'Draft'])->getKey();
+
+        return Note::query()->findOrFail($key, ['id', 'title', ConcurrencyRevision::COLUMN]);
     }
 
     private function note(int $self, int $childrenOrder): Note

@@ -196,12 +196,32 @@ final class ConditionalGetTest extends TestCase
     }
 
     #[Test]
-    public function it_matches_a_star_on_a_later_if_none_match_line(): void
+    public function it_answers_a_star_beside_a_tag_on_another_line_with_the_representation(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);
         $etag = $this->etag($note);
 
-        $this->notModified($this->withHeaders(['If-None-Match' => ['"stale"', '*']])->getJson($this->uri($note)), $etag);
+        $this->withHeaders(['If-None-Match' => ['"stale"', '*']])->getJson($this->uri($note))
+            ->assertOk()
+            ->assertHeader('ETag', $etag)
+            ->assertJsonPath('data.title', 'Draft');
+    }
+
+    #[Test]
+    public function it_answers_a_star_on_every_line_with_the_representation(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+
+        $this->withHeaders(['If-None-Match' => ['*', '*']])->getJson($this->uri($note))->assertOk()->assertJsonPath('data.title', 'Draft');
+    }
+
+    #[Test]
+    public function it_ignores_empty_list_elements(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+        $etag = $this->etag($note);
+
+        $this->notModified($this->getJson($this->uri($note), ['If-None-Match' => ', "stale",, '.$etag.' ,']), $etag);
     }
 
     #[Test]

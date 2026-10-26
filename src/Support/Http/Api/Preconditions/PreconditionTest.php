@@ -141,13 +141,39 @@ final class PreconditionTest extends TestCase
     }
 
     #[Test]
-    public function it_runs_the_write_when_every_if_match_line_is_a_wildcard(): void
+    public function it_returns_412_when_every_if_match_line_is_a_wildcard(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);
 
-        $this->withHeaders(['If-Match' => ['*', '*']])->patchJson($this->uri($note), ['title' => 'Final'])->assertOk();
+        $this->assertPreconditionFailed(
+            $this->withHeaders(['If-Match' => ['*', '*']])->patchJson($this->uri($note), ['title' => 'Final'])
+        );
 
-        $this->assertSame('Final', $note->refresh()->title);
+        $this->assertSame('Draft', $note->refresh()->title);
+    }
+
+    #[Test]
+    public function it_returns_412_for_a_wildcard_beside_the_current_tag(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+        $etag = $this->etag($note);
+
+        $this->assertPreconditionFailed($this->withHeader('If-Match', '*, '.$etag)->patchJson($this->uri($note), ['title' => 'Final']));
+        $this->assertPreconditionFailed($this->withHeaders(['If-Match' => ['*', $etag]])->patchJson($this->uri($note), ['title' => 'Final']));
+
+        $this->assertSame('Draft', $note->refresh()->title);
+    }
+
+    #[Test]
+    public function it_returns_412_for_a_malformed_if_match_that_holds_the_current_tag(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+        $etag = $this->etag($note);
+
+        $this->assertPreconditionFailed($this->withHeader('If-Match', $etag.', garbage')->patchJson($this->uri($note), ['title' => 'Final']));
+        $this->assertPreconditionFailed($this->withHeaders(['If-Match' => [$etag, 'garbage']])->patchJson($this->uri($note), ['title' => 'Final']));
+
+        $this->assertSame('Draft', $note->refresh()->title);
     }
 
     #[Test]
