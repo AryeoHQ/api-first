@@ -36,8 +36,6 @@ final class CursorTest extends TestCase
             'a list' => [['not-a-cursor']],
             'a parameter that is not a scalar' => [self::withMac((new PaginationCursor(['created_at' => ['2026-10-25 21:00:00']]))->encode())],
             'a null parameter' => [self::withMac((new PaginationCursor(['created_at' => null]))->encode())],
-            'a parameter with a NUL byte' => [self::withMac((new PaginationCursor(['created_at' => "2026-10-25 21:00:00\0"]))->encode())],
-            'a NUL byte in the encoded JSON' => [self::withMac(rtrim(strtr(base64_encode("{\"created_at\":\"2026-10-25 21:00:00\0\",\"_pointsToNextItems\":true}"), '+/', '-_'), '='))],
         ];
     }
 

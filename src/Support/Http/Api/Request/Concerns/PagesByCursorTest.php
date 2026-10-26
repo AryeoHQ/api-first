@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Request\Concerns;
 
+use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Support\Arr;
 use PHPUnit\Framework\Attributes\CoversTrait;
@@ -33,6 +34,8 @@ final class PagesByCursorTest extends TestCase
             'both directions' => [['after' => $cursor, 'before' => $cursor], 'paging.before'],
             'an unknown paging key' => [['offset' => '20'], 'paging.offset'],
             'a paging value that is not an array' => ['x', 'paging'],
+            'a blank unknown paging key' => [['offset' => ''], 'paging.offset'],
+            'a blank paging value' => ['', 'paging'],
         ];
     }
 
@@ -52,6 +55,8 @@ final class PagesByCursorTest extends TestCase
     #[Test]
     public function it_batches_a_paging_error_with_other_field_errors(array|string $paging, string $key): void
     {
+        $this->withoutMiddleware(ConvertEmptyStringsToNull::class);
+
         $this->getJson('list-query/rfc3339?'.Arr::query(['sort' => 'name', 'paging' => $paging]))
             ->assertUnprocessable()
             ->assertOnlyJsonValidationErrors(['sort', $key]);

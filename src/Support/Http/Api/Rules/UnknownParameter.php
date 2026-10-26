@@ -9,6 +9,8 @@ use Illuminate\Contracts\Validation\ValidationRule;
 
 final class UnknownParameter implements ValidationRule
 {
+    public bool $implicit = true;
+
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         $fail('The :attribute is not a parameter this list accepts.');

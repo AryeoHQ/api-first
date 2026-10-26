@@ -14,6 +14,12 @@ use Tests\TestCase;
 final class UnknownParameterTest extends TestCase
 {
     #[Test]
+    public function it_fails_a_blank_value(): void
+    {
+        $this->assertTrue(Validator::make(['paging' => ['offset' => '']], ['paging.offset' => [new UnknownParameter]])->fails());
+    }
+
+    #[Test]
     public function it_records_a_failure_whose_rule_name_derives_the_unknown_parameter_code(): void
     {
         $validator = Validator::make(['paging' => ['offset' => '20']], ['paging.offset' => [new UnknownParameter]]);

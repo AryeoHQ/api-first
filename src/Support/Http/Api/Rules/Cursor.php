@@ -59,6 +59,6 @@ final class Cursor implements ValidationRule
      */
     private static function accepts(array $parameters): bool
     {
-        return collect($parameters)->every(fn (mixed $parameter): bool => is_scalar($parameter) && ! str_contains((string) $parameter, "\0"));
+        return collect($parameters)->every(fn (mixed $parameter): bool => is_scalar($parameter));
     }
 }

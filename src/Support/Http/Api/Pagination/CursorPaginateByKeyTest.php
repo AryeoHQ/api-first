@@ -6,6 +6,7 @@ namespace Support\Http\Api\Pagination;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -83,6 +84,31 @@ final class CursorPaginateByKeyTest extends TestCase
             'paging offset' => [['paging' => ['offset' => '20']], 'paging.offset', 'The paging.offset is not a parameter this list accepts.'],
             'an unknown paging key with a nested value' => [['paging' => ['offset' => ['x' => '20']]], 'paging.offset', 'The paging.offset is not a parameter this list accepts.'],
             'a paging value that is not an array' => [['paging' => 'x'], 'paging', 'The paging is not a parameter this list accepts.'],
+            'a blank unknown paging key' => [['paging' => ['offset' => '']], 'paging.offset', 'The paging.offset is not a parameter this list accepts.'],
+            'a blank paging value' => [['paging' => ''], 'paging', 'The paging is not a parameter this list accepts.'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function blankKnownKeys(): array
+    {
+        return [
+            'after' => ['after'],
+            'before' => ['before'],
+            'size' => ['size'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function nulCursorRoutes(): array
+    {
+        return [
+            'the validator route' => ['list-query/rfc3339'],
+            'the macro' => ['list-query-plain/rfc3339'],
         ];
     }
 
@@ -390,31 +416,28 @@ final class CursorPaginateByKeyTest extends TestCase
         $this->assertCount(1, $response->json('errors')["paging.{$key}"]);
     }
 
+    #[DataProvider('nulCursorRoutes')]
     #[Test]
-    public function it_answers_a_nul_byte_in_a_cursor_on_the_validator_route_with_its_other_field_errors(): void
+    public function it_answers_an_unsigned_cursor_with_a_nul_byte_with_422_through_the_signature(string $uri): void
     {
         $cursor = (new Cursor(['created_at' => "2026-10-25T21:00:00.100+00:00\0", 'id' => self::ID]))->encode().'.unsigned';
 
-        $response = $this->getJson('list-query/rfc3339?'.Arr::query(['sort' => 'name', 'paging' => ['after' => $cursor]]))
+        $response = $this->getJson("{$uri}?".Arr::query(['paging' => ['after' => $cursor]]))
             ->assertUnprocessable()
-            ->assertOnlyJsonValidationErrors(['sort', 'paging.after']);
+            ->assertOnlyJsonValidationErrors(['paging.after']);
 
         $this->assertCount(1, $response->json('errors')['paging.after']);
     }
 
     #[Test]
-    public function it_answers_a_nul_byte_in_a_cursor_this_list_signed_with_422(): void
+    public function it_accepts_a_cursor_with_a_nul_byte_that_this_list_signed(): void
     {
         $cursor = CursorSignature::sign(
             (new Cursor(['created_at' => "2026-10-25T21:00:00.100+00:00\0", 'id' => self::ID]))->encode(),
             CursorSignature::fingerprint(Rfc3339ExtendedTestModel::query()->orderBy('created_at')->orderBy('id')),
         );
 
-        $response = $this->getJson('list-query-plain/rfc3339?'.Arr::query(['paging' => ['after' => $cursor]]))
-            ->assertUnprocessable()
-            ->assertOnlyJsonValidationErrors(['paging.after']);
-
-        $this->assertCount(1, $response->json('errors')['paging.after']);
+        $this->getJson('list-query-plain/rfc3339?'.Arr::query(['paging' => ['after' => $cursor]]))->assertOk();
     }
 
     #[Test]
@@ -438,6 +461,8 @@ final class CursorPaginateByKeyTest extends TestCase
     #[Test]
     public function it_answers_a_paging_error_with_one_message_on_its_key(array $query, string $key, string $message): void
     {
+        $this->withoutMiddleware(ConvertEmptyStringsToNull::class);
+
         $response = $this->getJson('list-query-plain/rfc3339?'.Arr::query($query))
             ->assertUnprocessable()
             ->assertOnlyJsonValidationErrors([$key]);
@@ -457,6 +482,31 @@ final class CursorPaginateByKeyTest extends TestCase
             ->assertOk()
             ->assertJsonCount(10, 'data')
             ->assertJsonPath('meta.paging.size', 10);
+    }
+
+    #[Test]
+    public function it_applies_a_page_size_of_ten_to_a_blank_size(): void
+    {
+        $this->withoutMiddleware(ConvertEmptyStringsToNull::class);
+
+        $this->createModelsAt(Rfc3339ExtendedTestModel::class, ...array_map(
+            fn (int $millisecond): string => sprintf('2026-10-25T21:00:00.%03d+00:00', $millisecond),
+            range(1, 11),
+        ));
+
+        $this->getJson('list-query-plain/rfc3339?paging[size]=')
+            ->assertOk()
+            ->assertJsonCount(10, 'data')
+            ->assertJsonPath('meta.paging.size', 10);
+    }
+
+    #[DataProvider('blankKnownKeys')]
+    #[Test]
+    public function it_ignores_a_blank_known_paging_key_without_empty_string_conversion(string $key): void
+    {
+        $this->withoutMiddleware(ConvertEmptyStringsToNull::class);
+
+        $this->getJson("list-query-plain/rfc3339?paging[{$key}]=")->assertOk();
     }
 
     #[Test]

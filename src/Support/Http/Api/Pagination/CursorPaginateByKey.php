@@ -56,7 +56,7 @@ final class CursorPaginateByKey
         $paging = new Fluent($request->query->all());
         $key = $paging->filled('paging.before') ? 'paging.before' : 'paging.after';
 
-        return $query->cursorPaginate($paging->integer('paging.size', 10), cursorName: $key, cursor: self::cursor($paging, $key, $fingerprint));
+        return $query->cursorPaginate($paging->filled('paging.size') ? $paging->integer('paging.size') : 10, cursorName: $key, cursor: self::cursor($paging, $key, $fingerprint));
     }
 
     /**
