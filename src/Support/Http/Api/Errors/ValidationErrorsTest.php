@@ -6,6 +6,8 @@ namespace Support\Http\Api\Errors;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ClosureValidationRule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
@@ -13,6 +15,7 @@ use Orchestra\Testbench\Concerns\WithWorkbench;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Fixtures\Support\Http\Api\Errors\BookingWindow;
+use Tests\Fixtures\Support\Http\Api\Errors\Rules\Cursor;
 use Tests\TestCase;
 
 #[CoversClass(ValidationErrors::class)]
@@ -43,6 +46,21 @@ final class ValidationErrorsTest extends TestCase
             ->assertExactJson([
                 'errors' => [
                     ['code' => 'validation.page_size', 'detail' => 'The page.size must be between 1 and 100.', 'source' => ['parameter' => 'page[size]']],
+                ],
+                'meta' => [],
+            ]);
+    }
+
+    #[Test]
+    public function it_names_a_cursor_rule_failure_as_a_catalogued_code(): void
+    {
+        Route::middleware('api')->get('api/errors/cursor', fn () => Validator::validate(request()->all(), ['paging.after' => [new Cursor]]));
+
+        $this->getJson('api/errors/cursor?paging[after]=garbage')
+            ->assertUnprocessable()
+            ->assertExactJson([
+                'errors' => [
+                    ['code' => 'validation.cursor', 'detail' => 'The paging.after is not a valid cursor.', 'source' => ['parameter' => 'paging[after]']],
                 ],
                 'meta' => [],
             ]);

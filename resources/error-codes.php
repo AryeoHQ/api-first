@@ -44,6 +44,7 @@ return [
     'validation.confirmed',
     'validation.contains',
     'validation.current_password',
+    'validation.cursor',
     'validation.date',
     'validation.date_equals',
     'validation.date_format',
