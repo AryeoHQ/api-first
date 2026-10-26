@@ -127,6 +127,8 @@ A list can page by `paging[after]`, `paging[before]`, and `paging[size]` instead
 return new Jobs(Job::query()->orderBy('created_at')->orderBy('id')->cursorPaginateByKey());
 ```
 
+The macro works on a relation as well as on a query, for example `$user->jobs()->orderBy('jobs.created_at')->orderBy('jobs.id')->cursorPaginateByKey()`.
+
 A validator may also use `PagesByCursor`, so that its paging errors arrive with its other field errors:
 
 ```php
@@ -139,7 +141,7 @@ final class Validator extends BaseValidator
 
     public function rules(): array
     {
-        return [...$this->pagingRules(), 'sort' => [...]];
+        return [...$this->pagingRules(), 'sort' => ['sometimes', 'string']];
     }
 
     public function validationData(): array

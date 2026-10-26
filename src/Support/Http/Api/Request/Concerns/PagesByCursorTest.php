@@ -64,6 +64,18 @@ final class PagesByCursorTest extends TestCase
     }
 
     #[Test]
+    public function it_answers_an_unsigned_cursor_on_the_validator_route_with_422(): void
+    {
+        $id = Rfc3339ExtendedTestModel::query()->forceCreate(['created_at' => '2026-10-25T21:00:00.100+00:00'])->getKey();
+
+        $cursor = (new Cursor(['created_at' => '2026-10-25T21:00:00.100+00:00', 'id' => $id]))->encode().'.unsigned';
+
+        $this->getJson('list-query/rfc3339?'.Arr::query(['paging' => ['after' => $cursor]]))
+            ->assertUnprocessable()
+            ->assertOnlyJsonValidationErrors(['paging.after']);
+    }
+
+    #[Test]
     public function it_accepts_the_cursors_this_list_signed(): void
     {
         $ids = array_map(

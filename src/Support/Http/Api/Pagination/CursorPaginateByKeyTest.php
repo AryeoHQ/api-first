@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Support\Http\Api\Pagination;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -15,8 +18,12 @@ use ReflectionClass;
 use Support\Routing\RouteRegistrar;
 use Tests\Fixtures\Support\Database\Query\Grammars\Rfc3339Extended\Rfc3339ExtendedTestModel;
 use Tests\Fixtures\Support\Http\Api\Pagination\MicrosecondsDateFormatTestModel;
+use Tests\Fixtures\Support\Http\Api\Pagination\PagingGroupTestModel;
+use Tests\Fixtures\Support\Http\Api\Pagination\PagingItemTestModel;
+use Tests\Fixtures\Support\Http\Api\Pagination\PagingOwnerTestModel;
 use Tests\Fixtures\Support\Http\Api\Request\ListQuery\CastingController;
 use Tests\Fixtures\Support\Http\Api\Request\ListQuery\PlainController;
+use Tests\Fixtures\Support\Http\Api\Request\ListQuery\RelationController;
 use Tests\TestCase;
 
 #[CoversClass(CursorPaginateByKey::class)]
@@ -71,6 +78,35 @@ final class CursorPaginateByKeyTest extends TestCase
         ];
     }
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Schema::create('paging_owner_test_models', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->timestampsTz();
+        });
+
+        Schema::create('paging_memberships', function (Blueprint $table): void {
+            $table->increments('id');
+            $table->uuid('owner_id');
+            $table->uuid('member_id');
+            $table->timestampsTz();
+        });
+
+        Schema::create('paging_group_test_models', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->uuid('owner_id');
+            $table->timestampsTz();
+        });
+
+        Schema::create('paging_item_test_models', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->uuid('group_id');
+            $table->timestampsTz();
+        });
+    }
+
     /**
      * @param  \Illuminate\Routing\Router  $router
      */
@@ -78,6 +114,7 @@ final class CursorPaginateByKeyTest extends TestCase
     {
         app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(PlainController::class))->getFileName());
         app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(CastingController::class))->getFileName());
+        app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(RelationController::class))->getFileName());
     }
 
     #[Test]
@@ -116,6 +153,65 @@ final class CursorPaginateByKeyTest extends TestCase
         $forward = $this->follow('list-query-plain/unordered?paging[size]=1', 'after_url', maxPages: count($ids) + 1);
 
         $this->assertSame($ids, $forward['ids']);
+    }
+
+    #[Test]
+    public function it_walks_a_belongs_to_many_relation_by_the_related_models_own_columns_with_the_pivot_set(): void
+    {
+        $owner = PagingOwnerTestModel::query()->forceCreate(['created_at' => '2026-10-25T20:00:00.000+00:00']);
+
+        $ids = $this->createModelsAt(
+            Rfc3339ExtendedTestModel::class,
+            '2026-10-25T21:00:00.100+00:00',
+            '2026-10-25T21:00:00.400+00:00',
+            '2026-10-25T21:00:00.700+00:00',
+        );
+
+        foreach (array_reverse($ids) as $position => $id) {
+            DB::table('paging_memberships')->insert([
+                'owner_id' => $owner->getKey(),
+                'member_id' => $id,
+                'created_at' => sprintf('2026-10-25T22:00:00.%03d+00:00', $position),
+                'updated_at' => sprintf('2026-10-25T22:00:00.%03d+00:00', $position),
+            ]);
+        }
+
+        $pivots = DB::table('paging_memberships')->pluck('id', 'member_id')->all();
+        $rows = array_map(fn (string $id): array => [$id, $this->createdAt(Rfc3339ExtendedTestModel::class, $id), $pivots[$id]], $ids);
+
+        $forward = $this->follow("list-query-relation/{$owner->getKey()}/members?paging[size]=1", 'after_url', maxPages: count($ids) + 1);
+        $backward = $this->follow($forward['last']['before_url'], 'before_url', maxPages: count($ids) + 1);
+
+        $this->assertSame(
+            [$rows, [$rows[1], $rows[0]]],
+            [$this->columns($forward['rows'], 'id', 'created_at', 'pivot_id'), $this->columns($backward['rows'], 'id', 'created_at', 'pivot_id')],
+        );
+    }
+
+    #[Test]
+    public function it_walks_a_has_many_through_relation_by_the_related_models_own_columns(): void
+    {
+        $owner = PagingOwnerTestModel::query()->forceCreate(['created_at' => '2026-10-25T20:00:00.000+00:00']);
+
+        $groups = array_map(
+            fn (string $timestamp): string => PagingGroupTestModel::query()->forceCreate(['owner_id' => $owner->getKey(), 'created_at' => $timestamp])->getKey(),
+            ['2026-10-25T22:00:00.900+00:00', '2026-10-25T22:00:00.100+00:00'],
+        );
+
+        $ids = array_map(
+            fn (array $item): string => PagingItemTestModel::query()->forceCreate(['group_id' => $item[0], 'created_at' => $item[1]])->getKey(),
+            [[$groups[0], '2026-10-25T21:00:00.100+00:00'], [$groups[1], '2026-10-25T21:00:00.400+00:00'], [$groups[0], '2026-10-25T21:00:00.700+00:00']],
+        );
+
+        $rows = array_map(fn (string $id): array => [$id, $this->createdAt(PagingItemTestModel::class, $id)], $ids);
+
+        $forward = $this->follow("list-query-relation/{$owner->getKey()}/items?paging[size]=1", 'after_url', maxPages: count($ids) + 1);
+        $backward = $this->follow($forward['last']['before_url'], 'before_url', maxPages: count($ids) + 1);
+
+        $this->assertSame(
+            [$rows, [$rows[1], $rows[0]]],
+            [$this->columns($forward['rows'], 'id', 'created_at'), $this->columns($backward['rows'], 'id', 'created_at')],
+        );
     }
 
     #[DataProvider('cursorsThisListDidNotIssue')]
@@ -337,6 +433,23 @@ final class CursorPaginateByKeyTest extends TestCase
     }
 
     /**
+     * @param  class-string<Model>  $model
+     */
+    private function createdAt(string $model, string $id): mixed
+    {
+        return $model::query()->findOrFail($id)->toArray()['created_at'];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<list<mixed>>
+     */
+    private function columns(array $rows, string ...$columns): array
+    {
+        return array_map(fn (array $row): array => array_values(Arr::only($row, $columns)), $rows);
+    }
+
+    /**
      * @return array{string, string}
      */
     private function payloadAndMac(string $cursor): array
@@ -347,17 +460,19 @@ final class CursorPaginateByKeyTest extends TestCase
     }
 
     /**
-     * @return array{ids: list<string>, last: array<string, mixed>}
+     * @return array{ids: list<string>, rows: list<array<string, mixed>>, last: array<string, mixed>}
      */
     private function follow(string $url, string $link, int $maxPages): array
     {
         $ids = [];
+        $rows = [];
         $paging = [];
 
         foreach (range(1, $maxPages) as $_) {
             $response = $this->getJson($url)->assertOk();
 
             $ids = [...$ids, ...$response->json('data.*.id')];
+            $rows = [...$rows, ...$response->json('data')];
             $paging = $response->json('meta.paging');
             $url = $paging[$link];
 
@@ -366,6 +481,6 @@ final class CursorPaginateByKeyTest extends TestCase
             }
         }
 
-        return ['ids' => $ids, 'last' => $paging];
+        return ['ids' => $ids, 'rows' => $rows, 'last' => $paging];
     }
 }

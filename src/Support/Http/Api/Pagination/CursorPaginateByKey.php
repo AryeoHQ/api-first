@@ -6,6 +6,7 @@ namespace Support\Http\Api\Pagination;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Cursor as PaginationCursor;
 use Illuminate\Pagination\CursorPaginator;
@@ -31,12 +32,12 @@ final class CursorPaginateByKey
     /**
      * @template TModel of Model
      *
-     * @param  Builder<TModel>  $query
+     * @param  Builder<TModel>|Relation<TModel, Model, mixed>  $query
      * @return CursorPaginator<int, TModel>
      */
-    public function __invoke(Builder $query, Request $request): CursorPaginator
+    public function __invoke(Builder|Relation $query, Request $request): CursorPaginator
     {
-        $fingerprint = CursorSignature::fingerprint($query);
+        $fingerprint = CursorSignature::fingerprint($query instanceof Relation ? $query->getQuery() : $query);
 
         Validator::make($request->query->all(), self::rules(new Cursor($fingerprint)))->validate();
 

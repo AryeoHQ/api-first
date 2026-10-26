@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Support\Http\Api\Providers;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator as UpstreamCursorPaginator;
@@ -40,6 +41,10 @@ class Provider extends ServiceProvider
         Request::mixin(new TokenContext);
 
         Builder::macro('cursorPaginateByKey', function (): UpstreamCursorPaginator {
+            return (new CursorPaginateByKey)($this, request());
+        });
+
+        Relation::macro('cursorPaginateByKey', function (): UpstreamCursorPaginator {
             return (new CursorPaginateByKey)($this, request());
         });
     }
