@@ -6,11 +6,13 @@ namespace Support\Http\Api\Providers;
 
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Cursor;
-use Illuminate\Pagination\CursorPaginator;
+use Illuminate\Pagination\CursorPaginator as UpstreamCursorPaginator;
 use Illuminate\Routing\Route;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use Support\Http\Api\Pagination\CursorPaginator;
 use Support\Http\Requests\Contracts\CastableData;
+use Tests\Fixtures\Support\Database\Query\Grammars\Rfc3339Extended\Rfc3339ExtendedTestModel;
 use Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceResponse\CastableController;
 use Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceResponse\PlainController;
 use Tests\TestCase;
@@ -64,7 +66,7 @@ final class ProviderTest extends TestCase
             'paging' => ['cursor' => 'eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0'],
         ]));
 
-        $this->assertInstanceOf(Cursor::class, CursorPaginator::resolveCurrentCursor());
+        $this->assertInstanceOf(Cursor::class, UpstreamCursorPaginator::resolveCurrentCursor());
     }
 
     #[Test]
@@ -72,8 +74,34 @@ final class ProviderTest extends TestCase
     {
         $this->app->instance('request', Request::create('/test', 'GET'));
 
-        $cursor = CursorPaginator::resolveCurrentCursor();
+        $cursor = UpstreamCursorPaginator::resolveCurrentCursor();
 
         $this->assertNull($cursor);
+    }
+
+    #[Test]
+    public function it_ignores_a_json_body_paging_cursor_on_get(): void
+    {
+        $this->app->instance('request', Request::create(
+            '/test',
+            'GET',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: (string) json_encode([
+                'paging' => ['cursor' => 'eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0'],
+            ]),
+        ));
+
+        $this->assertNull(UpstreamCursorPaginator::resolveCurrentCursor());
+    }
+
+    #[Test]
+    public function it_binds_cursor_pagination_to_the_package_cursor_paginator(): void
+    {
+        $this->app->instance('request', Request::create('/test', 'GET'));
+
+        $this->assertInstanceOf(
+            CursorPaginator::class,
+            Rfc3339ExtendedTestModel::query()->cursorPaginate(1),
+        );
     }
 }
