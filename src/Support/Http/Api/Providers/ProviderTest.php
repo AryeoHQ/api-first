@@ -80,6 +80,26 @@ final class ProviderTest extends TestCase
     }
 
     #[Test]
+    public function it_resolves_a_named_cursor_from_that_query_parameter(): void
+    {
+        $this->app->instance('request', Request::create('/test', 'GET', [
+            'paging' => ['after' => 'eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0'],
+        ]));
+
+        $this->assertInstanceOf(Cursor::class, UpstreamCursorPaginator::resolveCurrentCursor('paging.after'));
+    }
+
+    #[Test]
+    public function it_resolves_null_for_a_named_cursor_when_only_paging_cursor_is_present(): void
+    {
+        $this->app->instance('request', Request::create('/test', 'GET', [
+            'paging' => ['cursor' => 'eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0'],
+        ]));
+
+        $this->assertNull(UpstreamCursorPaginator::resolveCurrentCursor('paging.after'));
+    }
+
+    #[Test]
     public function it_ignores_a_json_body_paging_cursor_on_get(): void
     {
         $first = Rfc3339ExtendedTestModel::factory()->create(['created_at' => '2026-10-25T21:00:00.100+00:00']);

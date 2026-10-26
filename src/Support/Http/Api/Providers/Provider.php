@@ -40,8 +40,8 @@ class Provider extends ServiceProvider
 
     private function registerCursorResolver(): void
     {
-        UpstreamCursorPaginator::currentCursorResolver(function () {
-            return Cursor::fromEncoded(data_get(request()->query(), 'paging.cursor'));
+        UpstreamCursorPaginator::currentCursorResolver(function (string $cursorName = 'cursor') {
+            return Cursor::fromEncoded(data_get(request()->query(), $cursorName === 'cursor' ? 'paging.cursor' : $cursorName));
         });
     }
 

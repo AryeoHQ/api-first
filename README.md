@@ -117,7 +117,38 @@ Non-paginated responses omit `meta` unless the request includes `filters` or `so
 
 Pagination metadata is applied globally to all `JsonResource` collections via a mixin — no per-resource configuration is needed. `paging` is present when the response has cursors and includes `before`, `before_url`, `after`, `after_url`, and `size`.
 
-Cursor pagination uses `paging[cursor]` as the query parameter rather than `cursor`.
+With `WithStructuredMeta`, cursor pagination uses `paging[cursor]` as the query parameter rather than `cursor`.
+
+#### Standards paging (opt-in)
+
+A list can page by `paging[after]`, `paging[before]`, and `paging[size]` instead. It opts in with two traits: `PagesByCursor` on its validator, and `WithDirectionalMeta` on its resource and collection.
+
+```php
+use Support\Http\Api\Request\Concerns\PagesByCursor;
+use Support\Http\Validator as BaseValidator;
+
+final class Validator extends BaseValidator
+{
+    use PagesByCursor;
+
+    public function rules(): array
+    {
+        return $this->pagingRules();
+    }
+}
+```
+
+```php
+return new Jobs($validator->paginate(Job::query()->orderBy('created_at')->orderBy('id')));
+```
+
+- The validator validates and reads the query string only. A JSON body never changes the page.
+- `paging[size]` defaults to 10, accepts 1 to 100, and returns 422 for any other value.
+- The key sets the direction: `paging[after]` returns the items that follow the cursor, and `paging[before]` the items that precede it.
+- A value that is not a cursor this list issued returns 422 on `paging.after` or `paging.before`. That covers an undecodable value, a cursor for another sort order, and a date that does not exist. The `Support\Http\Api\Rules\Cursor` rule reports the failure.
+- A request with both keys returns 422 on `paging.before`.
+- The list ignores `paging[cursor]`.
+- `WithDirectionalMeta` writes `meta.paging` with the same keys. Each URL repeats the request's query keys and carries its own `paging[after]` or `paging[before]` cursor.
 
 ### Filters & Sort
 
