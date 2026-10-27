@@ -21,7 +21,7 @@ trait WithStructuredMeta
         return [
             'meta' => [
                 'filters' => Filters::from($request),
-                'paging' => Paging::from($paginated),
+                'paging' => Paging::from($request, $paginated),
                 'sort' => Sort::from($request),
             ],
         ];
