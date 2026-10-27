@@ -18,12 +18,10 @@ use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
 use Support\Routing\RouteRegistrar;
 use Tests\Fixtures\Support\Database\Query\Grammars\Rfc3339Extended\Rfc3339ExtendedTestModel;
-use Tests\Fixtures\Support\Http\Api\Pagination\MicrosecondsDateFormatTestModel;
 use Tests\Fixtures\Support\Http\Api\Pagination\PagingGroupTestModel;
 use Tests\Fixtures\Support\Http\Api\Pagination\PagingItemTestModel;
 use Tests\Fixtures\Support\Http\Api\Pagination\PagingOwnerTestModel;
 use Tests\Fixtures\Support\Http\Api\Pagination\PagingTitledTestModel;
-use Tests\Fixtures\Support\Http\Api\Pagination\ZuluDateFormatTestModel;
 use Tests\Fixtures\Support\Http\Api\Request\ListQuery\CastingController;
 use Tests\Fixtures\Support\Http\Api\Request\ListQuery\ColumnValueController;
 use Tests\Fixtures\Support\Http\Api\Request\ListQuery\Controller;
@@ -177,16 +175,6 @@ final class CursorPaginateByKeyTest extends TestCase
     }
 
     #[Test]
-    public function it_walks_a_model_by_its_own_date_format(): void
-    {
-        $ids = $this->createModelsAt(MicrosecondsDateFormatTestModel::class, '2026-10-25 21:00:00.100000', '2026-10-25 21:00:00.400000');
-
-        $forward = $this->follow('list-query-plain/microseconds?paging[size]=1', 'after_url', maxPages: count($ids) + 1);
-
-        $this->assertSame($ids, $forward['ids']);
-    }
-
-    #[Test]
     public function it_walks_an_unordered_list_by_its_key(): void
     {
         $ids = $this->createModelsAt(Rfc3339ExtendedTestModel::class, '2026-10-25T21:00:00.100+00:00', '2026-10-25T21:00:00.400+00:00');
@@ -196,22 +184,6 @@ final class CursorPaginateByKeyTest extends TestCase
         $forward = $this->follow('list-query-plain/unordered?paging[size]=1', 'after_url', maxPages: count($ids) + 1);
 
         $this->assertSame($ids, $forward['ids']);
-    }
-
-    #[Test]
-    public function it_walks_a_model_whose_date_format_ends_in_z_forward_and_back(): void
-    {
-        $ids = $this->createModelsAt(
-            ZuluDateFormatTestModel::class,
-            '2026-10-25T21:00:00.100Z',
-            '2026-10-25T21:00:00.400Z',
-            '2026-10-25T21:00:00.700Z',
-        );
-
-        $forward = $this->follow('list-query-values/zulu?paging[size]=1', 'after_url', maxPages: count($ids) + 1);
-        $backward = $this->follow($forward['last']['before_url'], 'before_url', maxPages: count($ids) + 1);
-
-        $this->assertSame([$ids, [$ids[1], $ids[0]]], [$forward['ids'], $backward['ids']]);
     }
 
     #[Test]

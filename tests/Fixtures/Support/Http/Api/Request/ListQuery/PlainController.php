@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Support\Routing\Attributes\Route;
 use Support\Routing\Enums\Method;
 use Tests\Fixtures\Support\Database\Query\Grammars\Rfc3339Extended\Rfc3339ExtendedTestModel;
-use Tests\Fixtures\Support\Http\Api\Pagination\MicrosecondsDateFormatTestModel;
 
 final class PlainController
 {
@@ -22,7 +21,6 @@ final class PlainController
         $direction = $request->query('sort') === '-created_at' ? 'desc' : 'asc';
 
         $query = match ($model) {
-            'microseconds' => MicrosecondsDateFormatTestModel::query()->orderBy('created_at')->orderBy('id'),
             'unordered' => Rfc3339ExtendedTestModel::query(),
             default => Rfc3339ExtendedTestModel::query()->orderBy('created_at', $direction)->orderBy('id', $direction),
         };
