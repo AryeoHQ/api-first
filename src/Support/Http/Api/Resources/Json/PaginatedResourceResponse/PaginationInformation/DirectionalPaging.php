@@ -42,7 +42,7 @@ final class DirectionalPaging
         $fingerprint = $request->attributes->get(CursorSignature::class);
 
         if (! is_string($fingerprint)) {
-            throw new LogicException('A cursor needs the list fingerprint that cursorPaginateByKey() records on the request.');
+            throw new LogicException('A cursor needs the list fingerprint that CursorResolver records on the request.');
         }
 
         return CursorSignature::sign($cursor, $fingerprint);

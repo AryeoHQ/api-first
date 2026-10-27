@@ -7,8 +7,11 @@ namespace Support\Http\Api\Pagination;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
+use Illuminate\Http\Request;
 use Illuminate\Pagination\Cursor;
+use Illuminate\Pagination\CursorPaginator as UpstreamCursorPaginator;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -30,8 +33,8 @@ use Tests\Fixtures\Support\Http\Api\Request\ListQuery\RelationController;
 use Tests\Fixtures\Support\Http\Api\Request\ListQuery\ScopedOrderController;
 use Tests\TestCase;
 
-#[CoversClass(CursorPaginateByKey::class)]
-final class CursorPaginateByKeyTest extends TestCase
+#[CoversClass(CursorResolver::class)]
+final class CursorResolverTest extends TestCase
 {
     private const string ID = '0199f7a4-0000-7000-8000-000000000000';
 
@@ -106,7 +109,7 @@ final class CursorPaginateByKeyTest extends TestCase
     {
         return [
             'the validator route' => ['list-query/rfc3339'],
-            'the macro' => ['list-query-plain/rfc3339'],
+            'the route without a validator' => ['list-query-plain/rfc3339'],
         ];
     }
 
@@ -340,7 +343,7 @@ final class CursorPaginateByKeyTest extends TestCase
     }
 
     #[Test]
-    public function it_rejects_a_cursor_from_a_list_whose_order_differs_only_through_a_global_scope(): void
+    public function it_answers_a_cursor_from_another_path_with_422_when_both_lists_share_an_order(): void
     {
         $ids = $this->createModelsAt(
             Rfc3339ExtendedTestModel::class,
@@ -366,6 +369,57 @@ final class CursorPaginateByKeyTest extends TestCase
 
             $this->assertCount(1, $response->json('errors')['paging.after']);
         }
+    }
+
+    #[Test]
+    public function it_answers_a_cursor_from_the_same_route_on_another_path_with_422(): void
+    {
+        [$owner, $other] = array_map(
+            fn (string $timestamp): PagingOwnerTestModel => PagingOwnerTestModel::query()->forceCreate(['created_at' => $timestamp]),
+            ['2026-10-25T20:00:00.000+00:00', '2026-10-25T20:00:00.500+00:00'],
+        );
+
+        foreach ($this->createModelsAt(Rfc3339ExtendedTestModel::class, '2026-10-25T21:00:00.100+00:00', '2026-10-25T21:00:00.400+00:00') as $id) {
+            DB::table('paging_memberships')->insert([
+                ['owner_id' => $owner->getKey(), 'member_id' => $id],
+                ['owner_id' => $other->getKey(), 'member_id' => $id],
+            ]);
+        }
+
+        $after = $this->getJson("list-query-relation/{$owner->getKey()}/members?paging[size]=1")->assertOk()->json('meta.paging.after');
+
+        $this->getJson("list-query-relation/{$other->getKey()}/members?".Arr::query(['paging' => ['size' => 1, 'after' => $after]]))
+            ->assertUnprocessable()
+            ->assertOnlyJsonValidationErrors(['paging.after']);
+    }
+
+    #[Test]
+    public function it_answers_a_cursor_sent_with_other_filters_with_422_and_ignores_their_key_order(): void
+    {
+        $ids = $this->createModelsAt(
+            Rfc3339ExtendedTestModel::class,
+            '2026-10-25T21:00:00.100+00:00',
+            '2026-10-25T21:00:00.400+00:00',
+            '2026-10-25T21:00:00.700+00:00',
+        );
+
+        $after = $this->getJson('list-query-plain/rfc3339?'.Arr::query(['filters' => ['x' => '1', 'y' => ['b' => '2', 'a' => '3']], 'paging' => ['size' => 1]]))
+            ->assertOk()
+            ->json('meta.paging.after');
+
+        $this->getJson('list-query-plain/rfc3339?'.Arr::query(['filters' => ['x' => '2', 'y' => ['b' => '2', 'a' => '3']], 'paging' => ['size' => 1, 'after' => $after]]))
+            ->assertUnprocessable()
+            ->assertOnlyJsonValidationErrors(['paging.after']);
+
+        $this->getJson('list-query-plain/rfc3339?'.Arr::query(['filters' => ['y' => ['a' => '3', 'b' => '2'], 'x' => '1'], 'paging' => ['size' => 1, 'after' => $after]]))
+            ->assertOk()
+            ->assertJsonPath('data.*.id', [$ids[1]]);
+    }
+
+    #[Test]
+    public function it_pages_a_list_whose_search_query_is_not_utf_8(): void
+    {
+        $this->getJson('list-query-plain/rfc3339?query=%FF')->assertOk();
     }
 
     #[Test]
@@ -400,7 +454,7 @@ final class CursorPaginateByKeyTest extends TestCase
     {
         $cursor = CursorSignature::sign(
             (new Cursor(['created_at' => '2026-10-25T21:00:00.100+00:00', 'id' => str_repeat('a', 1024)]))->encode(),
-            CursorSignature::fingerprint(Rfc3339ExtendedTestModel::query()->orderBy('created_at')->orderBy('id')),
+            CursorSignature::fingerprint(Request::create('list-query-plain/rfc3339')),
         );
 
         $response = $this->getJson('list-query-plain/rfc3339?'.Arr::query(['paging' => [$key => $cursor]]))
@@ -439,7 +493,7 @@ final class CursorPaginateByKeyTest extends TestCase
     {
         $cursor = CursorSignature::sign(
             (new Cursor(['created_at' => "2026-10-25T21:00:00.100+00:00\0", 'id' => self::ID]))->encode(),
-            CursorSignature::fingerprint(Rfc3339ExtendedTestModel::query()->orderBy('created_at')->orderBy('id')),
+            CursorSignature::fingerprint(Request::create('list-query-plain/rfc3339')),
         );
 
         $this->getJson('list-query-plain/rfc3339?'.Arr::query(['paging' => ['after' => $cursor]]))->assertOk();
@@ -557,6 +611,20 @@ final class CursorPaginateByKeyTest extends TestCase
             ->assertOnlyJsonValidationErrors(['paging.cursor']);
 
         $this->assertCount(1, $response->json('errors')['paging.cursor']);
+    }
+
+    #[Test]
+    public function it_returns_the_first_page_to_a_console_command_without_a_route_or_paging(): void
+    {
+        $ids = $this->createModelsAt(Rfc3339ExtendedTestModel::class, '2026-10-25T21:00:00.100+00:00', '2026-10-25T21:00:00.400+00:00');
+
+        Artisan::command('list-query:first', function (): void {
+            $this->line(Rfc3339ExtendedTestModel::query()->orderBy('created_at')->orderBy('id')->cursorPaginate(1)->pluck('id')->implode(','));
+        });
+
+        $this->assertNull(UpstreamCursorPaginator::resolveCurrentCursor());
+
+        $this->artisan('list-query:first')->expectsOutput($ids[0])->assertSuccessful();
     }
 
     #[Test]

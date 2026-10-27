@@ -4,12 +4,7 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Pagination;
 
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\Relation;
-use Illuminate\Http\Request;
 use Illuminate\Pagination\Cursor as PaginationCursor;
-use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Fluent;
@@ -19,7 +14,7 @@ use Support\Http\Api\Rules\PageSize;
 use Support\Http\Api\Rules\ProhibitsParameter;
 use Support\Http\Api\Rules\UnknownParameter;
 
-final class CursorPaginateByKey
+final class CursorResolver
 {
     /**
      * @return array<string, mixed>
@@ -39,15 +34,10 @@ final class CursorPaginateByKey
         ];
     }
 
-    /**
-     * @template TModel of Model
-     *
-     * @param  Builder<TModel>|Relation<TModel, Model, mixed>  $query
-     * @return CursorPaginator<int, TModel>
-     */
-    public function __invoke(Builder|Relation $query, Request $request): CursorPaginator
+    public function __invoke(string $cursorName = 'cursor'): null|PaginationCursor
     {
-        $fingerprint = CursorSignature::fingerprint($query instanceof Relation ? $query->getQuery() : $query);
+        $request = request();
+        $fingerprint = CursorSignature::fingerprint($request);
 
         Validator::make($request->query->all(), self::rules(new Cursor($fingerprint)))->validate();
 
@@ -56,14 +46,6 @@ final class CursorPaginateByKey
         $paging = new Fluent($request->query->all());
         $key = $paging->filled('paging.before') ? 'paging.before' : 'paging.after';
 
-        return $query->cursorPaginate($paging->filled('paging.size') ? $paging->integer('paging.size') : 10, cursorName: $key, cursor: self::cursor($paging, $key, $fingerprint));
-    }
-
-    /**
-     * @param  Fluent<array-key, mixed>  $paging
-     */
-    private static function cursor(Fluent $paging, string $key, string $fingerprint): null|PaginationCursor
-    {
         if (! $paging->filled($key)) {
             return null;
         }

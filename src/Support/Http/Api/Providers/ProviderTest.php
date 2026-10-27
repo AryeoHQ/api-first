@@ -8,9 +8,11 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator as UpstreamCursorPaginator;
 use Illuminate\Routing\Route;
+use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Support\Http\Api\Pagination\CursorPaginator;
+use Support\Http\Api\Pagination\CursorSignature;
 use Support\Http\Requests\Contracts\CastableData;
 use Tests\Fixtures\Support\Database\Query\Grammars\Rfc3339Extended\Rfc3339ExtendedTestModel;
 use Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceResponse\CastableController;
@@ -60,17 +62,20 @@ final class ProviderTest extends TestCase
     }
 
     #[Test]
-    public function it_resolves_cursor_from_paging_cursor_query_parameter(): void
+    public function it_resolves_a_signed_paging_after_cursor_whatever_cursor_name_laravel_passes(): void
     {
         $this->app->instance('request', Request::create('/test', 'GET', [
-            'paging' => ['cursor' => 'eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0'],
+            'paging' => ['after' => CursorSignature::sign('eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0', CursorSignature::fingerprint(Request::create('/test')))],
         ]));
 
-        $this->assertInstanceOf(Cursor::class, UpstreamCursorPaginator::resolveCurrentCursor());
+        $this->assertSame([['id' => 10, '_pointsToNextItems' => true], ['id' => 10, '_pointsToNextItems' => true]], [
+            UpstreamCursorPaginator::resolveCurrentCursor()?->toArray(),
+            UpstreamCursorPaginator::resolveCurrentCursor('paging.before')?->toArray(),
+        ]);
     }
 
     #[Test]
-    public function it_resolves_null_cursor_when_paging_cursor_is_absent(): void
+    public function it_resolves_null_cursor_when_paging_is_absent(): void
     {
         $this->app->instance('request', Request::create('/test', 'GET'));
 
@@ -80,27 +85,19 @@ final class ProviderTest extends TestCase
     }
 
     #[Test]
-    public function it_resolves_a_named_cursor_from_that_query_parameter(): void
-    {
-        $this->app->instance('request', Request::create('/test', 'GET', [
-            'paging' => ['after' => 'eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0'],
-        ]));
-
-        $this->assertInstanceOf(Cursor::class, UpstreamCursorPaginator::resolveCurrentCursor('paging.after'));
-    }
-
-    #[Test]
-    public function it_resolves_null_for_a_named_cursor_when_only_paging_cursor_is_present(): void
+    public function it_rejects_paging_cursor_with_a_validation_exception(): void
     {
         $this->app->instance('request', Request::create('/test', 'GET', [
             'paging' => ['cursor' => 'eyJpZCI6MTAsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0'],
         ]));
 
-        $this->assertNull(UpstreamCursorPaginator::resolveCurrentCursor('paging.after'));
+        $this->expectException(ValidationException::class);
+
+        UpstreamCursorPaginator::resolveCurrentCursor();
     }
 
     #[Test]
-    public function it_ignores_a_json_body_paging_cursor_on_get(): void
+    public function it_ignores_a_json_body_paging_after_cursor_on_get(): void
     {
         $first = Rfc3339ExtendedTestModel::factory()->create(['created_at' => '2026-10-25T21:00:00.100+00:00']);
         Rfc3339ExtendedTestModel::factory()->create(['created_at' => '2026-10-25T21:00:00.400+00:00']);
@@ -110,7 +107,7 @@ final class ProviderTest extends TestCase
             'GET',
             server: ['CONTENT_TYPE' => 'application/json'],
             content: (string) json_encode([
-                'paging' => ['cursor' => (new Cursor(['created_at' => '2026-10-25T21:00:00.100+00:00']))->encode()],
+                'paging' => ['after' => (new Cursor(['created_at' => '2026-10-25T21:00:00.100+00:00']))->encode()],
             ]),
         ));
 
@@ -131,16 +128,20 @@ final class ProviderTest extends TestCase
     }
 
     #[Test]
-    public function it_pages_an_eloquent_builder_by_key_from_the_request_query(): void
+    public function it_pages_a_plain_cursor_paginate_call_from_the_request_query(): void
     {
-        $first = Rfc3339ExtendedTestModel::factory()->create(['created_at' => '2026-10-25T21:00:00.100+00:00']);
-        Rfc3339ExtendedTestModel::factory()->create(['created_at' => '2026-10-25T21:00:00.400+00:00']);
+        Rfc3339ExtendedTestModel::factory()->create(['created_at' => '2026-10-25T21:00:00.100+00:00']);
+        $second = Rfc3339ExtendedTestModel::factory()->create(['created_at' => '2026-10-25T21:00:00.400+00:00']);
 
-        $this->app->instance('request', Request::create('/test', 'GET', ['paging' => ['size' => 1]]));
+        $this->app->instance('request', Request::create('/test', 'GET'));
 
-        $page = Rfc3339ExtendedTestModel::query()->orderBy('created_at')->cursorPaginateByKey();
+        $after = CursorSignature::sign((string) Rfc3339ExtendedTestModel::query()->orderBy('created_at')->cursorPaginate(1)->nextCursor()?->encode(), CursorSignature::fingerprint(request()));
+
+        $this->app->instance('request', Request::create('/test', 'GET', ['paging' => ['after' => $after]]));
+
+        $page = Rfc3339ExtendedTestModel::query()->orderBy('created_at')->cursorPaginate(1);
 
         $this->assertInstanceOf(CursorPaginator::class, $page);
-        $this->assertSame([$first->getKey()], $page->pluck('id')->all());
+        $this->assertSame([$second->getKey()], $page->pluck('id')->all());
     }
 }

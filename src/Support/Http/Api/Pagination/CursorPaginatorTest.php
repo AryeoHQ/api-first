@@ -72,7 +72,7 @@ final class CursorPaginatorTest extends TestCase
         );
 
         $this->app->instance('request', Request::create('/test', 'GET', [
-            'paging' => ['cursor' => (new Cursor(['created_at' => '2026-10-25 21:00:00']))->encode()],
+            'paging' => ['after' => CursorSignature::sign((new Cursor(['created_at' => '2026-10-25 21:00:00']))->encode(), CursorSignature::fingerprint(Request::create('/test')))],
         ]));
 
         $page = Rfc3339ExtendedTestModel::query()->orderBy('created_at')->cursorPaginate(count($ids));
@@ -117,11 +117,9 @@ final class CursorPaginatorTest extends TestCase
         $cursor = null;
 
         foreach (range(1, $maxPages) as $_) {
-            $this->app->instance('request', Request::create('/test', 'GET', $cursor === null ? [] : [
-                'paging' => ['cursor' => $cursor],
-            ]));
+            $this->app->instance('request', Request::create('/test', 'GET'));
 
-            $page = $model::query()->orderBy('created_at')->cursorPaginate(1);
+            $page = $model::query()->orderBy('created_at')->cursorPaginate(1, cursor: $cursor);
 
             $ids = [...$ids, ...$page->pluck('id')->all()];
             $cursor = $page->nextCursor()?->encode();

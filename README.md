@@ -119,15 +119,15 @@ Pagination metadata is applied globally to all `JsonResource` collections via a 
 
 With `WithStructuredMeta`, cursor pagination uses `paging[cursor]` as the query parameter rather than `cursor`.
 
-#### Standards paging (opt-in)
+#### Standards paging
 
-A list can page by `paging[after]`, `paging[before]`, and `paging[size]` instead. It opts in with the `cursorPaginateByKey()` Eloquent builder macro, and with `WithDirectionalMeta` on its resource and collection. `WithDirectionalMeta` throws a `LogicException` when it must emit a cursor that `cursorPaginateByKey()` did not produce.
+Every `cursorPaginate()` call pages by `paging[after]`, `paging[before]`, and `paging[size]`. The package registers `Support\Http\Api\Pagination\CursorResolver` as Laravel's cursor resolver, so this applies to an Eloquent query, a relation, and `DB::table()` alike. The caller passes the page size. The list's resource and collection use `WithDirectionalMeta`, which throws a `LogicException` when it must emit a cursor that the resolver did not see.
 
 ```php
-return new Jobs(Job::query()->orderBy('created_at')->orderBy('id')->cursorPaginateByKey());
-```
+$size = $validator->safe()->integer('paging.size') ?: 10;
 
-The macro works on a relation as well as on a query, for example `$user->jobs()->orderBy('jobs.created_at')->orderBy('jobs.id')->cursorPaginateByKey()`.
+return new Jobs(Job::query()->orderBy('created_at')->orderBy('id')->cursorPaginate($size));
+```
 
 A validator may also use `PagesByCursor`, so that its paging errors arrive with its other field errors:
 
@@ -151,15 +151,16 @@ final class Validator extends BaseValidator
 }
 ```
 
-- `cursorPaginateByKey()` validates `paging[size]`, `paging[after]`, and `paging[before]` from the query string, and it reads them from there. A JSON body never changes the page. The macro needs no validator.
+- The resolver validates `paging[size]`, `paging[after]`, and `paging[before]` from the query string, and it reads the cursor from there. A JSON body never changes the page. The resolver needs no validator.
 - `pagingRules()` validates whatever `validationData()` returns. A list request should return the query bag there, as above.
-- `paging[size]` defaults to 10, accepts 1 to 100, and returns 422 for any other value. The OCC error renderer renders it as `validation.page_size`.
+- `paging[size]` accepts 1 to 100, and returns 422 for any other value. The OCC error renderer renders it as `validation.page_size`. The resolver validates the size but does not apply it: a caller that passes `null` gets the model's `getPerPage()`, which is 15.
 - The key sets the direction: `paging[after]` returns the items that follow the cursor, and `paging[before]` the items that precede it.
-- Each cursor the list issues carries a signature made with the application key. The signature binds the cursor to the model's table and to the list's order columns and directions. Two lists on one table with the same order therefore accept each other's cursors.
-- A value that fails verification throws a `ValidationException` on `paging.after` or `paging.before`, and the `Support\Http\Api\Rules\Cursor` rule reports the failure. That covers a value longer than 1024 bytes, and an unsigned or undecodable value. It also covers a changed payload or signature, and a cursor signed for another table, order column, or direction. The OCC error renderer renders it as `validation.cursor`. Without that renderer, Laravel's default 422 shape applies.
+- Each cursor the list issues carries a signature made with the application key. The signature binds the cursor to the request's path and to its `sort`, `filters`, and search `query` query keys. The order of the `filters` keys does not matter, but the order of a filter's values does. `paging[...]`, `include`, and every other query key are not bound. A JSON body is never bound.
+- A value that fails verification throws a `ValidationException` on `paging.after` or `paging.before`, and the `Support\Http\Api\Rules\Cursor` rule reports the failure. That covers a value longer than 1024 bytes, and an unsigned or undecodable value. It also covers a changed payload or signature, and a cursor sent to another path or with another `sort`, `filters`, or `query`. The OCC error renderer renders it as `validation.cursor`. Without that renderer, Laravel's default 422 shape applies.
 - A change to `APP_KEY` invalidates every outstanding cursor. A client that sends one gets 422 once, and it must start again from the first page.
 - A request with both keys returns 422 on `paging.before`. The OCC error renderer renders it as `validation.prohibits_parameter`.
 - Any other `paging[...]` key, such as `paging[cursor]` or `paging[offset]`, returns 422 on that key, for example `paging.cursor`. A `paging` value that is not an array returns 422 on `paging`. The OCC error renderer renders both as `validation.unknown_parameter`.
+- Outside an HTTP request, such as in a console command or a queued job, the request carries no `paging`. The resolver then returns no cursor, and `cursorPaginate()` returns the first page.
 - `WithDirectionalMeta` writes `meta.paging` with the same keys. Each URL repeats the request's query keys and carries its own `paging[after]` or `paging[before]` cursor.
 
 ### Filters & Sort

@@ -51,6 +51,22 @@ final class WithDirectionalMetaTest extends TestCase
     }
 
     #[Test]
+    public function it_accepts_its_own_url_that_repeats_the_sort_and_filters(): void
+    {
+        $ids = $this->createModelsAt('2026-10-25T21:00:00.100+00:00', '2026-10-25T21:00:00.400+00:00');
+
+        $after = $this->getJson('list-query/rfc3339?'.Arr::query([
+            'paging' => ['size' => 1],
+            'sort' => 'created_at',
+            'filters' => ['status' => 'active', 'created' => ['to' => 'b', 'from' => 'a']],
+        ]))->assertOk()->json('meta.paging.after_url');
+
+        $this->getJson($after)
+            ->assertOk()
+            ->assertJsonPath('data.*.id', [$ids[1]]);
+    }
+
+    #[Test]
     public function it_replaces_the_requested_cursor_in_each_url(): void
     {
         $this->createModelsAt('2026-10-25T21:00:00.100+00:00', '2026-10-25T21:00:00.400+00:00', '2026-10-25T21:00:00.700+00:00');

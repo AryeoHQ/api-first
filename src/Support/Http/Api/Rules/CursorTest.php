@@ -66,7 +66,7 @@ final class CursorTest extends TestCase
         $this->app->instance('request', Request::create('/test', 'GET'));
 
         $query = Rfc3339ExtendedTestModel::query()->orderBy('created_at')->orderBy('id');
-        $fingerprint = CursorSignature::fingerprint($query);
+        $fingerprint = CursorSignature::fingerprint(request());
         $cursor = CursorSignature::sign((string) $query->cursorPaginate(1)->nextCursor()?->encode(), $fingerprint);
 
         $this->assertTrue($this->passes($cursor, new Cursor($fingerprint)));

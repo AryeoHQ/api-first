@@ -5,15 +5,45 @@ declare(strict_types=1);
 namespace Support\Http\Api\Pagination;
 
 use Illuminate\Encryption\MissingAppKeyException;
+use Illuminate\Http\Request;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
-use Tests\Fixtures\Support\Database\Query\Grammars\Rfc3339Extended\Rfc3339ExtendedTestModel;
 use Tests\TestCase;
 
 #[CoversClass(CursorSignature::class)]
 final class CursorSignatureTest extends TestCase
 {
     private const string ENCODED = 'eyJpZCI6MSwiX3BvaW50c1RvTmV4dEl0ZW1zIjp0cnVlfQ';
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function requestsThatDiffer(): array
+    {
+        return [
+            'another path' => ['/owners/1/items', '/owners/2/items'],
+            'another sort' => ['/items?sort=created_at', '/items?sort=-created_at'],
+            'no sort' => ['/items?sort=created_at', '/items'],
+            'another filter value' => ['/items?filters[status]=active', '/items?filters[status]=archived'],
+            'no filters' => ['/items?filters[status]=active', '/items'],
+            'filter values in another order' => ['/items?filters[status][]=active&filters[status][]=archived', '/items?filters[status][]=archived&filters[status][]=active'],
+            'a filter value that is not a list' => ['/items?filters=active', '/items?filters[]=active'],
+            'another search query' => ['/items?query=maple', '/items?query=oak'],
+            'no search query' => ['/items?query=maple', '/items'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function requestsThatMatch(): array
+    {
+        return [
+            'filter keys in another order' => ['/items?filters[status]=active&filters[created][to]=b&filters[created][from]=a', '/items?filters[created][from]=a&filters[created][to]=b&filters[status]=active'],
+            'paging, include and other keys' => ['/items?sort=created_at', '/items?sort=created_at&paging[size]=5&paging[after]=abc&include=owner&search=maple'],
+        ];
+    }
 
     #[Test]
     public function it_verifies_a_cursor_it_signed_and_returns_the_encoded_cursor(): void
@@ -71,51 +101,17 @@ final class CursorSignatureTest extends TestCase
         CursorSignature::sign(self::ENCODED, 'list');
     }
 
+    #[DataProvider('requestsThatDiffer')]
     #[Test]
-    public function it_rejects_a_cursor_from_a_list_with_the_same_order_on_another_table(): void
+    public function it_fingerprints_a_request_with_another_path_sort_filters_or_query_differently(string $issued, string $sent): void
     {
-        $signed = CursorSignature::sign(self::ENCODED, CursorSignature::fingerprint(
-            (new Rfc3339ExtendedTestModel)->setTable('other_test_models')->newQuery()->orderBy('created_at')->orderBy('id'),
-        ));
-
-        $this->assertNull(CursorSignature::verify($signed, CursorSignature::fingerprint(
-            Rfc3339ExtendedTestModel::query()->orderBy('created_at')->orderBy('id'),
-        )));
+        $this->assertNotSame(CursorSignature::fingerprint(Request::create($issued)), CursorSignature::fingerprint(Request::create($sent)));
     }
 
+    #[DataProvider('requestsThatMatch')]
     #[Test]
-    public function it_fingerprints_the_opposite_order_differently(): void
+    public function it_fingerprints_a_request_by_its_path_sort_filters_and_query_alone(string $issued, string $sent): void
     {
-        $this->assertNotSame(
-            CursorSignature::fingerprint(Rfc3339ExtendedTestModel::query()->orderBy('created_at')->orderBy('id')),
-            CursorSignature::fingerprint(Rfc3339ExtendedTestModel::query()->orderByDesc('created_at')->orderByDesc('id')),
-        );
-    }
-
-    #[Test]
-    public function it_fingerprints_an_unordered_query_by_its_key_as_cursor_pagination_orders_it(): void
-    {
-        $this->assertSame(
-            CursorSignature::fingerprint(Rfc3339ExtendedTestModel::query()->orderBy('rfc3339_extended_test_models.id')),
-            CursorSignature::fingerprint(Rfc3339ExtendedTestModel::query()),
-        );
-    }
-
-    #[Test]
-    public function it_fingerprints_a_union_by_its_union_order_as_cursor_pagination_orders_it(): void
-    {
-        $this->assertSame(
-            CursorSignature::fingerprint(Rfc3339ExtendedTestModel::query()->orderBy('created_at')),
-            CursorSignature::fingerprint(Rfc3339ExtendedTestModel::query()->orderBy('id')->union(Rfc3339ExtendedTestModel::query()->toBase())->orderBy('created_at')),
-        );
-    }
-
-    #[Test]
-    public function it_fingerprints_without_an_order_that_has_no_direction(): void
-    {
-        $this->assertSame(
-            CursorSignature::fingerprint(Rfc3339ExtendedTestModel::query()->orderBy('created_at')),
-            CursorSignature::fingerprint(Rfc3339ExtendedTestModel::query()->orderBy('created_at')->orderByRaw('random()')),
-        );
+        $this->assertSame(CursorSignature::fingerprint(Request::create($issued)), CursorSignature::fingerprint(Request::create($sent)));
     }
 }

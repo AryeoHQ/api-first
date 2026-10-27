@@ -4,31 +4,15 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Pagination;
 
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Encryption\MissingAppKeyException;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 final class CursorSignature
 {
-    /**
-     * @template TModel of Model
-     *
-     * @param  Builder<TModel>  $query
-     */
-    public static function fingerprint(Builder $query): string
+    public static function fingerprint(Request $request): string
     {
-        $orders = collect($query->getQuery()->unionOrders)
-            ->whenEmpty(fn (): Collection => collect($query->getQuery()->orders))
-            ->whenEmpty(fn (): Collection => collect([['column' => $query->getModel()->getQualifiedKeyName(), 'direction' => 'asc']]))
-            ->filter(fn (array $order): bool => Arr::has($order, 'direction'))
-            ->map(fn (array $order): array => [(string) $order['column'], (string) $order['direction']])
-            ->values()
-            ->all();
-
-        return json_encode([$query->getModel()->getTable(), $orders], JSON_THROW_ON_ERROR);
+        return json_encode([$request->path(), $request->query('sort'), self::sortKeys($request->query('filters')), $request->query('query')], JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
     }
 
     public static function sign(string $encoded, string $fingerprint): string
@@ -43,6 +27,17 @@ final class CursorSignature
         $encoded = Str::beforeLast($signed, '.');
 
         return hash_equals(self::sign($encoded, $fingerprint), $signed) ? $encoded : null;
+    }
+
+    private static function sortKeys(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        ksort($value, SORT_STRING);
+
+        return array_map(self::sortKeys(...), $value);
     }
 
     private static function key(): string

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Support\Http\Api\Request\Concerns;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Support\Http\Api\Pagination\CursorPaginateByKey;
+use Support\Http\Api\Pagination\CursorResolver;
 use Support\Http\Api\Rules\Cursor;
 
 /**
@@ -18,6 +18,6 @@ trait PagesByCursor
      */
     public function pagingRules(): array
     {
-        return CursorPaginateByKey::rules(new Cursor);
+        return CursorResolver::rules(new Cursor);
     }
 }
