@@ -196,7 +196,7 @@ The package does three things automatically on boot:
 
 No configuration is needed. The service provider handles everything through package discovery.
 
-The package supports Postgres only. A cursor encodes dates as RFC 3339 Extended, so a date column that orders a cursor list holds at most millisecond precision, and a `timestamp(6)` column can repeat a row at a page boundary.
+The package supports Postgres only. A cursor encodes an Eloquent date attribute as RFC 3339 Extended at millisecond precision, so order a cursor list only by a date column of at most millisecond precision: a `timestamp(6)` column can repeat or skip rows at a page boundary.
 
 ## Tooling
 
