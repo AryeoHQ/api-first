@@ -85,13 +85,6 @@ Paginated responses include a `meta` object alongside `data`:
         { "id": "...", "resource_type": "vendor.job" }
     ],
     "meta": {
-        "paging": {
-            "before": "YJApTcN4PAgEXP9mRvaQ",
-            "before_url": "https://example.com/api/v1/jobs?paging[cursor]=YJApTcN4PAgEXP9mRvaQ",
-            "after": "F3g_cWwV8hu3zMLlHdAw",
-            "after_url": "https://example.com/api/v1/jobs?paging[cursor]=F3g_cWwV8hu3zMLlHdAw",
-            "size": 10
-        },
         "filters": {
             "status": "draft",
             "created_at": "2025-01-01.."
@@ -115,9 +108,7 @@ Non-paginated responses omit `meta` unless the request includes `filters` or `so
 
 ### Paging
 
-Pagination metadata is applied globally to all `JsonResource` collections via a mixin — no per-resource configuration is needed. `paging` is present when the response has cursors and includes `before`, `before_url`, `after`, `after_url`, and `size`.
-
-With `WithStructuredMeta`, cursor pagination uses `paging[cursor]` as the query parameter rather than `cursor`. `before_url` and `after_url` repeat the request's query string, such as `sort`, `filters`, and `paging[size]`, and replace only `paging[cursor]`.
+`paging` is present when the response has cursors and includes `before`, `before_url`, `after`, `after_url`, and `size`.
 
 #### Standards paging
 
@@ -160,7 +151,7 @@ final class Validator extends BaseValidator
 - A value that fails verification throws a `ValidationException` on `paging.after` or `paging.before`, and the `Support\Http\Api\Rules\Cursor` rule reports the failure. That covers a value longer than 1024 bytes, and an unsigned or undecodable value. It also covers a changed payload or signature, and a cursor sent to another path or with another `sort`, `filters`, or `query`. The OCC error renderer renders it as `validation.cursor`. Without that renderer, Laravel's default 422 shape applies.
 - A change to `APP_KEY` invalidates every outstanding cursor. A client that sends one gets 422 once, and it must start again from the first page.
 - A request with both keys returns 422 on `paging.before`. The OCC error renderer renders it as `validation.prohibits_parameter`.
-- Any other `paging[...]` key, such as `paging[cursor]` or `paging[offset]`, returns 422 on that key, for example `paging.cursor`. A `paging` value that is not an array returns 422 on `paging`. The OCC error renderer renders both as `validation.unknown_parameter`.
+- Any other `paging[...]` key, such as `paging[offset]`, returns 422 on that key, for example `paging.offset`. A `paging` value that is not an array returns 422 on `paging`. The OCC error renderer renders both as `validation.unknown_parameter`.
 - Outside an HTTP request, such as in a console command or a queued job, the request carries no `paging`. The resolver then returns no cursor, and `cursorPaginate()` returns the first page.
 - `WithDirectionalMeta` writes `meta.paging` with the same keys. Each URL repeats the request's query keys and carries its own `paging[after]` or `paging[before]` cursor.
 
