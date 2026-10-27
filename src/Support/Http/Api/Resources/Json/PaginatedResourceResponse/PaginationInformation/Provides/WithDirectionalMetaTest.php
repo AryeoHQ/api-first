@@ -17,6 +17,7 @@ use Tests\Fixtures\Support\Http\Api\Request\ListQuery\Controller;
 use Tests\Fixtures\Support\Http\Api\Request\ListQuery\Resource;
 use Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceResponse\CastableController;
 use Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceResponse\PlainController;
+use Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceResponse\StringableController;
 use Tests\TestCase;
 
 #[CoversTrait(WithDirectionalMeta::class)]
@@ -157,6 +158,14 @@ final class WithDirectionalMetaTest extends TestCase
     public function it_returns_casted_sort_value_from_castable_form_request(): void
     {
         $request = $this->routedRequest(CastableController::class, ['sort' => '-created_at']);
+
+        $this->assertSame('-created_at', $this->metaFor($request)['sort']);
+    }
+
+    #[Test]
+    public function it_returns_stringable_sort_value_from_castable_data(): void
+    {
+        $request = $this->routedRequest(StringableController::class, ['sort' => '-created_at']);
 
         $this->assertSame('-created_at', $this->metaFor($request)['sort']);
     }

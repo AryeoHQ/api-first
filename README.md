@@ -89,6 +89,13 @@ Paginated responses include a `meta` object alongside `data`:
             "status": "draft",
             "created_at": "2025-01-01.."
         },
+        "paging": {
+            "before": null,
+            "before_url": null,
+            "after": "eyJ...",
+            "after_url": "https://api.example.com/v2beta1/jobs?filters%5Bstatus%5D=draft&filters%5Bcreated_at%5D=2025-01-01..&sort=-created_at&paging%5Bsize%5D=25&paging%5Bafter%5D=eyJ...",
+            "size": 25
+        },
         "sort": "-created_at"
     }
 }
@@ -108,7 +115,7 @@ Non-paginated responses omit `meta` unless the request includes `filters` or `so
 
 ### Paging
 
-`paging` is present when the response has cursors and includes `before`, `before_url`, `after`, `after_url`, and `size`.
+`meta.paging` is `null` when the response has no cursors. Otherwise it holds `before`, `before_url`, `after`, `after_url`, and `size`.
 
 #### Standards paging
 
