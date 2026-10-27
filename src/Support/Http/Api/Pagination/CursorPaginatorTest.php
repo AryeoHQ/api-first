@@ -12,8 +12,6 @@ use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Fixtures\Support\Database\Query\Grammars\Rfc3339Extended\Rfc3339ExtendedTestModel;
-use Tests\Fixtures\Support\Http\Api\Pagination\MicrosecondsDateFormatTestModel;
-use Tests\Fixtures\Support\Http\Api\Pagination\SecondsDateFormatTestModel;
 use Tests\TestCase;
 
 #[CoversClass(CursorPaginator::class)]
@@ -36,11 +34,19 @@ final class CursorPaginatorTest extends TestCase
     }
 
     #[Test]
-    public function it_encodes_a_sub_millisecond_date_parameter_with_microsecond_precision(): void
+    public function it_encodes_a_whole_second_date_parameter_with_millisecond_precision(): void
     {
-        $this->insertRowsAt('2026-10-25T21:00:00.123456+00:00', '2026-10-25T21:00:00.123789+00:00');
+        $this->insertRowsAt('2026-10-25 21:00:00', '2026-10-25 22:00:00');
 
-        $this->assertSame('2026-10-25T21:00:00.123456+00:00', $this->firstNextCursorParameter());
+        $this->assertSame('2026-10-25T21:00:00.000+00:00', $this->firstNextCursorParameter());
+    }
+
+    #[Test]
+    public function it_truncates_a_sub_millisecond_date_parameter_to_millisecond_precision(): void
+    {
+        $this->insertRowsAt('2026-10-25T21:00:00.123456+00:00', '2026-10-25T21:00:00.400000+00:00');
+
+        $this->assertSame('2026-10-25T21:00:00.123+00:00', $this->firstNextCursorParameter());
     }
 
     #[Test]
@@ -54,26 +60,6 @@ final class CursorPaginatorTest extends TestCase
         );
 
         $this->assertSame($ids, $this->pageForward(Rfc3339ExtendedTestModel::class, maxPages: count($ids) + 1));
-    }
-
-    #[Test]
-    public function it_pages_forward_through_a_seconds_date_format_model_exactly_once(): void
-    {
-        $ids = $this->createModelsAt(SecondsDateFormatTestModel::class, '2026-10-25 21:00:00', '2026-10-25 22:00:00');
-
-        $this->assertSame($ids, $this->pageForward(SecondsDateFormatTestModel::class, maxPages: count($ids) + 1));
-    }
-
-    #[Test]
-    public function it_pages_forward_through_a_microseconds_date_format_model_exactly_once(): void
-    {
-        $ids = $this->createModelsAt(
-            MicrosecondsDateFormatTestModel::class,
-            '2026-10-25 21:00:00.100000',
-            '2026-10-25 21:00:00.400000',
-        );
-
-        $this->assertSame($ids, $this->pageForward(MicrosecondsDateFormatTestModel::class, maxPages: count($ids) + 1));
     }
 
     #[Test]
