@@ -234,6 +234,39 @@ final class CursorPaginateByKeyTest extends TestCase
     }
 
     #[Test]
+    public function it_walks_a_belongs_to_many_relation_by_a_pivot_date_column_within_one_second(): void
+    {
+        $owner = PagingOwnerTestModel::query()->forceCreate(['created_at' => '2026-10-25T20:00:00.000+00:00']);
+
+        $ids = $this->createModelsAt(
+            Rfc3339ExtendedTestModel::class,
+            '2026-10-25T21:00:00.100+00:00',
+            '2026-10-25T21:00:00.400+00:00',
+            '2026-10-25T21:00:00.700+00:00',
+        );
+
+        foreach ([$ids[2] => 100, $ids[0] => 400, $ids[1] => 700] as $id => $millisecond) {
+            DB::table('paging_memberships')->insert([
+                'owner_id' => $owner->getKey(),
+                'member_id' => $id,
+                'created_at' => sprintf('2026-10-25T22:00:00.%03d+00:00', $millisecond),
+                'updated_at' => sprintf('2026-10-25T22:00:00.%03d+00:00', $millisecond),
+            ]);
+        }
+
+        $pivots = DB::table('paging_memberships')->pluck('id', 'member_id')->all();
+        $rows = array_map(fn (string $id): array => [$id, $pivots[$id]], [$ids[2], $ids[0], $ids[1]]);
+
+        $forward = $this->follow("list-query-relation/{$owner->getKey()}/pivot-members?paging[size]=1", 'after_url', maxPages: count($ids) + 1);
+        $backward = $this->follow($forward['last']['before_url'], 'before_url', maxPages: count($ids) + 1);
+
+        $this->assertSame(
+            [$rows, [$rows[1], $rows[0]]],
+            [$this->columns($forward['rows'], 'id', 'pivot_id'), $this->columns($backward['rows'], 'id', 'pivot_id')],
+        );
+    }
+
+    #[Test]
     public function it_walks_a_has_many_through_relation_by_the_related_models_own_columns(): void
     {
         $owner = PagingOwnerTestModel::query()->forceCreate(['created_at' => '2026-10-25T20:00:00.000+00:00']);

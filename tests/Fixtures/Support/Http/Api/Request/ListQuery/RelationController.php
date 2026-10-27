@@ -21,6 +21,7 @@ final class RelationController
 
         $query = match ($relation) {
             'members' => $owner->members()->orderBy('rfc3339_extended_test_models.created_at')->orderBy('rfc3339_extended_test_models.id'),
+            'pivot-members' => $owner->members()->orderBy('paging_memberships.created_at')->orderBy('paging_memberships.id'),
             default => $owner->items()->orderBy('paging_item_test_models.created_at')->orderBy('paging_item_test_models.id'),
         };
 
