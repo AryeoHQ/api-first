@@ -31,6 +31,7 @@ use Tests\Fixtures\Support\Http\Api\Request\ListQuery\Controller;
 use Tests\Fixtures\Support\Http\Api\Request\ListQuery\PlainController;
 use Tests\Fixtures\Support\Http\Api\Request\ListQuery\RelationController;
 use Tests\Fixtures\Support\Http\Api\Request\ListQuery\ScopedOrderController;
+use Tests\Fixtures\Support\Http\Api\Request\ListQuery\TableController;
 use Tests\TestCase;
 
 #[CoversClass(CursorResolver::class)]
@@ -105,6 +106,21 @@ final class CursorResolverTest extends TestCase
     /**
      * @return array<string, array{string}>
      */
+    public static function blankBoundKeys(): array
+    {
+        return [
+            'no bound keys' => [''],
+            'a blank filters' => ['filters='],
+            'a blank filter list value' => ['filters[]='],
+            'a blank filter' => ['filters[status]='],
+            'a blank filter beside a filled one' => ['filters[status]=&filters[owner]=1'],
+            'a blank sort' => ['sort='],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
     public static function nulCursorRoutes(): array
     {
         return [
@@ -159,6 +175,7 @@ final class CursorResolverTest extends TestCase
         app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(ColumnValueController::class))->getFileName());
         app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(ScopedOrderController::class))->getFileName());
         app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(Controller::class))->getFileName());
+        app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(TableController::class))->getFileName());
     }
 
     #[Test]
@@ -293,6 +310,47 @@ final class CursorResolverTest extends TestCase
             [$rows, [$rows[1], $rows[0]]],
             [$this->columns($forward['rows'], 'id', 'created_at'), $this->columns($backward['rows'], 'id', 'created_at')],
         );
+    }
+
+    #[DataProvider('blankBoundKeys')]
+    #[Test]
+    public function it_follows_its_own_after_url_when_a_bound_key_is_blank(string $query): void
+    {
+        $ids = $this->createModelsAt(
+            Rfc3339ExtendedTestModel::class,
+            '2026-10-25T21:00:00.100+00:00',
+            '2026-10-25T21:00:00.400+00:00',
+            '2026-10-25T21:00:00.700+00:00',
+        );
+
+        $afterUrl = $this->getJson("list-query-plain/rfc3339?{$query}&paging[size]=1")
+            ->assertOk()
+            ->assertJsonPath('data.*.id', [$ids[0]])
+            ->json('meta.paging.after_url');
+
+        $this->getJson($afterUrl)
+            ->assertOk()
+            ->assertJsonPath('data.*.id', [$ids[1]]);
+    }
+
+    #[Test]
+    public function it_pages_a_query_builder_query_by_paging_after(): void
+    {
+        $ids = $this->createModelsAt(
+            Rfc3339ExtendedTestModel::class,
+            '2026-10-25T21:00:00.100+00:00',
+            '2026-10-25T21:00:00.400+00:00',
+            '2026-10-25T21:00:00.700+00:00',
+        );
+
+        $after = $this->getJson('list-query-table?paging[size]=1')
+            ->assertOk()
+            ->assertJsonPath('data.*.id', [$ids[0]])
+            ->json('meta.paging.after');
+
+        $this->getJson('list-query-table?'.Arr::query(['paging' => ['size' => 1, 'after' => $after]]))
+            ->assertOk()
+            ->assertJsonPath('data.*.id', [$ids[1]]);
     }
 
     #[DataProvider('cursorsThisListDidNotIssue')]

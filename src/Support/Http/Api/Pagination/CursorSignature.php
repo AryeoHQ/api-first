@@ -6,13 +6,16 @@ namespace Support\Http\Api\Pagination;
 
 use Illuminate\Encryption\MissingAppKeyException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
 final class CursorSignature
 {
     public static function fingerprint(Request $request): string
     {
-        return json_encode([$request->path(), $request->query('sort'), self::sortKeys($request->query('filters')), $request->query('query')], JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
+        parse_str(Arr::query(Arr::only($request->query->all(), ['sort', 'filters', 'query'])), $bound);
+
+        return json_encode([$request->path(), $bound['sort'] ?? null, self::sortKeys($bound['filters'] ?? null), $bound['query'] ?? null], JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
     }
 
     public static function sign(string $encoded, string $fingerprint): string
