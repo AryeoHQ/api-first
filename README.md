@@ -196,6 +196,8 @@ The package does three things automatically on boot:
 
 No configuration is needed. The service provider handles everything through package discovery.
 
+The package supports Postgres only. A cursor encodes an Eloquent date attribute as RFC 3339 Extended at millisecond precision, so order a cursor list only by a date column of at most millisecond precision: a `timestamp(6)` column can repeat or skip rows at a page boundary.
+
 ## Tooling
 
 This package provides PHPStan rules that enforce API conventions at static analysis time. They are automatically registered when using `aryeo/tooling-laravel`.

@@ -6,13 +6,14 @@ namespace Support\Http\Api\Providers;
 
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Cursor;
-use Illuminate\Pagination\CursorPaginator;
+use Illuminate\Pagination\CursorPaginator as UpstreamCursorPaginator;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use ReflectionNamedType;
 use Support\Http\Api\Console\Commands\MakeController\MakeController;
 use Support\Http\Api\Console\Commands\MakeResource\Listeners\InjectSchemaProperties;
 use Support\Http\Api\Console\Commands\MakeResource\MakeResource;
+use Support\Http\Api\Pagination\CursorPaginator;
 use Support\Http\Api\Request\TokenContext;
 use Support\Http\Requests\Contracts\CastableData;
 use Support\Http\Resources\Schemas\Console\Commands\MakeResource\Events\BuildingSchema;
@@ -39,13 +40,15 @@ class Provider extends ServiceProvider
 
     private function registerCursorResolver(): void
     {
-        CursorPaginator::currentCursorResolver(function () {
-            return Cursor::fromEncoded(request()->input('paging.cursor'));
+        UpstreamCursorPaginator::currentCursorResolver(function () {
+            return Cursor::fromEncoded(data_get(request()->query(), 'paging.cursor'));
         });
     }
 
     private function registerBindings(): void
     {
+        $this->app->bind(UpstreamCursorPaginator::class, CursorPaginator::class);
+
         $this->app->scoped(CastableData::class, function (): null|CastableData {
             $route = request()->route();
 
