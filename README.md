@@ -8,7 +8,7 @@ Provides the structure, conventions, and tooling for building APIs that conform 
 composer require aryeo/api-first
 ```
 
-> Requires PHP 8.4+
+> Requires PHP 8.5+
 
 The package auto-registers its service provider via Laravel package discovery.
 
