@@ -23,8 +23,8 @@
         "aryeo/entities": "0.0.23",
         "aryeo/request-casts": "0.0.19",
         "aryeo/request-authorizers-validators": "0.0.16",
-        "aryeo/event-log": "0.0.12",
-        "aryeo/webhooks": "0.0.10"
+        "aryeo/event-log": "0.0.13",
+        "aryeo/webhooks": "0.0.11"
     },
     "require-dev": {
         "nesbot/carbon": "^3.10",

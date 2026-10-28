@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "78c9aef1566d8c0e9fc1a32a715825ef",
+    "content-hash": "123f8938ea8219400cb87ba7b2690c26",
     "packages": [
         {
             "name": "aryeo/actions",
@@ -583,11 +583,11 @@
         },
         {
             "name": "aryeo/event-log",
-            "version": "0.0.12",
+            "version": "0.0.13",
             "dist": {
                 "type": "zip",
-                "url": "https://artifactory.zgtools.net/artifactory/api/composer/listing-and-vendor-management-composer/direct-dists/aryeo/event-log/event-log-0.0.12.zip",
-                "reference": "eddc684ee2887202f60c76a77738c800151b4017"
+                "url": "https://artifactory.zgtools.net/artifactory/api/composer/listing-and-vendor-management-composer/direct-dists/aryeo/event-log/event-log-0.0.13.zip",
+                "reference": "e1393ca82327c9fae34c9afddc2172975c3efe9c"
             },
             "require": {
                 "aryeo/actions": "0.0.24",
@@ -597,7 +597,8 @@
                 "nesbot/carbon": "^3.11",
                 "nikic/php-parser": "^5.0",
                 "php": "^8.5",
-                "phpstan/phpstan": "^2.1"
+                "phpstan/phpstan": "^2.1",
+                "symfony/console": "^7.4 || ^8.0"
             },
             "require-dev": {
                 "brianium/paratest": "^7.14",
@@ -1035,15 +1036,15 @@
         },
         {
             "name": "aryeo/webhooks",
-            "version": "0.0.10",
+            "version": "0.0.11",
             "dist": {
                 "type": "zip",
-                "url": "https://artifactory.zgtools.net/artifactory/api/composer/listing-and-vendor-management-composer/direct-dists/aryeo/webhooks/webhooks-0.0.10.zip",
-                "reference": "48b1bab0b143943957ff84f0329a339484cf7e6b"
+                "url": "https://artifactory.zgtools.net/artifactory/api/composer/listing-and-vendor-management-composer/direct-dists/aryeo/webhooks/webhooks-0.0.11.zip",
+                "reference": "c79bbe288b611adcc69bd772b93ceb5d4dee3008"
             },
             "require": {
                 "aryeo/eloquent-state-machines": "0.0.35",
-                "aryeo/event-log": "0.0.12",
+                "aryeo/event-log": "0.0.13",
                 "cloudevents/sdk-php": "^1.2",
                 "laravel/framework": "^12.37 || ^13",
                 "nesbot/carbon": "^3.11",
