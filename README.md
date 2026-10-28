@@ -117,7 +117,7 @@ Non-paginated responses omit `meta` unless the request includes `filters` or `so
 
 Pagination metadata is applied globally to all `JsonResource` collections via a mixin — no per-resource configuration is needed. `paging` is present when the response has cursors and includes `before`, `before_url`, `after`, `after_url`, and `size`.
 
-With `WithStructuredMeta`, cursor pagination uses `paging[cursor]` as the query parameter rather than `cursor`.
+With `WithStructuredMeta`, cursor pagination uses `paging[cursor]` as the query parameter rather than `cursor`. `before_url` and `after_url` repeat the request's query string, such as `sort`, `filters`, and `paging[size]`, and replace only `paging[cursor]`.
 
 #### Standards paging
 
