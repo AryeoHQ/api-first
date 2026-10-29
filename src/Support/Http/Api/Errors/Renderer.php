@@ -11,7 +11,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use ReflectionClass;
 use stdClass;
@@ -25,6 +24,8 @@ final class Renderer
 {
     private const string MISSING_SCOPE = 'Laravel\Passport\Exceptions\MissingScopeException';
 
+    private const string GENERIC_DETAIL = 'The API cannot complete the request.';
+
     public function __invoke(Throwable $e, Request $request): null|JsonResponse
     {
         $route = $request->route();
@@ -34,7 +35,7 @@ final class Renderer
         }
 
         if ($e instanceof PreconditionFailedHttpException || $e instanceof PreconditionRequiredHttpException) {
-            return $this->precondition($e, $request);
+            return $this->precondition($e);
         }
 
         if ($this->isLegacy($route) || $e instanceof HttpResponseException) {
@@ -43,9 +44,9 @@ final class Renderer
 
         return match (true) {
             $e instanceof ValidationException => $this->validation($e, $request),
-            $e instanceof AuthenticationException => $this->respond(401, [$this->unauthenticated($e, $request)]),
+            $e instanceof AuthenticationException => $this->respond(401, [$this->unauthenticated($request)]),
             $e instanceof HttpExceptionInterface => $this->http($e, $request),
-            default => $this->respond(500, [$this->error($e, $request, 500, ErrorCode::InternalError, 'The server failed to complete the request.')]),
+            default => $this->respond(500, [$this->error(500, 'The server failed to complete the request.')]),
         };
     }
 
@@ -65,16 +66,16 @@ final class Renderer
             && new ReflectionClass($controller)->getAttributes(LegacyErrors::class) !== [];
     }
 
-    private function precondition(PreconditionFailedHttpException|PreconditionRequiredHttpException $e, Request $request): JsonResponse
+    private function precondition(PreconditionFailedHttpException|PreconditionRequiredHttpException $e): JsonResponse
     {
         if ($e instanceof PreconditionFailedHttpException) {
-            $error = $this->error($e, $request, 412, ErrorCode::PreconditionFailed, 'The If-Match precondition does not match the current resource.', Source::header('If-Match'));
+            $error = $this->error(412, 'The If-Match precondition does not match the current resource.', Source::header('If-Match'));
             $headers = array_filter($e->getHeaders(), fn (string $name): bool => strcasecmp($name, 'ETag') !== 0, ARRAY_FILTER_USE_KEY);
 
             return $this->respond(412, [$error], $headers);
         }
 
-        $error = $this->error($e, $request, 428, ErrorCode::PreconditionRequired, 'This operation requires the If-Match header.', Source::header('If-Match'));
+        $error = $this->error(428, 'This operation requires the If-Match header.', Source::header('If-Match'));
 
         return $this->respond(428, [$error], $e->getHeaders());
     }
@@ -82,15 +83,15 @@ final class Renderer
     private function validation(ValidationException $e, Request $request): JsonResponse
     {
         if ($this->isMalformed($request)) {
-            return $this->respond(400, [$this->error($e, $request, 400, ErrorCode::MalformedRequest, 'The API cannot parse the request.')]);
+            return $this->respond(400, [$this->error(400, 'The API cannot parse the request.')]);
         }
 
         if ($e->status !== 422) {
-            return $this->respond($e->status, [$this->error($e, $request, $e->status, null, Placeholder::DETAIL)]);
+            return $this->respond($e->status, [$this->error($e->status, self::GENERIC_DETAIL)]);
         }
 
         $errors = array_map(
-            fn (array $failure): ErrorObject => $this->error($e, $request, 422, $failure['code'], $failure['detail'], $failure['source'], $failure['rule']),
+            fn (array $failure): ErrorObject => $this->error(422, $failure['detail'], $failure['source']),
             new ValidationErrors($e->validator, $request)->toFailures(),
         );
 
@@ -104,11 +105,11 @@ final class Renderer
         return $content !== '' && $request->isJson() && ! json_validate($content);
     }
 
-    private function unauthenticated(AuthenticationException $e, Request $request): ErrorObject
+    private function unauthenticated(Request $request): ErrorObject
     {
         return filled($request->bearerToken())
-            ? $this->error($e, $request, 401, ErrorCode::InvalidToken, 'The access token is invalid or expired.')
-            : $this->error($e, $request, 401, ErrorCode::MissingToken, 'The request carries no access token.');
+            ? $this->error(401, 'The access token is invalid or expired.')
+            : $this->error(401, 'The request carries no access token.');
     }
 
     private function http(HttpExceptionInterface $e, Request $request): JsonResponse
@@ -120,56 +121,34 @@ final class Renderer
             $status = 403;
         }
 
-        [$code, $detail] = match ($status) {
-            400 => [ErrorCode::MalformedRequest, 'The API cannot parse the request.'],
+        $detail = match ($status) {
+            400 => 'The API cannot parse the request.',
             403 => $this->forbidden($previous),
-            404 => [ErrorCode::ResourceNotFound, 'No resource exists at this path.'],
-            405 => [ErrorCode::MethodNotAllowed, "The {$request->method()} method is not allowed on this path."],
-            415 => [ErrorCode::UnsupportedMediaType, 'The request body must use the application/json media type.'],
-            429 => [ErrorCode::RateLimitExceeded, 'The request exceeds a rate limit.'],
-            503 => [ErrorCode::Unavailable, 'The service cannot serve requests at the moment.'],
-            default => [null, Placeholder::DETAIL],
+            404 => 'No resource exists at this path.',
+            405 => "The {$request->method()} method is not allowed on this path.",
+            415 => 'The request body must use the application/json media type.',
+            429 => 'The request exceeds a rate limit.',
+            503 => 'The service cannot serve requests at the moment.',
+            default => self::GENERIC_DETAIL,
         };
 
-        return $this->respond($status, [$this->error($e, $request, $status, $code, $detail)], $e->getHeaders());
+        return $this->respond($status, [$this->error($status, $detail)], $e->getHeaders());
     }
 
-    /**
-     * @return array{ErrorCode, string}
-     */
-    private function forbidden(null|Throwable $previous): array
+    private function forbidden(null|Throwable $previous): string
     {
         $scope = is_a($previous, self::MISSING_SCOPE)
             ? Arr::first(Arr::wrap($previous->scopes()))
             : null;
 
         return is_string($scope)
-            ? [ErrorCode::MissingScope, "The access token does not grant the {$scope} scope."]
-            : [ErrorCode::PermissionDenied, 'The caller cannot perform this operation.'];
+            ? "The access token does not grant the {$scope} scope."
+            : 'The caller cannot perform this operation.';
     }
 
-    private function error(Throwable $e, Request $request, int $status, null|ErrorCode|string $code, string $detail, null|Source $source = null, null|string $rule = null): ErrorObject
+    private function error(int $status, string $detail, null|Source $source = null): ErrorObject
     {
-        $code = $code instanceof ErrorCode ? $code->value : $code;
-
-        if ($code !== null && Catalog::load()->has($code)) {
-            return new ErrorObject($code, $detail, $source);
-        }
-
-        $placeholder = Placeholder::code($status);
-        $route = $request->route();
-
-        Log::warning('api-first.errors.uncatalogued', [
-            'status' => $status,
-            'placeholder' => $placeholder,
-            'derived_code' => $code,
-            'exception' => $e::class,
-            'rule' => $rule,
-            'route' => $route instanceof Route ? $route->getName() ?? $route->uri() : null,
-            'method' => $request->method(),
-        ]);
-
-        return new ErrorObject($placeholder, Placeholder::DETAIL, $source);
+        return new ErrorObject(ErrorCode::fromStatus($status), $detail, $source);
     }
 
     /**

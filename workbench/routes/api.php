@@ -33,7 +33,7 @@ Route::middleware('api')->prefix('api/errors')->group(function (): void {
     Route::get('unsupported-media-type', [ErrorsController::class, 'unsupportedMediaType']);
     Route::get('unavailable', [ErrorsController::class, 'unavailable']);
     Route::get('abort/{status}', [ErrorsController::class, 'abort']);
-    Route::post('uncatalogued', [ErrorsController::class, 'uncatalogued']);
+    Route::post('custom-rules', [ErrorsController::class, 'customRules']);
     Route::post('with-messages', [ErrorsController::class, 'withMessages']);
     Route::get('throttled', [ErrorsController::class, 'throttled'])->middleware('throttle:1,1');
     Route::post('precondition-failed', [ErrorsController::class, 'preconditionFailed']);

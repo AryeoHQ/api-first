@@ -9,7 +9,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rules\Password;
 use Support\Http\Validator as BaseValidator;
 
-final class UncataloguedValidator extends BaseValidator
+final class CustomRulesValidator extends BaseValidator
 {
     /**
      * @return array<string, array<int, string|ValidationRule|Password|Closure>>

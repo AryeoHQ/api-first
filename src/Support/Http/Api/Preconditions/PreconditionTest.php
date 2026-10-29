@@ -78,7 +78,7 @@ final class PreconditionTest extends TestCase
 
         $this->patchJson($this->uri($note))
             ->assertUnprocessable()
-            ->assertJsonPath('errors.*.code', ['validation.required']);
+            ->assertJsonPath('errors.*.code', ['validation']);
     }
 
     #[Test]
@@ -90,7 +90,7 @@ final class PreconditionTest extends TestCase
             ->assertStatus(Response::HTTP_PRECONDITION_REQUIRED)
             ->assertExactJson([
                 'errors' => [
-                    ['code' => 'precondition.required', 'detail' => 'This operation requires the If-Match header.', 'source' => ['header' => 'If-Match']],
+                    ['code' => 'error', 'detail' => 'This operation requires the If-Match header.', 'source' => ['header' => 'If-Match']],
                 ],
                 'meta' => [],
             ]);
@@ -376,7 +376,7 @@ final class PreconditionTest extends TestCase
     {
         $this->patchJson('api/preconditions/notes/'.Str::uuid().'/forbidden', ['title' => 'Final'])
             ->assertNotFound()
-            ->assertJsonPath('errors.*.code', ['not_found.resource']);
+            ->assertJsonPath('errors.*.code', ['error']);
     }
 
     #[Test]
@@ -384,7 +384,7 @@ final class PreconditionTest extends TestCase
     {
         $this->withHeader('If-Match', self::STALE)->patchJson('api/preconditions/notes/'.Str::uuid(), ['title' => 'Final'])
             ->assertNotFound()
-            ->assertJsonPath('errors.*.code', ['not_found.resource']);
+            ->assertJsonPath('errors.*.code', ['error']);
     }
 
     #[Test]
@@ -394,7 +394,7 @@ final class PreconditionTest extends TestCase
 
         $this->patchJson($this->uri($note, 'forbidden'), ['title' => 'Final'])
             ->assertForbidden()
-            ->assertJsonPath('errors.*.code', ['permission.denied']);
+            ->assertJsonPath('errors.*.code', ['authorization']);
     }
 
     #[Test]
@@ -404,7 +404,7 @@ final class PreconditionTest extends TestCase
 
         $this->withHeader('If-Match', self::STALE)->patchJson($this->uri($note, 'forbidden'), ['title' => 'Final'])
             ->assertForbidden()
-            ->assertJsonPath('errors.*.code', ['permission.denied']);
+            ->assertJsonPath('errors.*.code', ['authorization']);
     }
 
     #[Test]
@@ -414,7 +414,7 @@ final class PreconditionTest extends TestCase
 
         $this->patchJson($this->uri($note, 'required'))
             ->assertStatus(Response::HTTP_PRECONDITION_REQUIRED)
-            ->assertJsonPath('errors.*.code', ['precondition.required']);
+            ->assertJsonPath('errors.*.code', ['error']);
     }
 
     #[Test]
@@ -432,7 +432,7 @@ final class PreconditionTest extends TestCase
 
         $this->withHeader('If-Match', $this->etag($note))->patchJson($this->uri($note))
             ->assertUnprocessable()
-            ->assertJsonPath('errors.*.code', ['validation.required']);
+            ->assertJsonPath('errors.*.code', ['validation']);
     }
 
     #[Test]
@@ -501,7 +501,7 @@ final class PreconditionTest extends TestCase
 
         $this->withHeader('If-Match', '*')->patchJson($this->uri($note), ['title' => 'Final'])
             ->assertNotFound()
-            ->assertJsonPath('errors.*.code', ['not_found.resource']);
+            ->assertJsonPath('errors.*.code', ['error']);
     }
 
     #[Test]
@@ -515,7 +515,7 @@ final class PreconditionTest extends TestCase
 
         $this->withHeader('If-Match', '*')->patchJson($this->uri($note), ['title' => 'Final'])
             ->assertNotFound()
-            ->assertJsonPath('errors.*.code', ['not_found.resource']);
+            ->assertJsonPath('errors.*.code', ['error']);
 
         $this->assertSame('Draft', Note::withTrashed()->findOrFail($note->getKey())->title);
     }
@@ -615,7 +615,7 @@ final class PreconditionTest extends TestCase
     {
         return $response->assertStatus(Response::HTTP_PRECONDITION_FAILED)->assertHeaderMissing('ETag')->assertExactJson([
             'errors' => [
-                ['code' => 'precondition.failed', 'detail' => 'The If-Match precondition does not match the current resource.', 'source' => ['header' => 'If-Match']],
+                ['code' => 'error', 'detail' => 'The If-Match precondition does not match the current resource.', 'source' => ['header' => 'If-Match']],
             ],
             'meta' => [],
         ]);
