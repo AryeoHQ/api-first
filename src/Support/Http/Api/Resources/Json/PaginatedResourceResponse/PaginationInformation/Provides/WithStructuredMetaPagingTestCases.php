@@ -6,7 +6,9 @@ namespace Support\Http\Api\Resources\Json\PaginatedResourceResponse\PaginationIn
 
 use Illuminate\Http\Request;
 use Illuminate\Pagination\CursorPaginator;
+use Illuminate\Support\Facades\Route;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Fixtures\Support\Http\Api\Resources\Json\PaginatedResourceResponse\PagedPost;
 use Tests\Fixtures\Support\Http\Api\Resources\Json\Post;
 
 trait WithStructuredMetaPagingTestCases
@@ -76,5 +78,26 @@ trait WithStructuredMetaPagingTestCases
                 'sort' => null,
             ],
         ], $response->getData(assoc: true));
+    }
+
+    #[Test]
+    public function it_keeps_the_sort_and_page_size_when_following_paging_urls(): void
+    {
+        PagedPost::query()->insert(array_map(fn (int $id): array => ['id' => $id], range(1, 5)));
+
+        Route::get('/paged-posts', fn (Request $request) => Post::collection(
+            PagedPost::query()
+                ->orderBy('id', $request->query('sort') === '-id' ? 'desc' : 'asc')
+                ->cursorPaginate($request->has('paging.size') ? $request->integer('paging.size') : null)
+        ));
+
+        $first = $this->getJson('/paged-posts?sort=-id&paging[size]=2');
+        $second = $this->getJson($first->json('meta.paging.after_url'));
+        $back = $this->getJson($second->json('meta.paging.before_url'));
+
+        $this->assertSame([5, 4], $first->json('data.*.id'));
+        $this->assertSame([3, 2], $second->json('data.*.id'));
+        $this->assertSame(2, $second->json('meta.paging.size'));
+        $this->assertSame([5, 4], $back->json('data.*.id'));
     }
 }

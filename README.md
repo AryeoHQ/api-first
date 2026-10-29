@@ -8,7 +8,7 @@ Provides the structure, conventions, and tooling for building APIs that conform 
 composer require aryeo/api-first
 ```
 
-> Requires PHP 8.4+
+> Requires PHP 8.5+
 
 The package auto-registers its service provider via Laravel package discovery.
 
@@ -117,7 +117,7 @@ Non-paginated responses omit `meta` unless the request includes `filters` or `so
 
 Pagination metadata is applied globally to all `JsonResource` collections via a mixin — no per-resource configuration is needed. `paging` is present when the response has cursors and includes `before`, `before_url`, `after`, `after_url`, and `size`.
 
-Cursor pagination uses `paging[cursor]` as the query parameter rather than `cursor`.
+Cursor pagination uses `paging[cursor]` as the query parameter rather than `cursor`. `before_url` and `after_url` repeat the request's query string, such as `sort`, `filters`, and `paging[size]`, and replace only `paging[cursor]`.
 
 ### Filters & Sort
 
@@ -483,6 +483,8 @@ The package does three things automatically on boot:
 3. **Configures Carbon serialization** — `Date::serializeUsing()` formats all Carbon instances (mutable and immutable) as RFC 3339 Extended when serialized to JSON.
 
 No configuration is needed. The service provider handles everything through package discovery.
+
+The package supports Postgres only. A cursor encodes an Eloquent date attribute as RFC 3339 Extended at millisecond precision, so order a cursor list only by a date column of at most millisecond precision: a `timestamp(6)` column can repeat or skip rows at a page boundary.
 
 ## Tooling
 
