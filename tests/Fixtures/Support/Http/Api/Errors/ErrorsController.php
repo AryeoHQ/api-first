@@ -93,7 +93,7 @@ final class ErrorsController
         abort($status, 'Tenant A owns secret X.');
     }
 
-    public function uncatalogued(UncataloguedValidator $validator): void
+    public function customRules(CustomRulesValidator $validator): void
     {
         //
     }

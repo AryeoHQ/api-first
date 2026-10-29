@@ -150,7 +150,7 @@ The package renders API errors in the standard error envelope: exactly `errors` 
 {
     "errors": [
         {
-            "code": "validation.required",
+            "code": "validation",
             "detail": "The title field is required.",
             "source": { "pointer": "/title" }
         }
@@ -159,6 +159,17 @@ The package renders API errors in the standard error envelope: exactly `errors` 
 }
 ```
 
+A `code` names a category, and the category follows the response status:
+
+| Status    | Code             |
+| --------- | ---------------- |
+| 401       | `authentication` |
+| 403       | `authorization`  |
+| 422       | `validation`     |
+| Any other | `error`          |
+
+The package returns the bare category. A later release may add a reason after one dot, such as `validation.<reason>`. A client therefore reads the category as the text before the first dot, and it accepts a code with or without a reason. `ErrorCode` holds the four categories, and an application cannot add a code.
+
 The renderer applies to a matched route that carries one of the configured middleware groups:
 
 ```php
@@ -166,7 +177,6 @@ The renderer applies to a matched route that carries one of the configured middl
 return [
     'errors' => [
         'middleware_groups' => ['api'],
-        'codes' => [],
     ],
 ];
 ```
@@ -175,26 +185,27 @@ Publish the file with `php artisan vendor:publish --tag=api-first:config`.
 
 The default group is `api`, so an upgrade to this release changes the error body of every route in that group whose controller lacks `#[LegacyErrors]`. An application whose `api` group serves an API with another error shape publishes the file first. It then names only the groups the renderer serves.
 
-| Failure                                               | Status  | Code                                          |
-| ----------------------------------------------------- | ------- | --------------------------------------------- |
-| A 400 HTTP exception                                  | 400     | `request.malformed`                           |
-| A non-empty JSON body that does not decode            | 400     | `request.malformed`                           |
-| `AuthenticationException`, no bearer token            | 401     | `auth.missing_token`                          |
-| `AuthenticationException`, with a bearer token        | 401     | `auth.invalid_token`                          |
-| A failed authorizer or policy, `denyAsNotFound()` too | 403     | `permission.denied`                           |
-| Passport's `MissingScopeException`                    | 403     | `permission.missing_scope`                    |
-| A missing bound model                                 | 404     | `not_found.resource`                          |
-| A 405 raised inside a matched route                   | 405     | `method.not_allowed`                          |
-| `PreconditionFailed`                                  | 412     | `precondition.failed`                         |
-| A 415 HTTP exception                                  | 415     | `media_type.unsupported`                      |
-| A failed validation rule, one object per rule         | 422     | `validation.<rule>`                           |
-| `PreconditionRequired`                                | 428     | `precondition.required`                       |
-| Throttling                                            | 429     | `rate_limit.exceeded`, with `Retry-After`     |
-| A 503 HTTP exception                                  | 503     | `server.unavailable`, with any `Retry-After`  |
-| Any other HTTP exception                              | Its own | `<category>.unspecified`                      |
-| Any other throwable                                   | 500     | `server.internal_error`                       |
+| Failure                                               | Status                      |
+| ----------------------------------------------------- | --------------------------- |
+| A 400 HTTP exception                                  | 400                         |
+| A non-empty JSON body that does not decode            | 400                         |
+| `AuthenticationException`                             | 401                         |
+| A failed authorizer or policy, `denyAsNotFound()` too | 403                         |
+| Passport's `MissingScopeException`                    | 403                         |
+| A missing bound model                                 | 404                         |
+| A 405 raised inside a matched route                   | 405                         |
+| `PreconditionFailed`                                  | 412                         |
+| A 415 HTTP exception                                  | 415                         |
+| A failed validation, one object per message           | 422                         |
+| `PreconditionRequired`                                | 428                         |
+| Throttling                                            | 429, with `Retry-After`     |
+| A 503 HTTP exception                                  | 503, with any `Retry-After` |
+| Any other HTTP exception                              | Its own                     |
+| Any other throwable                                   | 500                         |
 
-A validation code is the rule name in snake case. A size rule adds the attribute type: `validation.min_numeric`, `validation.max_string`. A rule object uses its class name: `PageSize` gives `validation.page_size`. Renaming a rule class therefore renames its public code. A body field carries a `pointer` such as `/items/0/name`, and a query key carries a `parameter` such as `filters[status]`.
+The renderer writes every `detail` except a validation message, so an exception message never reaches the client. Any other HTTP exception, such as `abort(409)`, gets the detail "The API cannot complete the request." So does a `ValidationException` whose status is not 422.
+
+A failed validation renders one error object per message, with the code `validation`. The validator's message becomes the `detail`, whichever rule, closure, or `after` hook produced it. A body field carries a `pointer` such as `/items/0/name`, and a query key carries a `parameter` such as `filters[status]`.
 
 The source has these limits:
 
@@ -208,33 +219,6 @@ The framework keeps rendering these errors:
 - An error raised before a route matches, such as an unknown path's 404 or the router's 405.
 - A route outside the configured middleware groups.
 - An `HttpResponseException`, because the application built its response.
-
-### Uncatalogued errors
-
-Every code the renderer returns must appear in the catalog. `resources/error-codes.php` holds the codes of the api-standards catalog, `docs/reference/error-codes.yaml`. Any other code becomes a placeholder, `<category>.unspecified`, with the detail "The request failed for a reason this API does not catalogue yet." The category comes from the status: `conflict.unspecified` for 409, `validation.unspecified` for 422. A status that the category table omits gives `request.unspecified` for 4xx and `server.unspecified` for 5xx, and the response keeps the status.
-
-The placeholder covers these cases:
-
-- An HTTP exception whose status the table does not list, such as 409.
-- A `ValidationException` whose status is not 422. The response holds one error object.
-- A validation message that no failed rule produced, such as one from an `after` hook or `ValidationException::withMessages()`.
-- A rule whose derived code the catalog lacks, such as `Password` (`validation.password`), a closure, or `unique`.
-
-Each validation message still gets its own error object and `source`.
-
-Each placeholder logs a warning with the message `api-first.errors.uncatalogued`. The context holds `status`, `placeholder`, `derived_code`, `exception`, `rule`, `route`, and `method`. A log monitor on that message finds the codes to catalogue.
-
-To catalogue a code, add it to the api-standards catalog, then list it in the application's config:
-
-```php
-// config/api-first.php
-return [
-    'errors' => [
-        'middleware_groups' => ['api'],
-        'codes' => ['validation.booking_window'],
-    ],
-];
-```
 
 ### Legacy errors
 

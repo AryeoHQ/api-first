@@ -9,7 +9,7 @@ use JsonSerializable;
 final readonly class ErrorObject implements JsonSerializable
 {
     public function __construct(
-        private string $code,
+        private ErrorCode $code,
         private string $detail,
         private null|Source $source = null,
     ) {}
@@ -19,7 +19,7 @@ final readonly class ErrorObject implements JsonSerializable
      */
     public function jsonSerialize(): array
     {
-        $error = ['code' => $this->code, 'detail' => $this->detail];
+        $error = ['code' => $this->code->value, 'detail' => $this->detail];
 
         if ($this->source !== null) {
             $error['source'] = $this->source;
