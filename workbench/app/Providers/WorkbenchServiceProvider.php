@@ -12,5 +12,7 @@ class WorkbenchServiceProvider extends ServiceProvider
     public function boot(): void
     {
         config()->set('api-resource-schema.version', ApiVersion::class);
+
+        $this->loadRoutesFrom(__DIR__.'/../../routes/api.php');
     }
 }
