@@ -4,10 +4,6 @@
     "license": "MIT",
     "type": "library",
     "repositories": {
-        "eloquent-concurrency": {
-            "type": "vcs",
-            "url": "https://github.com/AryeoHQ/eloquent-concurrency"
-        },
         "api-resource-schema": {
             "type": "vcs",
             "url": "https://github.com/AryeoHQ/api-resource-schema"
@@ -21,7 +17,7 @@
     "require": {
         "php": "^8.5",
         "aryeo/api-resource-schema": "dev-feat/2026-10-24t1355-occ-versioning-m4",
-        "aryeo/eloquent-concurrency": "dev-feat/2026-10-29t1851-app-revisions-ma as dev-main",
+        "aryeo/eloquent-concurrency": "^0.0.3",
         "laravel/framework": "^12.37 || ^13",
         "laravel/prompts": "^0.3.8",
         "nikic/php-parser": "^5.7",
