@@ -9,7 +9,6 @@ use Illuminate\Contracts\Http\Kernel as KernelContract;
 use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator as UpstreamCursorPaginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Event;
@@ -23,6 +22,7 @@ use Support\Http\Api\Errors\Middleware\RejectMalformedJson;
 use Support\Http\Api\Errors\Renderer;
 use Support\Http\Api\Middleware\ConditionalGet;
 use Support\Http\Api\Pagination\CursorPaginator;
+use Support\Http\Api\Pagination\CursorResolver;
 use Support\Http\Api\Request\TokenContext;
 use Support\Http\Requests\Contracts\CastableData;
 use Support\Http\Resources\Schemas\Console\Commands\MakeResource\Events\BuildingSchema;
@@ -101,8 +101,8 @@ class Provider extends ServiceProvider
 
     private function registerCursorResolver(): void
     {
-        UpstreamCursorPaginator::currentCursorResolver(function () {
-            return Cursor::fromEncoded(data_get(request()->query(), 'paging.cursor'));
+        UpstreamCursorPaginator::currentCursorResolver(function (string $cursorName = 'cursor') {
+            return app(CursorResolver::class)($cursorName);
         });
     }
 

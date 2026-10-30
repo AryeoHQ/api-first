@@ -39,9 +39,5 @@ abstract class TestCase extends Testbench\TestCase
             $table->uuid('id')->primary();
             $table->timestampsTz();
         });
-
-        Schema::create('paged_posts', function (Blueprint $table): void {
-            $table->id();
-        });
     }
 }
