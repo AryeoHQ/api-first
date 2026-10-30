@@ -148,9 +148,9 @@ class MakeController extends ControllerMakeCommand implements GeneratesFile
     private function buildControllerParameters(): string
     {
         return collect()
-            ->when($this->option('authorizer'), fn ($p) => $p->push('Authorizer $authorizer'))
-            ->when($this->generatesPrecondition(), fn ($p) => $p->push('Precondition $precondition'))
-            ->when($this->option('validator'), fn ($p) => $p->push('Validator $validator'))
+            ->when($this->option('authorizer'), fn ($parameters) => $parameters->push('Authorizer $authorizer'))
+            ->when($this->generatesPrecondition(), fn ($parameters) => $parameters->push('Precondition $precondition'))
+            ->when($this->option('validator'), fn ($parameters) => $parameters->push('Validator $validator'))
             ->when(
                 $this->controller->scope === Scope::Instance,
                 fn ($parameters) => $parameters

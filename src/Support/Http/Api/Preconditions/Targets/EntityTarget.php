@@ -20,6 +20,10 @@ use Support\Http\Resources\Schemas\Contracts\Version;
 
 final class EntityTarget implements Target
 {
+    private readonly Model&Revisioned $model;
+
+    private readonly Version $api;
+
     /** @var list<NamesConcurrencyRevision> */
     private array $revisions = [];
 
@@ -28,10 +32,11 @@ final class EntityTarget implements Target
     /** @var list<Model> */
     private array $locking = [];
 
-    private function __construct(
-        private readonly Model&Revisioned $model,
-        private readonly Version $api,
-    ) {}
+    private function __construct(Model&Revisioned $model, Version $api)
+    {
+        $this->model = $model;
+        $this->api = $api;
+    }
 
     public static function for(Model&Revisioned $model, Version $api): self
     {
@@ -155,7 +160,7 @@ final class EntityTarget implements Target
      */
     private function inLockOrder(array $models): array
     {
-        usort($models, fn (Model $a, Model $b): int => [$a->getMorphClass(), $a->getKey()] <=> [$b->getMorphClass(), $b->getKey()]);
+        usort($models, fn (Model $left, Model $right): int => [$left->getMorphClass(), $left->getKey()] <=> [$right->getMorphClass(), $right->getKey()]);
 
         return $models;
     }

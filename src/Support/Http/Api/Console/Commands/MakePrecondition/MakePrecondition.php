@@ -21,6 +21,8 @@ use Tooling\GeneratorCommands\Concerns\RetrievesNamespace;
 use Tooling\GeneratorCommands\Contracts\GeneratesFile;
 use Tooling\GeneratorCommands\References\Contracts\Reference;
 
+use function Laravel\Prompts\text;
+
 class MakePrecondition extends GeneratorCommand implements GeneratesFile
 {
     use CreatesColocatedTests;
@@ -64,7 +66,7 @@ class MakePrecondition extends GeneratorCommand implements GeneratesFile
         $this->resolveApiVersion();
 
         $this->entity = Entity::fromFqcn(
-            $this->entityFromOption() ?? str(\Laravel\Prompts\text(label: 'Which entity? (FQCN)', required: true))
+            $this->entityFromOption() ?? str(text(label: 'Which entity? (FQCN)', required: true))
         );
 
         if (! self::isRevisioned($this->entity)) {

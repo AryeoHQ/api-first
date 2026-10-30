@@ -4,19 +4,18 @@
     "license": "MIT",
     "type": "library",
     "repositories": {
-        "api-resource-schema": {
-            "type": "vcs",
-            "url": "https://github.com/AryeoHQ/api-resource-schema"
-        },
         "artifactory": {
             "type": "composer",
             "url": "https://artifactory.zgtools.net/artifactory/api/composer/listing-and-vendor-management-composer/",
-            "only": ["aryeo/*", "zillow/*"]
+            "only": [
+                "aryeo/*",
+                "zillow/*"
+            ]
         }
     },
     "require": {
         "php": "^8.5",
-        "aryeo/api-resource-schema": "dev-feat/2026-10-24t1355-occ-versioning-m4",
+        "aryeo/api-resource-schema": "0.0.24",
         "aryeo/eloquent-concurrency": "^0.0.3",
         "laravel/framework": "^12.37 || ^13",
         "laravel/prompts": "^0.3.8",
@@ -31,8 +30,7 @@
         "aryeo/request-casts": "0.0.19",
         "aryeo/request-authorizers-validators": "0.0.16",
         "aryeo/event-log": "0.0.13",
-        "aryeo/webhooks": "0.0.11",
-        "symfony/http-foundation": "^7.4 || ^8.0"
+        "aryeo/webhooks": "0.0.11"
     },
     "require-dev": {
         "nesbot/carbon": "^3.10",
@@ -70,7 +68,8 @@
     "config": {
         "allow-plugins": {
             "aryeo/tooling-laravel": true,
-            "pestphp/pest-plugin": true
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
         }
     },
     "extra": {

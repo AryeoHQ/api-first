@@ -102,12 +102,21 @@ final class WriteEndpointMustOfferPreconditionTest extends RuleTestCase
     }
 
     #[Test]
-    #[TestWith(['BeforeAuthorizerController'])]
-    #[TestWith(['WithoutAuthorizerController'])]
-    public function it_fails_when_an_invokable_without_a_route_never_guards_its_precondition(string $fixture): void
+    public function it_reports_each_unguarded_precondition_on_its_own_line(): void
+    {
+        $this->analyse([$this->getFixturePath('Http/Api/PhpStan/Preconditions/UnguardedPreconditionsController.php')], [
+            [self::UNGUARDED, 19],
+            [self::UNGUARDED, 20],
+        ]);
+    }
+
+    #[Test]
+    #[TestWith(['BeforeAuthorizerController', 10])]
+    #[TestWith(['WithoutAuthorizerController', 9])]
+    public function it_fails_when_an_invokable_without_a_route_never_guards_its_precondition(string $fixture, int $line): void
     {
         $this->analyse([$this->getFixturePath("Http/Api/PhpStan/Preconditions/{$fixture}.php")], [
-            [self::UNGUARDED, 9],
+            [self::UNGUARDED, $line],
         ]);
     }
 }

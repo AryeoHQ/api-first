@@ -59,7 +59,7 @@ final class WriteEndpointMustOfferPrecondition extends Rule
         foreach ($this->unguardedPreconditions($node, $scope) as $param) {
             $this->error(
                 message: 'A controller that takes a Precondition must call guard() on it in __invoke().',
-                line: $node->name->getStartLine(),
+                line: $param->getStartLine(),
                 identifier: 'controller.precondition.unguarded',
             );
         }
