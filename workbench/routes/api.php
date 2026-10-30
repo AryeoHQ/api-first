@@ -27,6 +27,7 @@ Route::middleware('api')->prefix('api/errors')->group(function (): void {
     Route::post('with-messages', [ErrorsController::class, 'withMessages']);
     Route::get('throttled', [ErrorsController::class, 'throttled'])->middleware('throttle:1,1');
     Route::get('throttled-until', [ErrorsController::class, 'throttledUntil']);
+    Route::get('throttled-until-list', [ErrorsController::class, 'throttledUntilList']);
     Route::post('precondition-failed', [ErrorsController::class, 'preconditionFailed']);
     Route::post('precondition-required', [ErrorsController::class, 'preconditionRequired']);
     Route::post('precondition-failed-with-headers', [ErrorsController::class, 'preconditionFailedWithHeaders']);

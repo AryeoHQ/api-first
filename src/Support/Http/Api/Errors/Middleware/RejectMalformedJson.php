@@ -27,9 +27,13 @@ final class RejectMalformedJson
 
     private function isMalformed(Request $request): bool
     {
+        if (! $this->isJson($request)) {
+            return false;
+        }
+
         $content = $request->getContent();
 
-        return $content !== '' && $this->isJson($request) && ! json_validate($content);
+        return $content !== '' && ! json_validate($content);
     }
 
     private function isJson(Request $request): bool

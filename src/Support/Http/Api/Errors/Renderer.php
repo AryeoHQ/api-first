@@ -145,6 +145,10 @@ final class Renderer
     {
         $retryAfter = Arr::first($headers, fn (mixed $value, string $name): bool => strcasecmp($name, 'Retry-After') === 0);
 
+        if (is_array($retryAfter)) {
+            $retryAfter = $retryAfter[0] ?? null;
+        }
+
         if (is_string($retryAfter) && ! is_numeric($retryAfter)) {
             $retryAfter = $this->secondsUntil($retryAfter);
         }

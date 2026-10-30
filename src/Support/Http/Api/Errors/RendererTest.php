@@ -254,6 +254,18 @@ final class RendererTest extends TestCase
     }
 
     #[Test]
+    public function it_unwraps_a_list_valued_retry_after_date_header(): void
+    {
+        $this->travelTo(Date::parse('2026-10-21 07:27:00', 'UTC'));
+
+        $this->assertErrors(
+            $this->getJson('api/errors/throttled-until-list'),
+            Response::HTTP_TOO_MANY_REQUESTS,
+            [['code' => 'error', 'detail' => 'The request exceeds a rate limit.']],
+        )->assertHeader('Retry-After', 'Wed, 21 Oct 2026 07:28:00 GMT')->assertHeader('X-RateLimit-Reset', '60');
+    }
+
+    #[Test]
     public function it_renders_an_unexpected_failure_as_500_without_its_details(): void
     {
         config()->set('app.debug', false);

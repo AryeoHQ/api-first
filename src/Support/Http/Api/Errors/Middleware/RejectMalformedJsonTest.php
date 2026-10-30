@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Errors\Middleware;
 
+use Illuminate\Http\Request;
 use Orchestra\Testbench\Concerns\WithWorkbench;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -65,5 +66,28 @@ final class RejectMalformedJsonTest extends TestCase
         $this->call('POST', 'errors/outside/validate', server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'], content: '{"title":')
             ->assertUnprocessable()
             ->assertJsonStructure(['message', 'errors' => ['title']]);
+    }
+
+    #[Test]
+    public function it_does_not_read_the_body_of_a_non_json_request(): void
+    {
+        $request = new class([], [], [], [], [], ['REQUEST_METHOD' => 'POST', 'REQUEST_URI' => '/api/errors/rules', 'CONTENT_TYPE' => 'text/plain', 'HTTP_ACCEPT' => 'application/json']) extends Request
+        {
+            public bool $contentWasRead = false;
+
+            /**
+             * @return ($asResource is true ? resource : string)
+             */
+            public function getContent(bool $asResource = false): mixed
+            {
+                $this->contentWasRead = true;
+
+                return parent::getContent($asResource);
+            }
+        };
+
+        (new RejectMalformedJson)->handle($request, fn () => response()->json([]));
+
+        $this->assertFalse($request->contentWasRead, 'getContent() was called for a non-JSON request');
     }
 }

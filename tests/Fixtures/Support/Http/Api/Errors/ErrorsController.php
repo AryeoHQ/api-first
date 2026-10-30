@@ -127,6 +127,22 @@ final class ErrorsController
         throw new TooManyRequestsHttpException('Wed, 21 Oct 2026 07:28:00 GMT');
     }
 
+    public function throttledUntilList(): never
+    {
+        $exception = new class('Wed, 21 Oct 2026 07:28:00 GMT') extends TooManyRequestsHttpException
+        {
+            /**
+             * @return array<string, list<string>>
+             */
+            public function getHeaders(): array
+            {
+                return ['Retry-After' => ['Wed, 21 Oct 2026 07:28:00 GMT']];
+            }
+        };
+
+        throw $exception;
+    }
+
     public function preconditionFailed(): never
     {
         throw new PreconditionFailed;
