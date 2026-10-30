@@ -142,6 +142,111 @@ The package registers a scoped container binding for `CastableData`. On each req
 
 Controllers are limited to a single `CastableData` parameter — this is enforced by a PHPStan rule (see below).
 
+## Errors
+
+The package renders API errors in the standard error envelope: exactly `errors` and `meta: {}`. Each error object holds a `code`, a `detail`, and an optional `source`:
+
+```json
+{
+    "errors": [
+        {
+            "code": "validation",
+            "detail": "The title field is required.",
+            "source": { "pointer": "/title" }
+        }
+    ],
+    "meta": {}
+}
+```
+
+A `code` names a category, and the category follows the response status:
+
+| Status    | Code             |
+| --------- | ---------------- |
+| 401       | `authentication` |
+| 403       | `authorization`  |
+| 422       | `validation`     |
+| Any other | `error`          |
+
+The package returns the bare category. A later release may add a reason after one dot, such as `validation.<reason>`. A client therefore reads the category as the text before the first dot, and it accepts a code with or without a reason. `ErrorCode` holds the four categories, and an application cannot add a code.
+
+The renderer serves a request whose path matches a configured pattern, whether or not a route matched:
+
+```php
+// config/api-first.php
+return [
+    'errors' => [
+        'paths' => ['api', 'api/*'],
+    ],
+];
+```
+
+A pattern matches the request path only, as `Request::is()` does, such as `v2beta1/*` or `v1.0/*`. The request host never decides which renderer serves a request. A service that serves its API on one host scopes those routes with `Route::domain()`, and it enables `TrustHosts`.
+
+Publish the file with `php artisan vendor:publish --tag=api-first:config`.
+
+The default patterns are `api` and `api/*`: the prefix Laravel gives API routes, and every path under it. An upgrade to this release therefore changes the error body of every request under `api`, unless its controller carries `#[LegacyErrors]`. An application whose `api` paths serve an API with another error shape publishes the file first. It then names only the paths the renderer serves.
+
+The package also adds a global middleware. It rejects a non-empty JSON body that does not decode with a 400, on every path the renderer serves. A body is JSON when its media type, without parameters, is `application/json` or ends in `+json`. The middleware runs before routing and every route middleware. The 400 therefore comes before a 401, 403, 404, 405, 429, or any validation.
+
+| Failure                                                 | Status                                                     |
+| ------------------------------------------------------- | ---------------------------------------------------------- |
+| A 400 HTTP exception                                    | 400                                                        |
+| A non-empty JSON body that does not decode              | 400                                                        |
+| `AuthenticationException`                               | 401                                                        |
+| A failed authorizer or policy, `denyAsNotFound()` too   | 403                                                        |
+| Passport's `MissingScopeException`                      | 403                                                        |
+| Sanctum's `MissingAbilityException`                     | 403                                                        |
+| A missing bound model, or a path no route matches       | 404                                                        |
+| A 405 HTTP exception, the router's included             | 405                                                        |
+| `PreconditionFailed`, or any other 412 HTTP exception   | 412                                                        |
+| A 415 HTTP exception                                    | 415                                                        |
+| A failed validation, one object per message             | 422                                                        |
+| `PreconditionRequired`, or any other 428 HTTP exception | 428                                                        |
+| Throttling                                              | 429, with `Retry-After` and `X-RateLimit-Reset` in seconds |
+| A 503 HTTP exception, maintenance mode included         | 503, with any `Retry-After`                                |
+| Any other HTTP exception                                | Its own                                                    |
+| Any other throwable                                     | 500                                                        |
+
+Every 412 and 428 names the `If-Match` header as its source, whichever precondition failed.
+
+The renderer writes every `detail` except a validation message, so an exception message never reaches the client through the renderer. Any other HTTP exception, such as `abort(409)`, gets the detail "The API cannot complete the request." So does a `ValidationException` whose status is not 422.
+
+A failed validation renders one error object per message, with the code `validation`. The validator's message becomes the `detail`, whichever rule, closure, or `after` hook produced it. A body field carries a `pointer` such as `/items/0/name`, and a query key carries a `parameter` such as `filters[status]`.
+
+The source has these limits:
+
+- A key merged in `prepareForValidation()` gets a source, such as a `pointer`, that the client never sent.
+- A repeated query key names its zero-based index: the second `ids[]` the request sent becomes `ids[1]`.
+- Validation never emits a `header` source yet, because nothing marks a validated attribute as a header.
+- A query key that a POST request omits gets a `pointer`, not a `parameter`.
+
+The framework keeps rendering these errors:
+
+- A request whose path matches no configured pattern.
+- An `HttpResponseException`, because the application built its response.
+- An exception that renders its own response, through `render()` or `Responsable`. That response can carry the exception message.
+
+### Legacy errors
+
+A controller marked `#[LegacyErrors]` keeps the framework's error bodies:
+
+```php
+use Support\Http\Api\Errors\Attributes\LegacyErrors;
+
+#[LegacyErrors]
+final class Controller
+{
+    //
+}
+```
+
+On a covered path, these responses to a legacy controller's routes still render in the envelope:
+
+- The 400 for a JSON body that does not decode, because the middleware rejects it before routing selects the controller.
+- The router's 405 for a method the route does not accept, because no controller matched.
+- A 412 or a 428, because those responses have no legacy shape.
+
 ## Request Context
 
 The package adds `actor()` and `subject()` macros to `Illuminate\Http\Request`, providing semantic access to the authenticated user:

@@ -27,6 +27,7 @@ abstract class TestCase extends Testbench\TestCase
     protected function getPackageProviders($app): array
     {
         return [
+            ...parent::getPackageProviders($app),
             Rfc3339ExtendedProvider::class,
             ApiProvider::class,
         ];
