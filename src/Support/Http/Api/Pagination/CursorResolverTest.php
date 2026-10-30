@@ -176,6 +176,8 @@ final class CursorResolverTest extends TestCase
         app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(ScopedOrderController::class))->getFileName());
         app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(Controller::class))->getFileName());
         app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(TableController::class))->getFileName());
+
+        $router->get('api/list-query-plain/{model}', PlainController::class);
     }
 
     #[Test]
@@ -508,10 +510,10 @@ final class CursorResolverTest extends TestCase
 
     #[DataProvider('cursorKeys')]
     #[Test]
-    public function it_answers_a_cursor_longer_than_1024_bytes_with_the_cursor_rule_alone(string $key): void
+    public function it_answers_a_cursor_longer_than_8192_bytes_with_the_cursor_rule_alone(string $key): void
     {
         $cursor = CursorSignature::sign(
-            (new Cursor(['created_at' => '2026-10-25T21:00:00.100+00:00', 'id' => str_repeat('a', 1024)]))->encode(),
+            (new Cursor(['created_at' => '2026-10-25T21:00:00.100+00:00', 'id' => str_repeat('a', 8192)]))->encode(),
             CursorSignature::fingerprint(Request::create('list-query-plain/rfc3339')),
         );
 
@@ -569,6 +571,46 @@ final class CursorResolverTest extends TestCase
             ->assertOnlyJsonValidationErrors(['paging.before']);
 
         $this->assertSame(['The paging.before cannot be sent with paging[after].'], $response->json('errors')['paging.before']);
+    }
+
+    #[Test]
+    public function it_answers_two_invalid_cursors_with_the_prohibits_message_alone_on_paging_before(): void
+    {
+        $response = $this->getJson('list-query-plain/rfc3339?paging[after]=x&paging[before]=y')
+            ->assertUnprocessable()
+            ->assertOnlyJsonValidationErrors(['paging.after', 'paging.before']);
+
+        $this->assertSame(['The paging.before cannot be sent with paging[after].'], $response->json('errors')['paging.before']);
+    }
+
+    #[Test]
+    public function it_renders_two_invalid_cursors_with_the_prohibits_error_alone_on_paging_before_under_api(): void
+    {
+        $this->getJson('api/list-query-plain/rfc3339?paging[after]=x&paging[before]=y')
+            ->assertUnprocessable()
+            ->assertExactJson([
+                'errors' => [
+                    ['code' => 'validation', 'detail' => 'The paging.after is not a valid cursor for this list.', 'source' => ['parameter' => 'paging[after]']],
+                    ['code' => 'validation', 'detail' => 'The paging.before cannot be sent with paging[after].', 'source' => ['parameter' => 'paging[before]']],
+                ],
+                'meta' => [],
+            ]);
+    }
+
+    #[Test]
+    public function it_follows_its_own_after_url_past_a_long_non_ascii_title(): void
+    {
+        $ids = array_map(
+            fn (): string => PagingTitledTestModel::query()->forceCreate(['title' => str_repeat('é', 200)])->getKey(),
+            range(1, 2),
+        );
+
+        sort($ids);
+
+        $paging = $this->getJson('list-query-values/titled?paging[size]=1')->assertOk()->json('meta.paging');
+
+        $this->getJson($paging['after_url'])->assertOk()->assertJsonPath('data.*.id', [$ids[1]]);
+        $this->assertLessThan(1024, strlen($paging['after']));
     }
 
     /**

@@ -89,19 +89,19 @@ final class CursorTest extends TestCase
     }
 
     #[Test]
-    public function it_fails_a_cursor_longer_than_1024_bytes(): void
+    public function it_fails_a_cursor_longer_than_8192_bytes(): void
     {
-        $cursor = CursorSignature::sign((new PaginationCursor(['id' => str_repeat('a', 701)]))->encode(), 'list');
+        $cursor = CursorSignature::sign((new PaginationCursor(['id' => str_repeat('a', 6077)]))->encode(), 'list');
 
-        $this->assertSame([1026, false, false], [strlen($cursor), $this->passes($cursor), $this->passes($cursor, new Cursor('list'))]);
+        $this->assertSame([8194, false, false], [strlen($cursor), $this->passes($cursor), $this->passes($cursor, new Cursor('list'))]);
     }
 
     #[Test]
-    public function it_accepts_a_cursor_of_1024_bytes(): void
+    public function it_accepts_a_cursor_of_8192_bytes(): void
     {
-        $cursor = CursorSignature::sign((new PaginationCursor(['id' => str_repeat('a', 700)]))->encode(), 'list');
+        $cursor = CursorSignature::sign((new PaginationCursor(['id' => str_repeat('a', 6076)]))->encode(), 'list');
 
-        $this->assertSame([1024, true], [strlen($cursor), $this->passes($cursor, new Cursor('list'))]);
+        $this->assertSame([8192, true], [strlen($cursor), $this->passes($cursor, new Cursor('list'))]);
     }
 
     #[DataProvider('valuesThatAreNotCursors')]

@@ -24,7 +24,7 @@ final class CursorResolver
         $rules = [
             'paging.size' => ['sometimes', new PageSize],
             'paging.after' => ['sometimes', $cursor],
-            'paging.before' => ['sometimes', $cursor, new ProhibitsParameter('paging.after')],
+            'paging.before' => ['sometimes', 'bail', new ProhibitsParameter('paging.after'), $cursor],
         ];
 
         return [

@@ -12,7 +12,7 @@ use Support\Http\Api\Pagination\CursorSignature;
 
 final class Cursor implements ValidationRule
 {
-    public const int MAX_LENGTH = 1024;
+    public const int MAX_LENGTH = 8192;
 
     private null|string $fingerprint;
 

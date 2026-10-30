@@ -11,20 +11,22 @@
         }
     },
     "require": {
-        "php": "^8.4",
-        "aryeo/api-resource-schema": "0.0.22",
+        "php": "^8.5",
+        "aryeo/api-resource-schema": "0.0.23",
         "laravel/framework": "^12.37 || ^13",
         "laravel/prompts": "^0.3.8",
         "nikic/php-parser": "^5.7",
         "phpstan/phpstan": "^2.1",
         "symfony/console": "^7.4 || ^8.0",
-        "aryeo/tooling-laravel": "0.0.41",
-        "aryeo/attribute-routing": "0.0.17",
-        "aryeo/entities": "0.0.22",
-        "aryeo/request-casts": "0.0.16",
-        "aryeo/request-authorizers-validators": "0.0.15",
-        "aryeo/event-log": "0.0.10",
-        "aryeo/webhooks": "0.0.9"
+        "symfony/http-foundation": "^7.4 || ^8.0",
+        "symfony/http-kernel": "^7.4 || ^8.0",
+        "aryeo/tooling-laravel": "0.0.43",
+        "aryeo/attribute-routing": "0.0.19",
+        "aryeo/entities": "0.0.23",
+        "aryeo/request-casts": "0.0.19",
+        "aryeo/request-authorizers-validators": "0.0.16",
+        "aryeo/event-log": "0.0.13",
+        "aryeo/webhooks": "0.0.11"
     },
     "require-dev": {
         "nesbot/carbon": "^3.10",
@@ -41,8 +43,8 @@
             "Tooling\\Http\\Api\\": "src/Tooling/Http/Api"
         },
         "exclude-from-classmap": [
-            "*Test.php",
-            "*TestCases.php",
+            "/src/**/*Test.php",
+            "/src/**/*TestCases.php",
             "/tests/"
         ]
     },
@@ -88,7 +90,8 @@
                         "src",
                         "tests/Fixtures/Support"
                     ]
-                }
+                },
+                "skip": "tooling/rector/skip.php"
             },
             "pint": {
                 "config": {
