@@ -313,12 +313,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:AryeoHQ/eloquent-concurrency.git",
-                "reference": "9a8aa921de70ad6ab50f46cd5cc83c2a75be15e0"
+                "reference": "c0d1cc3cbb8d38d30b2e2be8aec8ca5b02a8c6db"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/eloquent-concurrency/zipball/9a8aa921de70ad6ab50f46cd5cc83c2a75be15e0",
-                "reference": "9a8aa921de70ad6ab50f46cd5cc83c2a75be15e0",
+                "url": "https://api.github.com/repos/AryeoHQ/eloquent-concurrency/zipball/c0d1cc3cbb8d38d30b2e2be8aec8ca5b02a8c6db",
+                "reference": "c0d1cc3cbb8d38d30b2e2be8aec8ca5b02a8c6db",
                 "shasum": ""
             },
             "require": {
@@ -399,7 +399,7 @@
                 "source": "https://github.com/AryeoHQ/eloquent-concurrency/tree/feat/2026-10-29t1851-app-revisions-ma",
                 "issues": "https://github.com/AryeoHQ/eloquent-concurrency/issues"
             },
-            "time": "2026-10-30T05:34:35+00:00"
+            "time": "2026-10-30T06:19:09+00:00"
         },
         {
             "name": "aryeo/eloquent-search",
