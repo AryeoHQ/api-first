@@ -176,18 +176,18 @@ The renderer serves a request whose path matches a configured pattern, whether o
 // config/api-first.php
 return [
     'errors' => [
-        'paths' => ['api/*'],
+        'paths' => ['api', 'api/*'],
     ],
 ];
 ```
 
-A pattern matches the request path, as `Request::is()` does, such as `v2beta1/*`. A pattern whose first segment contains a dot starts with a host. It matches the host and the path, such as `api.aryeo.com/v2beta1/*`.
+A pattern matches the request path only, as `Request::is()` does, such as `v2beta1/*` or `v1.0/*`. The request host never decides which renderer serves a request. A service that serves its API on one host scopes those routes with `Route::domain()`, and it enables `TrustHosts`.
 
 Publish the file with `php artisan vendor:publish --tag=api-first:config`.
 
-The default pattern is `api/*`, the prefix Laravel gives API routes. An upgrade to this release therefore changes the error body of every request under `api/`, unless its controller carries `#[LegacyErrors]`. An application whose `api/` paths serve an API with another error shape publishes the file first. It then names only the paths the renderer serves.
+The default patterns are `api` and `api/*`: the prefix Laravel gives API routes, and every path under it. An upgrade to this release therefore changes the error body of every request under `api`, unless its controller carries `#[LegacyErrors]`. An application whose `api` paths serve an API with another error shape publishes the file first. It then names only the paths the renderer serves.
 
-The package also adds a global middleware. It rejects a non-empty JSON body that does not decode with a 400, on every path the renderer serves. The middleware runs before routing, so the 400 comes before a 404, a 405, or any validation.
+The package also adds a global middleware. It rejects a non-empty JSON body that does not decode with a 400, on every path the renderer serves. A body is JSON when its media type, without parameters, is `application/json` or ends in `+json`. The middleware runs before routing and every route middleware. The 400 therefore comes before a 401, 403, 404, 405, 429, or any validation.
 
 | Failure                                                 | Status                                                     |
 | ------------------------------------------------------- | ---------------------------------------------------------- |
@@ -229,7 +229,7 @@ The framework keeps rendering these errors:
 
 ### Legacy errors
 
-A controller marked `#[LegacyErrors]` keeps the framework's error bodies. A 412 or a 428 still renders in the envelope, because those responses have no legacy shape. So does the 400 for a JSON body that does not decode, because the middleware rejects it before routing selects the controller:
+A controller marked `#[LegacyErrors]` keeps the framework's error bodies:
 
 ```php
 use Support\Http\Api\Errors\Attributes\LegacyErrors;
@@ -240,6 +240,12 @@ final class Controller
     //
 }
 ```
+
+On a covered path, these responses to a legacy controller's routes still render in the envelope:
+
+- The 400 for a JSON body that does not decode, because the middleware rejects it before routing selects the controller.
+- The router's 405 for a method the route does not accept, because no controller matched.
+- A 412 or a 428, because those responses have no legacy shape.
 
 ## Request Context
 

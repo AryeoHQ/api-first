@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Support\Http\Api\Errors;
 
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -239,6 +240,20 @@ final class RendererTest extends TestCase
     }
 
     #[Test]
+    #[TestWith(['2026-10-21 07:27:00', '60'])]
+    #[TestWith(['2026-10-21 07:29:00', '0'])]
+    public function it_renders_a_retry_after_date_as_a_reset_in_seconds(string $now, string $reset): void
+    {
+        $this->travelTo(Date::parse($now, 'UTC'));
+
+        $this->assertErrors(
+            $this->getJson('api/errors/throttled-until'),
+            Response::HTTP_TOO_MANY_REQUESTS,
+            [['code' => 'error', 'detail' => 'The request exceeds a rate limit.']],
+        )->assertHeader('Retry-After', 'Wed, 21 Oct 2026 07:28:00 GMT')->assertHeader('X-RateLimit-Reset', $reset);
+    }
+
+    #[Test]
     public function it_renders_an_unexpected_failure_as_500_without_its_details(): void
     {
         config()->set('app.debug', false);
@@ -336,20 +351,25 @@ final class RendererTest extends TestCase
     }
 
     #[Test]
-    public function it_matches_a_pattern_that_starts_with_a_host_on_the_host_and_the_path(): void
+    public function it_matches_a_pattern_whose_first_segment_contains_a_dot_as_a_path(): void
     {
-        config()->set('api-first.errors.paths', ['api.aryeo.test/api/errors/*']);
+        config()->set('api-first.errors.paths', ['v1.0/*']);
 
         $this->assertErrors(
-            $this->postJson('http://api.aryeo.test/api/errors/validate'),
-            Response::HTTP_UNPROCESSABLE_ENTITY,
-            [['code' => 'validation', 'detail' => 'The title field is required.', 'source' => ['pointer' => '/title']]],
+            $this->getJson('v1.0/nowhere'),
+            Response::HTTP_NOT_FOUND,
+            [['code' => 'error', 'detail' => 'No resource exists at this path.']],
         );
+    }
 
-        $this->postJson('http://www.aryeo.test/api/errors/validate')
-            ->assertUnprocessable()
-            ->assertJsonStructure(['message', 'errors' => ['title']])
-            ->assertJsonMissingPath('meta');
+    #[Test]
+    public function it_renders_the_api_prefix_root_as_404(): void
+    {
+        $this->assertErrors(
+            $this->getJson('api'),
+            Response::HTTP_NOT_FOUND,
+            [['code' => 'error', 'detail' => 'No resource exists at this path.']],
+        );
     }
 
     #[Test]

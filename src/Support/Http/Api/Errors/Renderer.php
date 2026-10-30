@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Errors;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -11,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Validation\ValidationException;
 use ReflectionClass;
 use stdClass;
@@ -25,6 +28,8 @@ final class Renderer
     private const string MISSING_ABILITY = 'Laravel\Sanctum\Exceptions\MissingAbilityException';
 
     private const string GENERIC_DETAIL = 'The API cannot complete the request.';
+
+    private const string HTTP_DATE = 'D, d M Y H:i:s \G\M\T';
 
     public function __invoke(Throwable $e, Request $request): null|JsonResponse
     {
@@ -140,7 +145,18 @@ final class Renderer
     {
         $retryAfter = Arr::first($headers, fn (mixed $value, string $name): bool => strcasecmp($name, 'Retry-After') === 0);
 
+        if (is_string($retryAfter) && ! is_numeric($retryAfter)) {
+            $retryAfter = $this->secondsUntil($retryAfter);
+        }
+
         return $retryAfter === null ? $headers : [...$headers, 'X-RateLimit-Reset' => $retryAfter];
+    }
+
+    private function secondsUntil(string $date): null|string
+    {
+        $until = DateTimeImmutable::createFromFormat(self::HTTP_DATE, $date, new DateTimeZone('UTC'));
+
+        return $until === false ? null : (string) max(0, $until->getTimestamp() - Date::now()->getTimestamp());
     }
 
     private function error(int $status, string $detail, null|Source $source = null): ErrorObject

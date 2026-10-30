@@ -6,6 +6,7 @@ namespace Support\Http\Api\Errors\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Support\Http\Api\Errors\Paths;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -28,6 +29,13 @@ final class RejectMalformedJson
     {
         $content = $request->getContent();
 
-        return $content !== '' && $request->isJson() && ! json_validate($content);
+        return $content !== '' && $this->isJson($request) && ! json_validate($content);
+    }
+
+    private function isJson(Request $request): bool
+    {
+        $type = strtolower(trim(Str::before((string) $request->headers->get('Content-Type'), ';')));
+
+        return $type === 'application/json' || str_ends_with($type, '+json');
     }
 }

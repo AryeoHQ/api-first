@@ -17,6 +17,7 @@ use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\PreconditionFailedHttpException;
 use Symfony\Component\HttpKernel\Exception\PreconditionRequiredHttpException;
 use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
+use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 use Symfony\Component\HttpKernel\Exception\UnsupportedMediaTypeHttpException;
 use Tests\Fixtures\Support\Articles\Article;
 
@@ -119,6 +120,11 @@ final class ErrorsController
     public function throttled(): void
     {
         //
+    }
+
+    public function throttledUntil(): never
+    {
+        throw new TooManyRequestsHttpException('Wed, 21 Oct 2026 07:28:00 GMT');
     }
 
     public function preconditionFailed(): never
