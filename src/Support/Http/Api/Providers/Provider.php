@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Support\Http\Api\Providers;
 
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Contracts\Http\Kernel as HttpKernel;
 use Illuminate\Foundation\Exceptions\Handler;
+use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator as UpstreamCursorPaginator;
@@ -15,6 +17,7 @@ use ReflectionNamedType;
 use Support\Http\Api\Console\Commands\MakeController\MakeController;
 use Support\Http\Api\Console\Commands\MakeResource\Listeners\InjectSchemaProperties;
 use Support\Http\Api\Console\Commands\MakeResource\MakeResource;
+use Support\Http\Api\Errors\Middleware\RejectMalformedJson;
 use Support\Http\Api\Errors\Renderer;
 use Support\Http\Api\Pagination\CursorPaginator;
 use Support\Http\Api\Request\TokenContext;
@@ -30,6 +33,7 @@ class Provider extends ServiceProvider
         $this->registerCursorResolver();
         $this->registerMixins();
         $this->registerErrorRenderer();
+        $this->registerMalformedJsonMiddleware();
     }
 
     public function boot(): void
@@ -49,6 +53,15 @@ class Provider extends ServiceProvider
         $this->callAfterResolving(ExceptionHandler::class, function (ExceptionHandler $handler): void {
             if ($handler instanceof Handler) {
                 $handler->renderable(new Renderer);
+            }
+        });
+    }
+
+    private function registerMalformedJsonMiddleware(): void
+    {
+        $this->callAfterResolving(HttpKernel::class, function (HttpKernel $kernel): void {
+            if ($kernel instanceof Kernel) {
+                $kernel->pushMiddleware(RejectMalformedJson::class);
             }
         });
     }

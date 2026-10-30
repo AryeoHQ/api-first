@@ -25,4 +25,9 @@ final class LegacyErrorsController
     {
         throw new PreconditionFailedHttpException(headers: ['ETag' => '"33a64df5"']);
     }
+
+    public function abort(int $status): never
+    {
+        abort($status, 'Tenant A owns secret X.');
+    }
 }

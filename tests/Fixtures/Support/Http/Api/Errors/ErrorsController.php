@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator as ValidatorFactory;
 use Illuminate\Validation\ValidationException;
 use Laravel\Passport\Exceptions\MissingScopeException;
+use Laravel\Sanctum\Exceptions\MissingAbilityException;
 use RuntimeException;
 use Support\Http\Api\Errors\Exceptions\PreconditionFailed;
 use Support\Http\Api\Errors\Exceptions\PreconditionRequired;
@@ -46,6 +47,13 @@ final class ErrorsController
         require_once __DIR__.'/MissingScopeException.php';
 
         throw new MissingScopeException(['articles:write']);
+    }
+
+    public function missingAbility(): never
+    {
+        require_once __DIR__.'/MissingAbilityException.php';
+
+        throw new MissingAbilityException(['articles:write']);
     }
 
     public function methodNotAllowed(): never
@@ -91,6 +99,11 @@ final class ErrorsController
     public function abort(int $status): never
     {
         abort($status, 'Tenant A owns secret X.');
+    }
+
+    public function abortWithHeaders(int $status): never
+    {
+        abort($status, 'Tenant A owns secret X.', ['ETag' => '"33a64df5"', 'X-Request-Trace' => 'trace-1']);
     }
 
     public function customRules(CustomRulesValidator $validator): void

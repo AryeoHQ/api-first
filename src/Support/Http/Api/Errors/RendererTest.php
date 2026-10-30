@@ -87,12 +87,37 @@ final class RendererTest extends TestCase
     }
 
     #[Test]
-    public function it_leaves_a_method_the_router_rejects_to_the_framework(): void
+    public function it_renders_a_method_the_router_rejects_as_405(): void
     {
-        $this->deleteJson('api/errors/validate')
-            ->assertMethodNotAllowed()
-            ->assertJsonStructure(['message'])
-            ->assertJsonMissingPath('errors');
+        $this->assertErrors(
+            $this->deleteJson('api/errors/validate'),
+            Response::HTTP_METHOD_NOT_ALLOWED,
+            [['code' => 'error', 'detail' => 'The DELETE method is not allowed on this path.']],
+        )->assertHeader('Allow', 'GET, HEAD, POST');
+    }
+
+    #[Test]
+    public function it_renders_an_unknown_path_as_404(): void
+    {
+        $this->assertErrors(
+            $this->getJson('api/errors/nowhere'),
+            Response::HTTP_NOT_FOUND,
+            [['code' => 'error', 'detail' => 'No resource exists at this path.']],
+        );
+    }
+
+    #[Test]
+    public function it_renders_maintenance_mode_as_503_with_retry_after(): void
+    {
+        config()->set('app.maintenance.driver', 'array');
+
+        $this->app->maintenanceMode()->activate(['retry' => 60]);
+
+        $this->assertErrors(
+            $this->getJson('api/errors/forbidden'),
+            Response::HTTP_SERVICE_UNAVAILABLE,
+            [['code' => 'error', 'detail' => 'The service cannot serve requests at the moment.']],
+        )->assertHeader('Retry-After', '60');
     }
 
     #[Test]
@@ -160,15 +185,57 @@ final class RendererTest extends TestCase
     }
 
     #[Test]
-    public function it_renders_a_throttled_request_as_429_with_retry_after(): void
+    public function it_renders_an_aborted_412_as_a_stale_precondition(): void
+    {
+        $this->assertErrors(
+            $this->getJson('api/errors/abort/412'),
+            Response::HTTP_PRECONDITION_FAILED,
+            [['code' => 'error', 'detail' => 'The If-Match precondition does not match the current resource.', 'source' => ['header' => 'If-Match']]],
+        );
+    }
+
+    #[Test]
+    public function it_renders_an_aborted_428_as_a_missing_precondition(): void
+    {
+        $this->assertErrors(
+            $this->getJson('api/errors/abort/428'),
+            Response::HTTP_PRECONDITION_REQUIRED,
+            [['code' => 'error', 'detail' => 'This operation requires the If-Match header.', 'source' => ['header' => 'If-Match']]],
+        );
+    }
+
+    #[Test]
+    public function it_drops_the_etag_from_an_aborted_412_and_keeps_other_headers(): void
+    {
+        $this->assertErrors(
+            $this->getJson('api/errors/abort/412/headers'),
+            Response::HTTP_PRECONDITION_FAILED,
+            [['code' => 'error', 'detail' => 'The If-Match precondition does not match the current resource.', 'source' => ['header' => 'If-Match']]],
+        )->assertHeaderMissing('ETag')->assertHeader('X-Request-Trace', 'trace-1');
+    }
+
+    #[Test]
+    public function it_keeps_the_headers_of_an_aborted_428(): void
+    {
+        $this->assertErrors(
+            $this->getJson('api/errors/abort/428/headers'),
+            Response::HTTP_PRECONDITION_REQUIRED,
+            [['code' => 'error', 'detail' => 'This operation requires the If-Match header.', 'source' => ['header' => 'If-Match']]],
+        )->assertHeader('ETag', '"33a64df5"')->assertHeader('X-Request-Trace', 'trace-1');
+    }
+
+    #[Test]
+    public function it_renders_a_throttled_request_as_429_with_retry_after_and_a_reset_in_seconds(): void
     {
         $this->getJson('api/errors/throttled')->assertOk();
 
-        $this->assertErrors(
+        $response = $this->assertErrors(
             $this->getJson('api/errors/throttled'),
             Response::HTTP_TOO_MANY_REQUESTS,
             [['code' => 'error', 'detail' => 'The request exceeds a rate limit.']],
         )->assertHeader('Retry-After');
+
+        $response->assertHeader('X-RateLimit-Reset', $response->baseResponse->headers->get('Retry-After'));
     }
 
     #[Test]
@@ -229,7 +296,27 @@ final class RendererTest extends TestCase
     }
 
     #[Test]
-    public function it_leaves_a_route_outside_the_middleware_groups_to_the_framework(): void
+    public function it_renders_an_aborted_412_on_a_legacy_controller_in_the_envelope(): void
+    {
+        $this->assertErrors(
+            $this->getJson('api/errors/legacy/abort/412'),
+            Response::HTTP_PRECONDITION_FAILED,
+            [['code' => 'error', 'detail' => 'The If-Match precondition does not match the current resource.', 'source' => ['header' => 'If-Match']]],
+        );
+    }
+
+    #[Test]
+    public function it_renders_an_aborted_428_on_a_legacy_controller_in_the_envelope(): void
+    {
+        $this->assertErrors(
+            $this->getJson('api/errors/legacy/abort/428'),
+            Response::HTTP_PRECONDITION_REQUIRED,
+            [['code' => 'error', 'detail' => 'This operation requires the If-Match header.', 'source' => ['header' => 'If-Match']]],
+        );
+    }
+
+    #[Test]
+    public function it_leaves_a_path_outside_the_patterns_to_the_framework(): void
     {
         $this->postJson('errors/outside/validate')
             ->assertUnprocessable()
@@ -238,11 +325,28 @@ final class RendererTest extends TestCase
     }
 
     #[Test]
-    public function it_reads_the_middleware_groups_from_config(): void
+    public function it_reads_the_paths_from_config(): void
     {
-        config()->set('api-first.errors.middleware_groups', ['api-v2']);
+        config()->set('api-first.errors.paths', ['v2/*']);
 
         $this->postJson('api/errors/validate')
+            ->assertUnprocessable()
+            ->assertJsonStructure(['message', 'errors' => ['title']])
+            ->assertJsonMissingPath('meta');
+    }
+
+    #[Test]
+    public function it_matches_a_pattern_that_starts_with_a_host_on_the_host_and_the_path(): void
+    {
+        config()->set('api-first.errors.paths', ['api.aryeo.test/api/errors/*']);
+
+        $this->assertErrors(
+            $this->postJson('http://api.aryeo.test/api/errors/validate'),
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            [['code' => 'validation', 'detail' => 'The title field is required.', 'source' => ['pointer' => '/title']]],
+        );
+
+        $this->postJson('http://www.aryeo.test/api/errors/validate')
             ->assertUnprocessable()
             ->assertJsonStructure(['message', 'errors' => ['title']])
             ->assertJsonMissingPath('meta');
@@ -287,6 +391,16 @@ final class RendererTest extends TestCase
     {
         $this->assertErrors(
             $this->getJson('api/errors/missing-scope'),
+            Response::HTTP_FORBIDDEN,
+            [['code' => 'authorization', 'detail' => 'The access token does not grant the articles:write scope.']],
+        );
+    }
+
+    #[Test]
+    public function it_renders_a_missing_sanctum_ability_as_403_naming_the_ability(): void
+    {
+        $this->assertErrors(
+            $this->getJson('api/errors/missing-ability'),
             Response::HTTP_FORBIDDEN,
             [['code' => 'authorization', 'detail' => 'The access token does not grant the articles:write scope.']],
         );
@@ -370,19 +484,19 @@ final class RendererTest extends TestCase
     }
 
     #[Test]
-    public function it_reads_a_single_middleware_group_from_config(): void
+    public function it_reads_a_single_path_pattern_from_config(): void
     {
-        config()->set('api-first.errors.middleware_groups', 'api');
+        config()->set('api-first.errors.paths', 'errors/outside/*');
 
-        $this->postJson('api/errors/validate', ['title' => 'Dusk shoot', 'photo_count' => -1])
+        $this->postJson('errors/outside/validate', ['title' => 'Dusk shoot', 'photo_count' => -1])
             ->assertUnprocessable()
             ->assertJsonPath('errors.*.code', ['validation']);
     }
 
     #[Test]
-    public function it_leaves_errors_to_the_framework_without_configured_middleware_groups(): void
+    public function it_leaves_errors_to_the_framework_without_configured_paths(): void
     {
-        config()->set('api-first.errors', []);
+        config()->set('api-first.errors.paths', []);
 
         $this->postJson('api/errors/validate')
             ->assertUnprocessable()
@@ -401,6 +515,6 @@ final class RendererTest extends TestCase
 
         $this->assertStringEndsWith(',"meta":{}}', (string) $response->baseResponse->getContent());
 
-        return $response;
+        return $response->assertHeader('Content-Type', 'application/json; charset=utf-8');
     }
 }

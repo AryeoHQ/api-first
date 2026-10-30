@@ -170,59 +170,66 @@ A `code` names a category, and the category follows the response status:
 
 The package returns the bare category. A later release may add a reason after one dot, such as `validation.<reason>`. A client therefore reads the category as the text before the first dot, and it accepts a code with or without a reason. `ErrorCode` holds the four categories, and an application cannot add a code.
 
-The renderer applies to a matched route that carries one of the configured middleware groups:
+The renderer serves a request whose path matches a configured pattern, whether or not a route matched:
 
 ```php
 // config/api-first.php
 return [
     'errors' => [
-        'middleware_groups' => ['api'],
+        'paths' => ['api/*'],
     ],
 ];
 ```
 
+A pattern matches the request path, as `Request::is()` does, such as `v2beta1/*`. A pattern whose first segment contains a dot starts with a host. It matches the host and the path, such as `api.aryeo.com/v2beta1/*`.
+
 Publish the file with `php artisan vendor:publish --tag=api-first:config`.
 
-The default group is `api`, so an upgrade to this release changes the error body of every route in that group whose controller lacks `#[LegacyErrors]`. An application whose `api` group serves an API with another error shape publishes the file first. It then names only the groups the renderer serves.
+The default pattern is `api/*`, the prefix Laravel gives API routes. An upgrade to this release therefore changes the error body of every request under `api/`, unless its controller carries `#[LegacyErrors]`. An application whose `api/` paths serve an API with another error shape publishes the file first. It then names only the paths the renderer serves.
 
-| Failure                                               | Status                      |
-| ----------------------------------------------------- | --------------------------- |
-| A 400 HTTP exception                                  | 400                         |
-| A non-empty JSON body that does not decode            | 400                         |
-| `AuthenticationException`                             | 401                         |
-| A failed authorizer or policy, `denyAsNotFound()` too | 403                         |
-| Passport's `MissingScopeException`                    | 403                         |
-| A missing bound model                                 | 404                         |
-| A 405 raised inside a matched route                   | 405                         |
-| `PreconditionFailed`                                  | 412                         |
-| A 415 HTTP exception                                  | 415                         |
-| A failed validation, one object per message           | 422                         |
-| `PreconditionRequired`                                | 428                         |
-| Throttling                                            | 429, with `Retry-After`     |
-| A 503 HTTP exception                                  | 503, with any `Retry-After` |
-| Any other HTTP exception                              | Its own                     |
-| Any other throwable                                   | 500                         |
+The package also adds a global middleware. It rejects a non-empty JSON body that does not decode with a 400, on every path the renderer serves. The middleware runs before routing, so the 400 comes before a 404, a 405, or any validation.
 
-The renderer writes every `detail` except a validation message, so an exception message never reaches the client. Any other HTTP exception, such as `abort(409)`, gets the detail "The API cannot complete the request." So does a `ValidationException` whose status is not 422.
+| Failure                                                 | Status                                                     |
+| ------------------------------------------------------- | ---------------------------------------------------------- |
+| A 400 HTTP exception                                    | 400                                                        |
+| A non-empty JSON body that does not decode              | 400                                                        |
+| `AuthenticationException`                               | 401                                                        |
+| A failed authorizer or policy, `denyAsNotFound()` too   | 403                                                        |
+| Passport's `MissingScopeException`                      | 403                                                        |
+| Sanctum's `MissingAbilityException`                     | 403                                                        |
+| A missing bound model, or a path no route matches       | 404                                                        |
+| A 405 HTTP exception, the router's included             | 405                                                        |
+| `PreconditionFailed`, or any other 412 HTTP exception   | 412                                                        |
+| A 415 HTTP exception                                    | 415                                                        |
+| A failed validation, one object per message             | 422                                                        |
+| `PreconditionRequired`, or any other 428 HTTP exception | 428                                                        |
+| Throttling                                              | 429, with `Retry-After` and `X-RateLimit-Reset` in seconds |
+| A 503 HTTP exception, maintenance mode included         | 503, with any `Retry-After`                                |
+| Any other HTTP exception                                | Its own                                                    |
+| Any other throwable                                     | 500                                                        |
+
+Every 412 and 428 names the `If-Match` header as its source, whichever precondition failed.
+
+The renderer writes every `detail` except a validation message, so an exception message never reaches the client through the renderer. Any other HTTP exception, such as `abort(409)`, gets the detail "The API cannot complete the request." So does a `ValidationException` whose status is not 422.
 
 A failed validation renders one error object per message, with the code `validation`. The validator's message becomes the `detail`, whichever rule, closure, or `after` hook produced it. A body field carries a `pointer` such as `/items/0/name`, and a query key carries a `parameter` such as `filters[status]`.
 
 The source has these limits:
 
 - A key merged in `prepareForValidation()` gets a source, such as a `pointer`, that the client never sent.
-- An array query key spells its index: `ids[1]`, not the `ids[]` the request sent.
+- A repeated query key names its zero-based index: the second `ids[]` the request sent becomes `ids[1]`.
 - Validation never emits a `header` source yet, because nothing marks a validated attribute as a header.
 - A query key that a POST request omits gets a `pointer`, not a `parameter`.
 
 The framework keeps rendering these errors:
 
-- An error raised before a route matches, such as an unknown path's 404 or the router's 405.
-- A route outside the configured middleware groups.
+- A request whose path matches no configured pattern.
 - An `HttpResponseException`, because the application built its response.
+- An exception that renders its own response, through `render()` or `Responsable`. That response can carry the exception message.
 
 ### Legacy errors
 
-A controller marked `#[LegacyErrors]` keeps the framework's error bodies. `PreconditionFailed` and `PreconditionRequired` still render in the envelope, because those responses have no legacy shape:
+A controller marked `#[LegacyErrors]` keeps the framework's error bodies. A 412 or a 428 still renders in the envelope, because those responses have no legacy shape. So does the 400 for a JSON body that does not decode, because the middleware rejects it before routing selects the controller:
 
 ```php
 use Support\Http\Api\Errors\Attributes\LegacyErrors;

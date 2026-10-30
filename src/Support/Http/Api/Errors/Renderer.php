@@ -16,29 +16,29 @@ use ReflectionClass;
 use stdClass;
 use Support\Http\Api\Errors\Attributes\LegacyErrors;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
-use Symfony\Component\HttpKernel\Exception\PreconditionFailedHttpException;
-use Symfony\Component\HttpKernel\Exception\PreconditionRequiredHttpException;
 use Throwable;
 
 final class Renderer
 {
     private const string MISSING_SCOPE = 'Laravel\Passport\Exceptions\MissingScopeException';
 
+    private const string MISSING_ABILITY = 'Laravel\Sanctum\Exceptions\MissingAbilityException';
+
     private const string GENERIC_DETAIL = 'The API cannot complete the request.';
 
     public function __invoke(Throwable $e, Request $request): null|JsonResponse
     {
-        $route = $request->route();
-
-        if (! $route instanceof Route || ! $this->servesApi($route)) {
+        if (! new Paths()->cover($request)) {
             return null;
         }
 
-        if ($e instanceof PreconditionFailedHttpException || $e instanceof PreconditionRequiredHttpException) {
+        if ($e instanceof HttpExceptionInterface && in_array($e->getStatusCode(), [412, 428], true)) {
             return $this->precondition($e);
         }
 
-        if ($this->isLegacy($route) || $e instanceof HttpResponseException) {
+        $route = $request->route();
+
+        if (($route instanceof Route && $this->isLegacy($route)) || $e instanceof HttpResponseException) {
             return null;
         }
 
@@ -50,13 +50,6 @@ final class Renderer
         };
     }
 
-    private function servesApi(Route $route): bool
-    {
-        $groups = Arr::wrap(config('api-first.errors.middleware_groups', []));
-
-        return array_any($route->middleware(), fn (mixed $middleware): bool => in_array($middleware, $groups, true));
-    }
-
     private function isLegacy(Route $route): bool
     {
         $controller = $route->getControllerClass();
@@ -66,9 +59,9 @@ final class Renderer
             && new ReflectionClass($controller)->getAttributes(LegacyErrors::class) !== [];
     }
 
-    private function precondition(PreconditionFailedHttpException|PreconditionRequiredHttpException $e): JsonResponse
+    private function precondition(HttpExceptionInterface $e): JsonResponse
     {
-        if ($e instanceof PreconditionFailedHttpException) {
+        if ($e->getStatusCode() === 412) {
             $error = $this->error(412, 'The If-Match precondition does not match the current resource.', Source::header('If-Match'));
             $headers = array_filter($e->getHeaders(), fn (string $name): bool => strcasecmp($name, 'ETag') !== 0, ARRAY_FILTER_USE_KEY);
 
@@ -82,10 +75,6 @@ final class Renderer
 
     private function validation(ValidationException $e, Request $request): JsonResponse
     {
-        if ($this->isMalformed($request)) {
-            return $this->respond(400, [$this->error(400, 'The API cannot parse the request.')]);
-        }
-
         if ($e->status !== 422) {
             return $this->respond($e->status, [$this->error($e->status, self::GENERIC_DETAIL)]);
         }
@@ -96,13 +85,6 @@ final class Renderer
         );
 
         return $this->respond(422, $errors);
-    }
-
-    private function isMalformed(Request $request): bool
-    {
-        $content = $request->getContent();
-
-        return $content !== '' && $request->isJson() && ! json_validate($content);
     }
 
     private function unauthenticated(Request $request): ErrorObject
@@ -132,18 +114,33 @@ final class Renderer
             default => self::GENERIC_DETAIL,
         };
 
-        return $this->respond($status, [$this->error($status, $detail)], $e->getHeaders());
+        $headers = $status === 429 ? $this->resetInSeconds($e->getHeaders()) : $e->getHeaders();
+
+        return $this->respond($status, [$this->error($status, $detail)], $headers);
     }
 
     private function forbidden(null|Throwable $previous): string
     {
-        $scope = is_a($previous, self::MISSING_SCOPE)
-            ? Arr::first(Arr::wrap($previous->scopes()))
-            : null;
+        $scope = match (true) {
+            is_a($previous, self::MISSING_SCOPE) => Arr::first(Arr::wrap($previous->scopes())),
+            is_a($previous, self::MISSING_ABILITY) => Arr::first(Arr::wrap($previous->abilities())),
+            default => null,
+        };
 
         return is_string($scope)
             ? "The access token does not grant the {$scope} scope."
             : 'The caller cannot perform this operation.';
+    }
+
+    /**
+     * @param  array<string, string|list<string>>  $headers
+     * @return array<string, string|list<string>>
+     */
+    private function resetInSeconds(array $headers): array
+    {
+        $retryAfter = Arr::first($headers, fn (mixed $value, string $name): bool => strcasecmp($name, 'Retry-After') === 0);
+
+        return $retryAfter === null ? $headers : [...$headers, 'X-RateLimit-Reset' => $retryAfter];
     }
 
     private function error(int $status, string $detail, null|Source $source = null): ErrorObject
@@ -157,6 +154,6 @@ final class Renderer
      */
     private function respond(int $status, array $errors, array $headers = []): JsonResponse
     {
-        return new JsonResponse(['errors' => $errors, 'meta' => new stdClass], $status, $headers);
+        return new JsonResponse(['errors' => $errors, 'meta' => new stdClass], $status, [...$headers, 'Content-Type' => 'application/json; charset=utf-8']);
     }
 }
