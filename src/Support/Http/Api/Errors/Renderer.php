@@ -31,6 +31,8 @@ final class Renderer
 
     private const string HTTP_DATE = 'D, d M Y H:i:s \G\M\T';
 
+    private const string HTTP_DATE_ASCTIME = 'D M j H:i:s Y';
+
     public function __invoke(Throwable $e, Request $request): null|JsonResponse
     {
         if (! new Paths()->cover($request)) {
@@ -143,22 +145,62 @@ final class Renderer
      */
     private function resetInSeconds(array $headers): array
     {
-        $retryAfter = Arr::first($headers, fn (mixed $value, string $name): bool => strcasecmp($name, 'Retry-After') === 0);
+        $retryAfterKey = null;
+        $retryAfter = Arr::first($headers, function (mixed $value, string $name) use (&$retryAfterKey): bool {
+            if (strcasecmp($name, 'Retry-After') === 0) {
+                $retryAfterKey = $name;
+
+                return true;
+            }
+
+            return false;
+        });
 
         if (is_array($retryAfter)) {
             $retryAfter = $retryAfter[0] ?? null;
         }
 
         if (is_string($retryAfter) && ! is_numeric($retryAfter)) {
-            $retryAfter = $this->secondsUntil($retryAfter);
+            $seconds = $this->secondsUntil($retryAfter);
+
+            if ($seconds !== null) {
+                $headers = Arr::except($headers, $retryAfterKey);
+                $retryAfter = $seconds;
+            } else {
+                return $headers;
+            }
         }
 
-        return $retryAfter === null ? $headers : [...$headers, 'X-RateLimit-Reset' => $retryAfter];
+        return $retryAfter === null ? $headers : [...$headers, 'Retry-After' => $retryAfter, 'X-RateLimit-Reset' => $retryAfter];
     }
 
     private function secondsUntil(string $date): null|string
     {
         $until = DateTimeImmutable::createFromFormat(self::HTTP_DATE, $date, new DateTimeZone('UTC'));
+
+        if ($until === false && preg_match('/^[A-Za-z]+,\s+\d{1,2}-[A-Za-z]+-(\d{2})\s+/', $date, $matches)) {
+            $twoDigitYear = (int) $matches[1];
+            $currentYear = (int) Date::now()->format('Y');
+            $currentCentury = (int) floor($currentYear / 100) * 100;
+            $fourDigitYear = $currentCentury + $twoDigitYear;
+
+            $testDate = str_replace("-{$matches[1]} ", "-{$fourDigitYear} ", $date);
+            $until = DateTimeImmutable::createFromFormat('l, d-M-Y H:i:s \G\M\T', $testDate, new DateTimeZone('UTC'));
+
+            if ($until !== false) {
+                $now = Date::now();
+                $diff = $until->getTimestamp() - $now->getTimestamp();
+
+                if ($diff > 50 * 365.25 * 24 * 60 * 60) {
+                    $until = $until->modify('-100 years');
+                }
+            }
+        }
+
+        if ($until === false) {
+            $normalized = preg_replace('/\s+/', ' ', $date);
+            $until = DateTimeImmutable::createFromFormat(self::HTTP_DATE_ASCTIME, $normalized, new DateTimeZone('UTC'));
+        }
 
         return $until === false ? null : (string) max(0, $until->getTimestamp() - Date::now()->getTimestamp());
     }

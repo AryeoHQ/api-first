@@ -143,6 +143,36 @@ final class ErrorsController
         throw $exception;
     }
 
+    public function throttledUntilRfc850(): never
+    {
+        throw new TooManyRequestsHttpException('Wednesday, 21-Oct-26 07:28:00 GMT');
+    }
+
+    public function throttledUntilAsctime(): never
+    {
+        throw new TooManyRequestsHttpException('Wed Oct 21 07:28:00 2026');
+    }
+
+    public function throttledUntilAsctimePadded(): never
+    {
+        throw new TooManyRequestsHttpException('Thu Oct  1 07:28:00 2026');
+    }
+
+    public function throttledUntilUnparseable(): never
+    {
+        throw new TooManyRequestsHttpException('not a date');
+    }
+
+    public function throttledUntilRfc8502070(): never
+    {
+        throw new TooManyRequestsHttpException('Tuesday, 21-Oct-70 07:28:00 GMT');
+    }
+
+    public function throttledUntilRfc8501977(): never
+    {
+        throw new TooManyRequestsHttpException('Friday, 21-Oct-77 07:28:00 GMT');
+    }
+
     public function preconditionFailed(): never
     {
         throw new PreconditionFailed;

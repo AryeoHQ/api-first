@@ -250,7 +250,7 @@ final class RendererTest extends TestCase
             $this->getJson('api/errors/throttled-until'),
             Response::HTTP_TOO_MANY_REQUESTS,
             [['code' => 'error', 'detail' => 'The request exceeds a rate limit.']],
-        )->assertHeader('Retry-After', 'Wed, 21 Oct 2026 07:28:00 GMT')->assertHeader('X-RateLimit-Reset', $reset);
+        )->assertHeader('Retry-After', $reset)->assertHeader('X-RateLimit-Reset', $reset);
     }
 
     #[Test]
@@ -262,7 +262,82 @@ final class RendererTest extends TestCase
             $this->getJson('api/errors/throttled-until-list'),
             Response::HTTP_TOO_MANY_REQUESTS,
             [['code' => 'error', 'detail' => 'The request exceeds a rate limit.']],
-        )->assertHeader('Retry-After', 'Wed, 21 Oct 2026 07:28:00 GMT')->assertHeader('X-RateLimit-Reset', '60');
+        )->assertHeader('Retry-After', '60')->assertHeader('X-RateLimit-Reset', '60');
+    }
+
+    #[Test]
+    public function it_renders_a_retry_after_rfc_850_date_as_seconds(): void
+    {
+        $this->travelTo(Date::parse('2026-10-21 07:27:00', 'UTC'));
+
+        $this->assertErrors(
+            $this->getJson('api/errors/throttled-until-rfc850'),
+            Response::HTTP_TOO_MANY_REQUESTS,
+            [['code' => 'error', 'detail' => 'The request exceeds a rate limit.']],
+        )->assertHeader('Retry-After', '60')->assertHeader('X-RateLimit-Reset', '60');
+    }
+
+    #[Test]
+    public function it_renders_a_retry_after_asctime_date_as_seconds(): void
+    {
+        $this->travelTo(Date::parse('2026-10-21 07:27:00', 'UTC'));
+
+        $this->assertErrors(
+            $this->getJson('api/errors/throttled-until-asctime'),
+            Response::HTTP_TOO_MANY_REQUESTS,
+            [['code' => 'error', 'detail' => 'The request exceeds a rate limit.']],
+        )->assertHeader('Retry-After', '60')->assertHeader('X-RateLimit-Reset', '60');
+    }
+
+    #[Test]
+    public function it_renders_a_retry_after_asctime_date_with_space_padded_day_as_seconds(): void
+    {
+        $this->travelTo(Date::parse('2026-10-01 07:27:00', 'UTC'));
+
+        $this->assertErrors(
+            $this->getJson('api/errors/throttled-until-asctime-padded'),
+            Response::HTTP_TOO_MANY_REQUESTS,
+            [['code' => 'error', 'detail' => 'The request exceeds a rate limit.']],
+        )->assertHeader('Retry-After', '60')->assertHeader('X-RateLimit-Reset', '60');
+    }
+
+    #[Test]
+    public function it_keeps_an_unparseable_retry_after_as_sent_with_no_reset(): void
+    {
+        $this->travelTo(Date::parse('2026-10-21 07:27:00', 'UTC'));
+
+        $this->assertErrors(
+            $this->getJson('api/errors/throttled-until-unparseable'),
+            Response::HTTP_TOO_MANY_REQUESTS,
+            [['code' => 'error', 'detail' => 'The request exceeds a rate limit.']],
+        )->assertHeader('Retry-After', 'not a date')->assertHeaderMissing('X-RateLimit-Reset');
+    }
+
+    #[Test]
+    public function it_resolves_an_rfc_850_year_more_than_50_years_ahead_as_future(): void
+    {
+        $this->travelTo(Date::parse('2026-10-21 07:27:00', 'UTC'));
+
+        $until = Date::parse('2070-10-21 07:28:00', 'UTC');
+        $seconds = (string) max(0, $until->getTimestamp() - Date::now()->getTimestamp());
+
+        $this->assertErrors(
+            $this->getJson('api/errors/throttled-until-rfc850-2070'),
+            Response::HTTP_TOO_MANY_REQUESTS,
+            [['code' => 'error', 'detail' => 'The request exceeds a rate limit.']],
+        )->assertHeader('Retry-After', $seconds)->assertHeader('X-RateLimit-Reset', $seconds);
+    }
+
+    #[Test]
+    public function it_resolves_an_rfc_850_year_within_50_years_as_past_century(): void
+    {
+        $this->travelTo(Date::parse('2026-10-21 07:27:00', 'UTC'));
+
+        $this->assertErrors(
+            $this->getJson('api/errors/throttled-until-rfc850-1977'),
+            Response::HTTP_TOO_MANY_REQUESTS,
+            [['code' => 'error', 'detail' => 'The request exceeds a rate limit.']],
+        )->assertHeader('Retry-After', '0')->assertHeader('X-RateLimit-Reset', '0');
     }
 
     #[Test]

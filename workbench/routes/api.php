@@ -28,6 +28,12 @@ Route::middleware('api')->prefix('api/errors')->group(function (): void {
     Route::get('throttled', [ErrorsController::class, 'throttled'])->middleware('throttle:1,1');
     Route::get('throttled-until', [ErrorsController::class, 'throttledUntil']);
     Route::get('throttled-until-list', [ErrorsController::class, 'throttledUntilList']);
+    Route::get('throttled-until-rfc850', [ErrorsController::class, 'throttledUntilRfc850']);
+    Route::get('throttled-until-asctime', [ErrorsController::class, 'throttledUntilAsctime']);
+    Route::get('throttled-until-asctime-padded', [ErrorsController::class, 'throttledUntilAsctimePadded']);
+    Route::get('throttled-until-unparseable', [ErrorsController::class, 'throttledUntilUnparseable']);
+    Route::get('throttled-until-rfc850-2070', [ErrorsController::class, 'throttledUntilRfc8502070']);
+    Route::get('throttled-until-rfc850-1977', [ErrorsController::class, 'throttledUntilRfc8501977']);
     Route::post('precondition-failed', [ErrorsController::class, 'preconditionFailed']);
     Route::post('precondition-required', [ErrorsController::class, 'preconditionRequired']);
     Route::post('precondition-failed-with-headers', [ErrorsController::class, 'preconditionFailedWithHeaders']);
