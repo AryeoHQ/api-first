@@ -378,11 +378,11 @@ EntityTarget::for($destination, ApiVersion::V2)
 
 The target locks every row in morph class order, then in key order. [eloquent-ordering](https://github.com/AryeoHQ/eloquent-ordering) locks the parents of a move in the same order. A request and an ordering call that lock the same rows therefore take them in one order, and they do not wait on each other in a cycle. Each model needs a morph class, from a morph map or from `Relation::requireMorphMap(false)`.
 
-A model that implements `Support\Database\Eloquent\Concurrency\Contracts\LocksParentsFirst` returns from `parentsToLockFirst()` the parents that its write locks. The target first locks the parents of every model it locks, each parent once, in the same order. It then locks the models' own rows. A write and a reorder of the same parent therefore lock the parent first, and then the items.
+A model that implements `Support\Database\Eloquent\Concurrency\Contracts\LocksParentsFirst` returns from `parentsToLockFirst()` the parents that its write locks. The target first locks those parents, each once, together with every model that lacks the contract, all in the same order. It then locks the rows of the models that have the contract. A write and a reorder of the same parent therefore lock the parent first, and then the items. A move that also locks its destination locks both parents in one order before the item.
 
-After the lock, the target reads each model's parents again from the locked row. A model that moved to another parent before the lock gives a `409`, and the write does not run. A model without the contract locks only its own row.
+After the lock, the target reads each model's parents again from the locked row. A model that moved to another parent before the lock gives a `409`, and the write does not run.
 
-The lock re-reads each row, so the write sees the committed attributes. A row that another request deleted gives a `404`. Every model must use the target's connection, because the transaction covers that connection only. `alsoLocking()` throws `LogicException` for a model on another connection.
+The lock re-reads each row, so the write sees the committed attributes. A loaded `BelongsTo` relation whose foreign key changed is dropped, so it loads again from the new key. Other loaded relations stay. A row that another request deleted gives a `404`. Every model and parent must use the target's connection, because the transaction covers that connection only. The target throws `LogicException` for one on another connection.
 
 ### Answering a move or reorder
 

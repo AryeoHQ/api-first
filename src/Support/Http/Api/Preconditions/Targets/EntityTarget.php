@@ -6,6 +6,7 @@ namespace Support\Http\Api\Preconditions\Targets;
 
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use LogicException;
 use Support\Database\Eloquent\Concurrency\ConcurrencyRevision;
@@ -64,20 +65,8 @@ final class EntityTarget implements Target
 
     public function alsoLocking(Model ...$models): static
     {
-        $connection = $this->model->getConnection()->getName();
-
         foreach ($models as $model) {
-            throw_if(
-                $model->getConnection()->getName() !== $connection,
-                LogicException::class,
-                sprintf(
-                    'The target for [%s] on connection [%s] cannot also lock [%s] on connection [%s].',
-                    $this->model::class,
-                    $connection,
-                    $model::class,
-                    $model->getConnection()->getName(),
-                ),
-            );
+            $this->ensureSameConnection($model);
         }
 
         $this->locking = [...$this->locking, ...array_values($models)];
@@ -97,19 +86,21 @@ final class EntityTarget implements Target
 
     public function lock(): void
     {
-        $models = $this->inLockOrder([$this->model, ...$this->locking]);
-        $parents = $this->parentsOf($models);
+        $models = [$this->model, ...$this->locking];
+        $children = array_values(array_filter($models, fn (Model $model): bool => $model instanceof LocksParentsFirst));
+        $parents = array_map($this->parentIdentities(...), $children);
 
-        foreach ($parents as $parent) {
-            $this->lockRow($parent);
-        }
-
-        foreach ($models as $model) {
+        // Rows without parents of their own lock with the parents, so a move takes both parents in one order.
+        foreach ($this->firstPhase(array_values(array_filter($models, fn (Model $model): bool => ! $model instanceof LocksParentsFirst)), $children) as $model) {
             $this->lockRow($model);
         }
 
+        foreach ($this->inLockOrder($children) as $child) {
+            $this->lockRow($child);
+        }
+
         throw_if(
-            array_map($this->identity(...), $this->parentsOf($models)) !== array_map($this->identity(...), $parents),
+            array_map($this->parentIdentities(...), $children) !== $parents,
             ParentsChanged::class,
             sprintf('The parents of the target for [%s] changed before the lock.', $this->model::class),
         );
@@ -167,25 +158,47 @@ final class EntityTarget implements Target
 
     /**
      * @param  list<Model>  $models
+     * @param  list<Model&LocksParentsFirst>  $children
      * @return list<Model>
      */
-    private function parentsOf(array $models): array
+    private function firstPhase(array $models, array $children): array
     {
-        $parents = [];
+        foreach ($children as $child) {
+            foreach ($child->parentsToLockFirst() as $parent) {
+                $this->ensureSameConnection($parent);
 
-        foreach ($models as $model) {
-            if (! $model instanceof LocksParentsFirst) {
-                continue;
-            }
-
-            foreach ($model->parentsToLockFirst() as $parent) {
-                if (! in_array($this->identity($parent), array_map($this->identity(...), $parents), true)) {
-                    $parents[] = $parent;
+                if (! in_array($this->identity($parent), array_map($this->identity(...), $models), true)) {
+                    $models[] = $parent;
                 }
             }
         }
 
-        return $this->inLockOrder($parents);
+        return $this->inLockOrder($models);
+    }
+
+    /**
+     * @return list<array{string, mixed}>
+     */
+    private function parentIdentities(LocksParentsFirst $child): array
+    {
+        return array_map($this->identity(...), array_values($child->parentsToLockFirst()));
+    }
+
+    private function ensureSameConnection(Model $model): void
+    {
+        $connection = $this->model->getConnection()->getName();
+
+        throw_if(
+            $model->getConnection()->getName() !== $connection,
+            LogicException::class,
+            sprintf(
+                'The target for [%s] on connection [%s] cannot also lock [%s] on connection [%s].',
+                $this->model::class,
+                $connection,
+                $model::class,
+                $model->getConnection()->getName(),
+            ),
+        );
     }
 
     /**
@@ -208,6 +221,16 @@ final class EntityTarget implements Target
 
         $locked = $query->whereKey($model->getKey())->lockForUpdate()->firstOrFail();
 
+        $changed = array_keys(array_diff_assoc(array_intersect_key($locked->getAttributes(), $model->getRawOriginal()), $model->getRawOriginal()));
+
         $model->setRawAttributes($locked->getAttributes(), true);
+
+        foreach (array_keys($model->getRelations()) as $name) {
+            $relation = $model->{$name}();
+
+            if ($relation instanceof BelongsTo && in_array($relation->getForeignKeyName(), $changed, true)) {
+                $model->unsetRelation($name);
+            }
+        }
     }
 }

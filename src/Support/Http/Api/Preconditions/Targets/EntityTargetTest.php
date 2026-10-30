@@ -299,6 +299,20 @@ final class EntityTargetTest extends TestCase
     }
 
     #[Test]
+    public function it_drops_a_loaded_parent_whose_key_changed_before_the_lock(): void
+    {
+        $old = Note::query()->create(['title' => 'Old']);
+        $new = Note::query()->create(['title' => 'New']);
+        $note = Note::query()->create(['title' => 'Child', 'parent_id' => $old->getKey()])->load('parent');
+
+        DB::table('notes')->where('id', $note->getKey())->update(['parent_id' => $new->getKey()]);
+
+        EntityTarget::for($note, ApiVersion::V1)->lock();
+
+        $this->assertSame('New', $note->parent?->title);
+    }
+
+    #[Test]
     public function it_fails_to_lock_a_row_that_no_longer_exists(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);
@@ -375,6 +389,46 @@ final class EntityTargetTest extends TestCase
         DB::table('notes')->where('id', $note->getKey())->update(['parent_id' => $destination]);
 
         $this->expectException(ParentsChanged::class);
+
+        EntityTarget::for($note, ApiVersion::V1)->lock();
+    }
+
+    #[Test]
+    public function it_locks_the_parents_of_a_move_in_one_order_before_the_item(): void
+    {
+        $destination = Note::query()->findOrFail($this->parentNote(8));
+        $source = $this->parentNote(9);
+        $item = $this->noteWithParentLock(3, parent: $source);
+        $locked = $this->recordLocks();
+
+        EntityTarget::for($item, ApiVersion::V1)->alsoLocking($destination)->lock();
+
+        $this->assertSame([$destination->getKey(), $source, $item->getKey()], $locked->pluck('key')->all());
+    }
+
+    #[Test]
+    public function it_refuses_models_that_swapped_parents_before_their_locks(): void
+    {
+        $first = $this->parentNote(8);
+        $second = $this->parentNote(9);
+        $low = $this->noteWithParentLock(1, parent: $first);
+        $high = $this->noteWithParentLock(2, parent: $second);
+
+        DB::table('notes')->where('id', $low->getKey())->update(['parent_id' => $second]);
+        DB::table('notes')->where('id', $high->getKey())->update(['parent_id' => $first]);
+
+        $this->expectException(ParentsChanged::class);
+
+        EntityTarget::for($low, ApiVersion::V1)->alsoLocking($high)->lock();
+    }
+
+    #[Test]
+    public function it_refuses_a_parent_on_another_connection(): void
+    {
+        $note = (new NoteWithParentLock(['title' => 'Child', 'parent_id' => $this->key(9)]))->setConnection('secondary');
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage(sprintf('cannot also lock [%s]', Note::class));
 
         EntityTarget::for($note, ApiVersion::V1)->lock();
     }
