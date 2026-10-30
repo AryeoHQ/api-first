@@ -7,12 +7,16 @@
         "artifactory": {
             "type": "composer",
             "url": "https://artifactory.zgtools.net/artifactory/api/composer/listing-and-vendor-management-composer/",
-            "only": ["aryeo/*", "zillow/*"]
+            "only": [
+                "aryeo/*",
+                "zillow/*"
+            ]
         }
     },
     "require": {
         "php": "^8.5",
-        "aryeo/api-resource-schema": "0.0.23",
+        "aryeo/api-resource-schema": "0.0.24",
+        "aryeo/eloquent-concurrency": "^0.0.3",
         "laravel/framework": "^12.37 || ^13",
         "laravel/prompts": "^0.3.8",
         "nikic/php-parser": "^5.7",
@@ -64,7 +68,8 @@
     "config": {
         "allow-plugins": {
             "aryeo/tooling-laravel": true,
-            "pestphp/pest-plugin": true
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
         }
     },
     "extra": {

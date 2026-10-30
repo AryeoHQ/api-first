@@ -1,0 +1,18 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{ namespace }};
+
+{{ imports }}
+
+final class {{ class }} extends BasePrecondition
+{
+    public function target(): Target
+    {
+        /** @var {{ entity }} ${{ variable }} */
+        ${{ variable }} = $this->route('{{ routeParameter }}');
+
+        return EntityTarget::for(${{ variable }}, {{ version }})->comparingSelf();
+    }
+}

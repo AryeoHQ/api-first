@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a0a32903e80477402e4a706349d4c460",
+    "content-hash": "719a7c7c57fd722c61bfdfc42ca3ee44",
     "packages": [
         {
             "name": "aryeo/actions",
@@ -110,13 +110,14 @@
         },
         {
             "name": "aryeo/api-resource-schema",
-            "version": "0.0.23",
+            "version": "0.0.24",
             "dist": {
                 "type": "zip",
-                "url": "https://artifactory.zgtools.net/artifactory/api/composer/listing-and-vendor-management-composer/direct-dists/aryeo/api-resource-schema/api-resource-schema-0.0.23.zip",
-                "reference": "21e9042b6f59c8f379a2691c58e4798633b448ec"
+                "url": "https://artifactory.zgtools.net/artifactory/api/composer/listing-and-vendor-management-composer/direct-dists/aryeo/api-resource-schema/api-resource-schema-0.0.24.zip",
+                "reference": "aa6e7c50894d15bd279462fd4f58ecd720e76a89"
             },
             "require": {
+                "aryeo/eloquent-concurrency": "0.0.3",
                 "aryeo/tooling-laravel": "0.0.43",
                 "laravel/framework": "^12.37 || ^13",
                 "laravel/prompts": "^0.3.17",
@@ -294,6 +295,89 @@
                 "actions",
                 "laravel"
             ]
+        },
+        {
+            "name": "aryeo/eloquent-concurrency",
+            "version": "0.0.3",
+            "dist": {
+                "type": "zip",
+                "url": "https://artifactory.zgtools.net/artifactory/api/composer/listing-and-vendor-management-composer/direct-dists/aryeo/eloquent-concurrency/eloquent-concurrency-0.0.3.zip",
+                "reference": "c3139fef8bd075dfc967e5012075c7cd41a95436"
+            },
+            "require": {
+                "aryeo/tooling-laravel": "0.0.43",
+                "laravel/framework": "^12.37 || ^13",
+                "php": "^8.5"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.6 || ^11",
+                "orchestra/testbench-core": "^10.7 || ^11",
+                "phpunit/phpunit": "^12.4.1 || ^13"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Support\\Database\\Eloquent\\Concurrency\\Providers\\Provider"
+                    ]
+                },
+                "tooling": {
+                    "rector": {
+                        "config": {
+                            "paths": [
+                                "src"
+                            ]
+                        },
+                        "configured_rules": "tooling/rector/configured-rules.php"
+                    },
+                    "phpstan": {
+                        "config": {
+                            "paths": [
+                                "src",
+                                "tests",
+                                "workbench"
+                            ]
+                        },
+                        "rules": "tooling/phpstan/rules.neon"
+                    },
+                    "pint": {
+                        "config": {
+                            "paths": [
+                                "src",
+                                "tests",
+                                "workbench"
+                            ]
+                        }
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Support\\": "src/Support/",
+                    "Tooling\\": "src/Tooling/"
+                },
+                "exclude-from-classmap": [
+                    "*Test.php",
+                    "*TestCases.php",
+                    "/tests/"
+                ]
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Workbench\\App\\": "workbench/app/",
+                    "Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Justin Seliga",
+                    "email": "justinsel@zillowgroup.com"
+                }
+            ],
+            "description": "Application-raised concurrency revisions for Eloquent models, with Postgres refusing a missed raise"
         },
         {
             "name": "aryeo/eloquent-search",
@@ -9161,16 +9245,16 @@
         },
         {
             "name": "symfony/http-foundation",
-            "version": "v8.1.9",
+            "version": "v8.1.10",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/http-foundation.git",
-                "reference": "7850897fb8659f98491b03be79ac48600bdaf9ab"
+                "reference": "79325f87c3a2acc7564ddce9f457046e980e7255"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/http-foundation/zipball/7850897fb8659f98491b03be79ac48600bdaf9ab",
-                "reference": "7850897fb8659f98491b03be79ac48600bdaf9ab",
+                "url": "https://api.github.com/repos/symfony/http-foundation/zipball/79325f87c3a2acc7564ddce9f457046e980e7255",
+                "reference": "79325f87c3a2acc7564ddce9f457046e980e7255",
                 "shasum": ""
             },
             "require": {
@@ -9218,7 +9302,7 @@
             "description": "Defines an object-oriented layer for the HTTP specification",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/http-foundation/tree/v8.1.9"
+                "source": "https://github.com/symfony/http-foundation/tree/v8.1.10"
             },
             "funding": [
                 {
@@ -9238,7 +9322,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-10-08T16:57:43+00:00"
+            "time": "2026-10-27T12:24:10+00:00"
         },
         {
             "name": "symfony/http-kernel",

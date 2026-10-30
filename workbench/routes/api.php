@@ -2,9 +2,22 @@
 
 declare(strict_types=1);
 
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
+use Tests\Fixtures\Support\Http\Api\ConditionalGet\CreatedNoteController;
+use Tests\Fixtures\Support\Http\Api\ConditionalGet\ListNoteChildrenController;
+use Tests\Fixtures\Support\Http\Api\ConditionalGet\ListNotesController;
+use Tests\Fixtures\Support\Http\Api\ConditionalGet\WeakNoteController;
 use Tests\Fixtures\Support\Http\Api\Errors\ErrorsController;
 use Tests\Fixtures\Support\Http\Api\Errors\LegacyErrorsController;
+use Tests\Fixtures\Support\Http\Api\Preconditions\DeleteNoteController;
+use Tests\Fixtures\Support\Http\Api\Preconditions\DeleteNoteWithParentLockController;
+use Tests\Fixtures\Support\Http\Api\Preconditions\ForbiddenUpdateNoteController;
+use Tests\Fixtures\Support\Http\Api\Preconditions\ReorderNoteChildrenController;
+use Tests\Fixtures\Support\Http\Api\Preconditions\RequiredUpdateNoteController;
+use Tests\Fixtures\Support\Http\Api\Preconditions\ShowNoteController;
+use Tests\Fixtures\Support\Http\Api\Preconditions\UpdateNoteController;
+use Tests\Fixtures\Support\Http\Api\Preconditions\UpdateSecondaryNoteController;
 
 Route::middleware('api')->prefix('api/errors')->group(function (): void {
     Route::get('authenticated', [ErrorsController::class, 'authenticated'])->middleware('auth');
@@ -47,3 +60,26 @@ Route::middleware('api')->prefix('api/errors')->group(function (): void {
 });
 
 Route::post('errors/outside/validate', [ErrorsController::class, 'validate']);
+
+Route::middleware('api')->prefix('api/preconditions')->group(function (): void {
+    Route::get('notes/{note}', ShowNoteController::class);
+    Route::patch('notes/{note}', UpdateNoteController::class);
+    Route::delete('notes/{note}', DeleteNoteController::class);
+    Route::patch('notes/{note}/required', RequiredUpdateNoteController::class);
+    Route::patch('notes/{note}/forbidden', ForbiddenUpdateNoteController::class);
+    Route::patch('notes/{note}/trashed', UpdateNoteController::class)->withTrashed();
+    Route::patch('notes/{note}/children-order', ReorderNoteChildrenController::class);
+    Route::patch('secondary-notes/{note}', UpdateSecondaryNoteController::class);
+    Route::delete('notes-with-parent-lock/{note}', DeleteNoteWithParentLockController::class);
+});
+
+Route::middleware('api')->prefix('api/conditional-get')->group(function (): void {
+    Route::get('notes', ListNotesController::class);
+    Route::get('notes/{note}', ShowNoteController::class);
+    Route::get('notes/{note}/children', ListNoteChildrenController::class);
+    Route::get('notes/{note}/created', CreatedNoteController::class);
+    Route::get('notes/{note}/weak', WeakNoteController::class);
+    Route::match(['POST', 'PUT'], 'notes/{note}', ShowNoteController::class);
+});
+
+Route::middleware(SubstituteBindings::class)->get('conditional-get/outside/notes/{note}', ShowNoteController::class);
