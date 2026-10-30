@@ -575,7 +575,7 @@ final class PreconditionTest extends TestCase
         $this->withHeader('If-Match', '*')->patchJson("api/preconditions/secondary-notes/{$note->getKey()}", ['title' => 'Final'])
             ->assertOk();
 
-        $this->assertSame(['select at 0', 'begin', 'select at 1', 'begin', 'update at 2', 'select at 2', 'commit', 'commit'], $statements->all());
+        $this->assertSame(['select at 0', 'begin', 'select at 1', 'update at 1', 'select at 1', 'commit'], $statements->all());
         $this->assertSame('Final', $note->refresh()->title);
     }
 
@@ -586,11 +586,10 @@ final class PreconditionTest extends TestCase
         $statements = $this->recordStatements(DB::getDefaultConnection());
         $level = DB::transactionLevel();
         $inner = $level + 1;
-        $savepoint = $inner + 1;
 
         $this->withHeader('If-Match', '*')->patchJson($this->uri($note), ['title' => 'Final'])->assertOk();
 
-        $this->assertSame(["select at {$level}", 'begin', "select at {$inner}", 'begin', "update at {$savepoint}", "select at {$savepoint}", 'commit', 'commit'], $statements->all());
+        $this->assertSame(["select at {$level}", 'begin', "select at {$inner}", "update at {$inner}", "select at {$inner}", 'commit'], $statements->all());
     }
 
     /**
