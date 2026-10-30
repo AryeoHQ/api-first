@@ -85,16 +85,16 @@ Paginated responses include a `meta` object alongside `data`:
         { "id": "...", "resource_type": "vendor.job" }
     ],
     "meta": {
-        "paging": {
-            "before": "YJApTcN4PAgEXP9mRvaQ",
-            "before_url": "https://example.com/api/v1/jobs?paging[cursor]=YJApTcN4PAgEXP9mRvaQ",
-            "after": "F3g_cWwV8hu3zMLlHdAw",
-            "after_url": "https://example.com/api/v1/jobs?paging[cursor]=F3g_cWwV8hu3zMLlHdAw",
-            "size": 10
-        },
         "filters": {
             "status": "draft",
             "created_at": "2025-01-01.."
+        },
+        "paging": {
+            "before": null,
+            "before_url": null,
+            "after": "eyJ...",
+            "after_url": "https://api.example.com/v2beta1/jobs?filters%5Bstatus%5D=draft&filters%5Bcreated_at%5D=2025-01-01..&sort=-created_at&paging%5Bsize%5D=25&paging%5Bafter%5D=eyJ...",
+            "size": 25
         },
         "sort": "-created_at"
     }
@@ -115,9 +115,52 @@ Non-paginated responses omit `meta` unless the request includes `filters` or `so
 
 ### Paging
 
-Pagination metadata is applied globally to all `JsonResource` collections via a mixin — no per-resource configuration is needed. `paging` is present when the response has cursors and includes `before`, `before_url`, `after`, `after_url`, and `size`.
+`meta.paging` is `null` when the response has no cursors. Otherwise it holds `before`, `before_url`, `after`, `after_url`, and `size`.
 
-Cursor pagination uses `paging[cursor]` as the query parameter rather than `cursor`. `before_url` and `after_url` repeat the request's query string, such as `sort`, `filters`, and `paging[size]`, and replace only `paging[cursor]`.
+#### Standards paging
+
+A `cursorPaginate()` call that passes no cursor pages by `paging[after]`, `paging[before]`, and `paging[size]`. The package registers `Support\Http\Api\Pagination\CursorResolver` as Laravel's cursor resolver, so this applies to an Eloquent query, a relation, and `DB::table()` alike. A caller that passes its own cursor bypasses the resolver. The caller passes the page size. The list's resource and collection use `WithDirectionalMeta`, which throws a `LogicException` when it must emit a cursor that the resolver did not see.
+
+```php
+$size = $validator->safe()->integer('paging.size') ?: 10;
+
+return new Jobs(Job::query()->orderBy('created_at')->orderBy('id')->cursorPaginate($size));
+```
+
+A validator may also use `PagesByCursor`, so that its paging errors arrive with its other field errors:
+
+```php
+use Support\Http\Api\Request\Concerns\PagesByCursor;
+use Support\Http\Validator as BaseValidator;
+
+final class Validator extends BaseValidator
+{
+    use PagesByCursor;
+
+    public function rules(): array
+    {
+        return [...$this->pagingRules(), 'sort' => ['sometimes', 'string']];
+    }
+
+    public function validationData(): array
+    {
+        return $this->query->all();
+    }
+}
+```
+
+- The resolver validates `paging[size]`, `paging[after]`, and `paging[before]` from the query string, and it reads the cursor from there. A JSON body never changes the page. The resolver needs no validator.
+- `pagingRules()` validates whatever `validationData()` returns. A list request should return the query bag there, as above.
+- `paging[size]` accepts 1 to 100, and returns 422 for any other value. The error renderer renders it with the code `validation`, and `source.parameter` names `paging[size]`. The resolver validates the size but does not apply it: a caller that passes `null` gets the model's `getPerPage()`, which is 15.
+- The key sets the direction: `paging[after]` returns the items that follow the cursor, and `paging[before]` the items that precede it.
+- Each cursor the list issues carries a signature made with the application key. The signature binds the cursor to the request's path and to its `sort`, `filters`, and search `query` query keys. The order of the `filters` keys does not matter, but the order of a filter's values does. A blank value binds as an absent one, because the list's own URLs omit it. `paging[...]`, `include`, and every other query key are not bound. A JSON body is never bound.
+- A cursor that passes verification but meets a query with a different order throws Laravel's `UnexpectedValueException`, which renders 500. This happens when a deploy changes a list's order while clients hold its cursors. It also happens when one request makes a second `cursorPaginate()` call on a query with a different order.
+- A value that fails verification throws a `ValidationException` on `paging.after` or `paging.before`, and the `Support\Http\Api\Rules\Cursor` rule reports the failure. That covers a value longer than 8192 bytes, and an unsigned or undecodable value. It also covers a changed payload or signature, and a cursor sent to another path or with another `sort`, `filters`, or `query`. The error renderer renders it with the code `validation`, and `source.parameter` names the key, such as `paging[after]`. Without that renderer, Laravel's default 422 shape applies. A list issues a cursor within that limit while its sort-key values total about 6 KB of JSON. A front proxy may reject the long URL first: nginx's default request-line limit is 8 KB, and it answers 414.
+- A change to `APP_KEY` invalidates every outstanding cursor. A client that sends one gets 422 once, and it must start again from the first page.
+- A request with both keys returns 422 on `paging.before`. The error renderer renders it with the code `validation`, and `source.parameter` names `paging[before]`.
+- Any other `paging[...]` key, such as `paging[offset]`, returns 422 on that key, for example `paging.offset`. A `paging` value that is not an array returns 422 on `paging`. The error renderer renders both with the code `validation`, and `source.parameter` names the key, such as `paging[offset]` or `paging`.
+- Outside an HTTP request, such as in a console command or a queued job, the request carries no `paging`. The resolver then returns no cursor, and `cursorPaginate()` returns the first page.
+- `WithDirectionalMeta` writes `meta.paging` with the same keys. Each URL repeats the request's query keys and carries its own `paging[after]` or `paging[before]` cursor.
 
 ### Filters & Sort
 

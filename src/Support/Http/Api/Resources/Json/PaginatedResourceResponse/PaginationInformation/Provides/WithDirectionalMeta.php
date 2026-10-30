@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Support\Http\Api\Resources\Json\PaginatedResourceResponse\PaginationInformation\Provides;
 
 use Illuminate\Http\Request;
+use Support\Http\Api\Resources\Json\PaginatedResourceResponse\PaginationInformation\DirectionalPaging;
 use Support\Http\Api\Resources\Json\PaginatedResourceResponse\PaginationInformation\Filters;
-use Support\Http\Api\Resources\Json\PaginatedResourceResponse\PaginationInformation\Paging;
 use Support\Http\Api\Resources\Json\PaginatedResourceResponse\PaginationInformation\Sort;
 
-trait WithStructuredMeta
+trait WithDirectionalMeta
 {
     /**
      * @param  array<string, mixed>  $paginated
@@ -21,7 +21,7 @@ trait WithStructuredMeta
         return [
             'meta' => [
                 'filters' => Filters::from($request),
-                'paging' => Paging::from($request, $paginated),
+                'paging' => DirectionalPaging::from($request, $paginated),
                 'sort' => Sort::from($request),
             ],
         ];
