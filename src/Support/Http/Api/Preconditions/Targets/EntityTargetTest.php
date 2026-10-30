@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Database\Query\Grammars\PostgresGrammar;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
@@ -20,6 +21,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Support\Database\Eloquent\Concurrency\ConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Exceptions\UndeclaredConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Revisions;
+use Support\Http\Api\Preconditions\Exceptions\ParentsChanged;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Note;
 use Tests\Fixtures\Support\Http\Api\Preconditions\NoteRevision;
 use Tests\Fixtures\Support\Http\Api\Preconditions\NoteWithParentLock;
@@ -323,29 +325,110 @@ final class EntityTargetTest extends TestCase
     }
 
     #[Test]
-    public function it_locks_parents_before_the_entity_when_the_model_implements_locks_parents_first(): void
+    public function it_locks_the_parents_of_every_model_in_parent_order_rather_than_entity_order(): void
     {
-        NoteWithParentLock::$lockCalls = [];
-        $entityLocks = [];
+        $first = $this->parentNote(1);
+        $second = $this->parentNote(2);
+        $inSecond = $this->noteWithParentLock(3, parent: $second);
+        $inFirst = $this->noteWithParentLock(4, parent: $first);
+        $locked = $this->recordLocks();
 
-        [$low, $middle, $high] = NoteWithParentLock::query()->find([
-            NoteWithParentLock::query()->create(['title' => 'First'])->getKey(),
-            NoteWithParentLock::query()->create(['title' => 'Second'])->getKey(),
-            NoteWithParentLock::query()->create(['title' => 'Third'])->getKey(),
-        ])->sortBy(fn ($note) => $note->getKey())->values()->all();
+        EntityTarget::for($inSecond, ApiVersion::V1)->alsoLocking($inFirst)->lock();
 
-        Event::listen(function (QueryExecuted $query) use (&$entityLocks): void {
-            $entityLocks[] = $query->bindings[0] ?? null;
-        });
+        $this->assertSame([$first, $second, $inSecond->getKey(), $inFirst->getKey()], $locked->pluck('key')->all());
+    }
+
+    #[Test]
+    public function it_locks_every_parent_before_any_entity_in_one_sequence(): void
+    {
+        $parents = [$this->parentNote(7), $this->parentNote(8), $this->parentNote(9)];
+        $low = $this->noteWithParentLock(1, parent: $parents[2]);
+        $middle = $this->noteWithParentLock(2, parent: $parents[0]);
+        $high = $this->noteWithParentLock(3, parent: $parents[1]);
+        $locked = $this->recordLocks();
 
         EntityTarget::for($middle, ApiVersion::V1)->alsoLocking($high, $low)->lock();
 
-        $this->assertSame([$low->getKey(), $middle->getKey(), $high->getKey()], array_slice($entityLocks, -3));
-        $this->assertSame([
-            ['type' => 'parent', 'id' => $low->getKey()],
-            ['type' => 'parent', 'id' => $middle->getKey()],
-            ['type' => 'parent', 'id' => $high->getKey()],
-        ], NoteWithParentLock::$lockCalls);
+        $this->assertSame([...$parents, $low->getKey(), $middle->getKey(), $high->getKey()], $locked->pluck('key')->all());
+    }
+
+    #[Test]
+    public function it_locks_a_parent_that_several_models_share_once(): void
+    {
+        $parent = $this->parentNote(9);
+        $low = $this->noteWithParentLock(1, parent: $parent);
+        $high = $this->noteWithParentLock(2, parent: $parent);
+        $locked = $this->recordLocks();
+
+        EntityTarget::for($high, ApiVersion::V1)->alsoLocking($low)->lock();
+
+        $this->assertSame([$parent, $low->getKey(), $high->getKey()], $locked->pluck('key')->all());
+    }
+
+    #[Test]
+    public function it_refuses_a_model_whose_parent_changed_before_its_lock(): void
+    {
+        $source = $this->parentNote(8);
+        $destination = $this->parentNote(9);
+        $note = $this->noteWithParentLock(1, parent: $source);
+
+        DB::table('notes')->where('id', $note->getKey())->update(['parent_id' => $destination]);
+
+        $this->expectException(ParentsChanged::class);
+
+        EntityTarget::for($note, ApiVersion::V1)->lock();
+    }
+
+    #[Test]
+    public function it_locks_only_the_rows_of_models_that_lock_no_parents(): void
+    {
+        $parent = Note::query()->create(['title' => 'Parent']);
+        $note = (new Note(['title' => 'Child', 'parent_id' => $parent->getKey()]))->forceFill(['id' => $this->key(1)]);
+        $note->save();
+        $other = (new Note(['title' => 'Other']))->forceFill(['id' => $this->key(2)]);
+        $other->save();
+        $locked = $this->recordLocks();
+
+        EntityTarget::for($other, ApiVersion::V1)->alsoLocking($note)->lock();
+
+        $sql = 'select * from "notes" where "notes"."id" = ? and "notes"."deleted_at" is null limit 1';
+
+        $this->assertSame([['sql' => $sql, 'key' => $this->key(1)], ['sql' => $sql, 'key' => $this->key(2)]], $locked->all());
+    }
+
+    /**
+     * @return Collection<int, array{sql: string, key: mixed}>
+     */
+    private function recordLocks(): Collection
+    {
+        $locked = new Collection;
+
+        Event::listen(function (QueryExecuted $query) use ($locked): void {
+            $locked->push(['sql' => $query->sql, 'key' => $query->bindings[0] ?? null]);
+        });
+
+        return $locked;
+    }
+
+    private function key(int $number): string
+    {
+        return sprintf('00000000-0000-4000-8000-%012d', $number);
+    }
+
+    private function parentNote(int $number): string
+    {
+        $parent = (new Note(['title' => 'Parent']))->forceFill(['id' => $this->key($number)]);
+        $parent->save();
+
+        return $this->key($number);
+    }
+
+    private function noteWithParentLock(int $number, string $parent): NoteWithParentLock
+    {
+        $note = (new NoteWithParentLock(['title' => 'Child', 'parent_id' => $parent]))->forceFill(['id' => $this->key($number)]);
+        $note->save();
+
+        return $note;
     }
 
     private function partialNote(): Note

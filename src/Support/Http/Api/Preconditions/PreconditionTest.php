@@ -24,6 +24,7 @@ use Support\Http\Resources\Schemas\Tags\EntityTag;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Note;
 use Tests\Fixtures\Support\Http\Api\Preconditions\NoteRevision;
+use Tests\Fixtures\Support\Http\Api\Preconditions\NoteWithParentLock;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Precondition as NotePrecondition;
 use Tests\Fixtures\Support\Http\Api\Preconditions\SecondaryNote;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
@@ -521,6 +522,40 @@ final class PreconditionTest extends TestCase
     }
 
     #[Test]
+    public function it_runs_the_write_on_an_entity_that_locks_its_parents_first(): void
+    {
+        $parent = Note::query()->create(['title' => 'Parent']);
+        $note = NoteWithParentLock::query()->create(['title' => 'Child', 'parent_id' => $parent->getKey()]);
+
+        $this->deleteJson("api/preconditions/notes-with-parent-lock/{$note->getKey()}")->assertNoContent();
+
+        $this->assertSoftDeleted($note);
+    }
+
+    #[Test]
+    public function it_returns_409_when_the_entity_moves_to_another_parent_before_the_guard(): void
+    {
+        $source = Note::query()->create(['title' => 'Source']);
+        $destination = Note::query()->create(['title' => 'Destination']);
+        $note = NoteWithParentLock::query()->create(['title' => 'Child', 'parent_id' => $source->getKey()]);
+
+        $this->app->afterResolving(NotePrecondition::class, function () use ($note, $destination): void {
+            DB::table('notes')->where('id', $note->getKey())->update(['parent_id' => $destination->getKey()]);
+        });
+
+        $this->deleteJson("api/preconditions/notes-with-parent-lock/{$note->getKey()}")
+            ->assertConflict()
+            ->assertExactJson([
+                'errors' => [
+                    ['code' => 'error', 'detail' => 'The API cannot complete the request.'],
+                ],
+                'meta' => [],
+            ]);
+
+        $this->assertNotSoftDeleted($note);
+    }
+
+    #[Test]
     public function it_runs_the_write_on_a_trashed_entity_where_the_route_binds_trashed_entities(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);
@@ -540,7 +575,7 @@ final class PreconditionTest extends TestCase
         $this->withHeader('If-Match', '*')->patchJson("api/preconditions/secondary-notes/{$note->getKey()}", ['title' => 'Final'])
             ->assertOk();
 
-        $this->assertSame(['select at 0', 'begin', 'select at 1', 'update at 1', 'select at 1', 'commit'], $statements->all());
+        $this->assertSame(['select at 0', 'begin', 'select at 1', 'begin', 'update at 2', 'select at 2', 'commit', 'commit'], $statements->all());
         $this->assertSame('Final', $note->refresh()->title);
     }
 
@@ -551,10 +586,11 @@ final class PreconditionTest extends TestCase
         $statements = $this->recordStatements(DB::getDefaultConnection());
         $level = DB::transactionLevel();
         $inner = $level + 1;
+        $savepoint = $inner + 1;
 
         $this->withHeader('If-Match', '*')->patchJson($this->uri($note), ['title' => 'Final'])->assertOk();
 
-        $this->assertSame(["select at {$level}", 'begin', "select at {$inner}", "update at {$inner}", "select at {$inner}", 'commit'], $statements->all());
+        $this->assertSame(["select at {$level}", 'begin', "select at {$inner}", 'begin', "update at {$savepoint}", "select at {$savepoint}", 'commit', 'commit'], $statements->all());
     }
 
     /**

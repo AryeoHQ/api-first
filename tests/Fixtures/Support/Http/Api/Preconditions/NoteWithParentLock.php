@@ -35,16 +35,15 @@ final class NoteWithParentLock extends Model implements Entity, LocksParentsFirs
 
     protected $fillable = ['title', 'parent_id'];
 
-    /** @var list<array{type: string, id: string}> */
-    public static array $lockCalls = [];
-
     public function getMorphClass(): string
     {
         return 'note';
     }
 
-    public function lockParentsFirst(): void
+    public function parentsToLockFirst(): array
     {
-        self::$lockCalls[] = ['type' => 'parent', 'id' => $this->getKey()];
+        $parent = $this->getAttribute('parent_id');
+
+        return $parent === null ? [] : [new Note()->newFromBuilder(['id' => $parent])];
     }
 }

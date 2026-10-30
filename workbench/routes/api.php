@@ -11,6 +11,7 @@ use Tests\Fixtures\Support\Http\Api\ConditionalGet\WeakNoteController;
 use Tests\Fixtures\Support\Http\Api\Errors\ErrorsController;
 use Tests\Fixtures\Support\Http\Api\Errors\LegacyErrorsController;
 use Tests\Fixtures\Support\Http\Api\Preconditions\DeleteNoteController;
+use Tests\Fixtures\Support\Http\Api\Preconditions\DeleteNoteWithParentLockController;
 use Tests\Fixtures\Support\Http\Api\Preconditions\ForbiddenUpdateNoteController;
 use Tests\Fixtures\Support\Http\Api\Preconditions\ReorderNoteChildrenController;
 use Tests\Fixtures\Support\Http\Api\Preconditions\RequiredUpdateNoteController;
@@ -69,6 +70,7 @@ Route::middleware('api')->prefix('api/preconditions')->group(function (): void {
     Route::patch('notes/{note}/trashed', UpdateNoteController::class)->withTrashed();
     Route::patch('notes/{note}/children-order', ReorderNoteChildrenController::class);
     Route::patch('secondary-notes/{note}', UpdateSecondaryNoteController::class);
+    Route::delete('notes-with-parent-lock/{note}', DeleteNoteWithParentLockController::class);
 });
 
 Route::middleware('api')->prefix('api/conditional-get')->group(function (): void {

@@ -14,6 +14,7 @@ use Support\Database\Eloquent\Concurrency\Contracts\NamesConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Contracts\Revisioned;
 use Support\Database\Eloquent\Concurrency\Revisions;
 use Support\Http\Api\Preconditions\Contracts\Target;
+use Support\Http\Api\Preconditions\Exceptions\ParentsChanged;
 use Support\Http\Api\Preconditions\Exceptions\UnloadedConcurrencyRevision;
 use Support\Http\Resources\Schemas\Contracts\Version;
 
@@ -91,19 +92,22 @@ final class EntityTarget implements Target
 
     public function lock(): void
     {
-        $models = [$this->model, ...$this->locking];
+        $models = $this->inLockOrder([$this->model, ...$this->locking]);
+        $parents = $this->parentsOf($models);
 
-        usort($models, fn (Model $a, Model $b): int => [$a->getMorphClass(), $a->getKey()] <=> [$b->getMorphClass(), $b->getKey()]);
-
-        foreach ($models as $model) {
-            if ($model instanceof LocksParentsFirst) {
-                $model->lockParentsFirst();
-            }
+        foreach ($parents as $parent) {
+            $this->lockRow($parent);
         }
 
         foreach ($models as $model) {
             $this->lockRow($model);
         }
+
+        throw_if(
+            array_map($this->identity(...), $this->parentsOf($models)) !== array_map($this->identity(...), $parents),
+            ParentsChanged::class,
+            sprintf('The parents of the target for [%s] changed before the lock.', $this->model::class),
+        );
     }
 
     public function compared(): Revisions
@@ -143,6 +147,50 @@ final class EntityTarget implements Target
         );
 
         return $this->model->concurrencyRevision($revision);
+    }
+
+    /**
+     * @param  list<Model>  $models
+     * @return list<Model>
+     */
+    private function inLockOrder(array $models): array
+    {
+        usort($models, fn (Model $a, Model $b): int => [$a->getMorphClass(), $a->getKey()] <=> [$b->getMorphClass(), $b->getKey()]);
+
+        return $models;
+    }
+
+    /**
+     * @param  list<Model>  $models
+     * @return list<Model>
+     */
+    private function parentsOf(array $models): array
+    {
+        $parents = [];
+
+        foreach ($models as $model) {
+            if (! $model instanceof LocksParentsFirst) {
+                continue;
+            }
+
+            foreach ($model->parentsToLockFirst() as $parent) {
+                if (! in_array($this->identity($parent), array_map($this->identity(...), $parents), true)) {
+                    $parents[] = $parent;
+                }
+            }
+        }
+
+        return $this->inLockOrder($parents);
+    }
+
+    /**
+     * @return array{string, mixed}
+     */
+    private function identity(Model $model): array
+    {
+        $key = $model->getKey();
+
+        return [$model->getMorphClass(), is_scalar($key) ? (string) $key : $key];
     }
 
     private function lockRow(Model $model): void
