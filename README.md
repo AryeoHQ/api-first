@@ -221,6 +221,9 @@ return [
     'errors' => [
         'paths' => ['api', 'api/*'],
     ],
+    'conditional_get' => [
+        'middleware_groups' => ['api'],
+    ],
 ];
 ```
 
@@ -228,7 +231,7 @@ A pattern matches the request path only, as `Request::is()` does, such as `v2bet
 
 Publish the file with `php artisan vendor:publish --tag=api-first:config`.
 
-The default patterns are `api` and `api/*`: the prefix Laravel gives API routes, and every path under it. An upgrade to this release therefore changes the error body of every request under `api`, unless its controller carries `#[LegacyErrors]`. An application whose `api` paths serve an API with another error shape publishes the file first. It then names only the paths the renderer serves.
+The default patterns are `api` and `api/*`: the prefix Laravel gives API routes, and every path under it. An upgrade to this release therefore changes the error body of every request under `api`, unless its controller carries `#[LegacyErrors]`. An application whose `api` paths serve an API with another error shape publishes the file first. It then names only the paths the renderer serves. Conditional GET reads its own key, `api-first.conditional_get.middleware_groups`, so a path removed here still answers `304`.
 
 The package also adds a global middleware. It rejects a non-empty JSON body that does not decode with a 400, on every path the renderer serves. A body is JSON when its media type, without parameters, is `application/json` or ends in `+json`. The middleware runs before routing and every route middleware. The 400 therefore comes before a 401, 403, 404, 405, 429, or any validation.
 
@@ -290,6 +293,147 @@ On a covered path, these responses to a legacy controller's routes still render 
 - The router's 405 for a method the route does not accept, because no controller matched.
 - A 412 or a 428, because those responses have no legacy shape.
 
+## Preconditions
+
+A precondition makes a write endpoint honour `If-Match`. The client sends the `ETag` of a `GET` response, and the write runs only if the revisions that the endpoint names still match. [api-resource-schema](https://github.com/AryeoHQ/api-resource-schema) sets that `ETag`, and [eloquent-concurrency](https://github.com/AryeoHQ/eloquent-concurrency) maintains the revisions.
+
+Extend `Precondition` and return a target. Then resolve the precondition between the authorizer and the validator, and wrap the write in `guard()`:
+
+```php
+use Support\Http\Api\Preconditions\Contracts\Target;
+use Support\Http\Api\Preconditions\Precondition as BasePrecondition;
+use Support\Http\Api\Preconditions\Targets\EntityTarget;
+
+final class Precondition extends BasePrecondition
+{
+    public function target(): Target
+    {
+        /** @var WebhookEndpoint $webhookEndpoint */
+        $webhookEndpoint = $this->route('webhook_endpoint');
+
+        return EntityTarget::for($webhookEndpoint, ApiVersion::V2)->comparingSelf();
+    }
+}
+
+public function __invoke(Authorizer $authorizer, Precondition $precondition, Validator $validator, WebhookEndpoint $webhookEndpoint): WebhookEndpointSchema
+{
+    $precondition->guard(fn () => $webhookEndpoint->update($validator->validated()));
+
+    return $webhookEndpoint->toSchema(ApiVersion::V2);
+}
+```
+
+`guard($write)` opens one transaction on the target's connection and locks the target's rows. It then compares `If-Match` against the revisions it read under that lock. It runs `$write` only on a match, and returns the closure's result. A concurrent write that lands between the request's start and the lock therefore still fails.
+
+### Optional and required
+
+A precondition is optional by default. A request without `If-Match` then runs the write. Set `$required` to answer such a request with `428`:
+
+```php
+protected bool $required = true;
+```
+
+| `If-Match`                                                           | Optional | Required |
+| -------------------------------------------------------------------- | -------- | -------- |
+| Absent                                                               | Runs     | 428      |
+| `*`                                                                  | Runs     | Runs     |
+| A list in which one tag matches                                      | Runs     | Runs     |
+| A weak tag, an empty value, a malformed list, or no tag that matches | 412      | 412      |
+
+A tag matches when its API version equals the target's, and each compared revision equals the stored one. The comparison ignores the digest and every revision the target does not compare. A `412` carries no `ETag`.
+
+The precondition joins every `If-Match` line into one list. `*` matches only when it stands alone, so `*` beside a tag or on two lines is malformed. A malformed list matches nothing, even when it holds the current tag.
+
+### What a target compares
+
+`EntityTarget::for($model, $api)` takes a `Revisioned` model and starts with nothing to compare. Each method adds to the set:
+
+| Method                          | Compares                                                    |
+| ------------------------------- | ----------------------------------------------------------- |
+| `comparingSelf()`               | The model's own revision                                    |
+| `comparingNamed(...$revisions)` | Each named revision, such as the order of the model's items |
+| `comparingAll()`                | The own revision and every declared named revision          |
+
+A target that compares nothing throws `LogicException` when the precondition evaluates a request that sends `If-Match`. A named revision that the model does not declare throws `UndeclaredConcurrencyRevision`, and so does an application revision whose value is `self`. A compared revision whose column the model did not load throws `UnloadedConcurrencyRevision`, a `LogicException`, rather than comparing `0`.
+
+A request without `If-Match` reads no revision. The precondition first compares the route-bound model, before the lock. When that model lacks a compared column, the precondition skips that comparison. `guard()` then compares after `lock()`, which loads every column.
+
+Compare the revisions that the write depends on. A rename compares `comparingSelf()`. A move compares the order it changes, so a client can send the nested index tag `"v2.place_assets_order=4"`:
+
+```php
+/** @var PlaceAssetSubsection $placeAssetSubsection */
+$placeAssetSubsection = $this->route('place_asset_subsection');
+
+EntityTarget::for($placeAssetSubsection, ApiVersion::V2)
+    ->comparingNamed(PlaceAssetSubsectionRevision::PlaceAssetsOrder);
+```
+
+`alsoLocking(...$models)` locks more rows in the same transaction, such as the source parent of a move between parents:
+
+```php
+EntityTarget::for($destination, ApiVersion::V2)
+    ->comparingNamed(PlaceAssetSubsectionRevision::PlaceAssetsOrder)
+    ->alsoLocking($source);
+```
+
+The target locks every row in morph class order, then in key order. [eloquent-ordering](https://github.com/AryeoHQ/eloquent-ordering) locks the parents of a move in the same order. A request and an ordering call that lock the same rows therefore take them in one order, and they do not wait on each other in a cycle. Each model needs a morph class, from a morph map or from `Relation::requireMorphMap(false)`.
+
+A model that implements `Support\Database\Eloquent\Concurrency\Contracts\LocksParentsFirst` returns from `parentsToLockFirst()` the parents that its write locks. The target first locks those parents, each once, together with every model that lacks the contract, all in the same order. It then locks the rows of the models that have the contract. A write and a reorder of the same parent therefore lock the parent first, and then the items. A move that also locks its destination locks both parents in one order before the item.
+
+After the lock, the target reads each model's parents again from the locked row. A model that moved to another parent before the lock gives a `409`, and the write does not run.
+
+The lock re-reads each row, so the write sees the committed attributes. A loaded `BelongsTo` relation whose foreign key changed is dropped, so it loads again from the new key. Other loaded relations stay. A row that another request deleted gives a `404`. Every model and parent must use the target's connection, because the transaction covers that connection only. The target throws `LogicException` for one on another connection.
+
+### Answering a move or reorder
+
+A `204` from a move or reorder carries the nested index tag of the order after the write. The route-bound parent holds the revision from before the write, because the lock reads it first. A tag built from that parent is stale, and the client's next request with it gets `412`. Build the tag from a parent that reflects the write:
+
+```php
+$change = $precondition->guard(fn () => $asset->move(Placement::last()->in($destination), expected: null));
+
+return response()->noContent()->header(
+    'ETag',
+    (string) EntityTag::forNamedRevision($change->relation->parent, PlaceAssetSubsectionRevision::PlaceAssetsOrder, ApiVersion::V2),
+);
+```
+
+The example uses eloquent-ordering. `$change` is the `OrderChange` that `move()` or `reorder()` returns, and `$change->relation->parent` is the parent that package refreshed after the write. api-first does not depend on that package. Any parent instance that reflects the write works.
+
+### Check order
+
+A request fails on the first check that does not pass:
+
+1. `404`, from route model binding.
+2. `403`, from the authorizer.
+3. `428` or `412`, from the precondition.
+4. `422`, from the validator.
+
+The precondition compares the bound model when the container resolves it, which gives this order. The comparison inside `guard()` is the one that protects the write. `WriteEndpointMustOfferPrecondition` reports an `__invoke()` that takes a `Precondition` and never calls `guard()` on it.
+
+## Conditional GET
+
+A client that holds the `ETag` of a resource can send it back in `If-None-Match`. The package then answers `304 Not Modified` with the same `ETag` and no body, so the client keeps the copy it has.
+
+```http
+GET /api/webhook-endpoints/9d8f HTTP/1.1
+If-None-Match: "v2.17.9f2c1a0b7e3d5c4a9f2c1a0b7e3d5c4a"
+
+HTTP/1.1 304 Not Modified
+ETag: "v2.17.9f2c1a0b7e3d5c4a9f2c1a0b7e3d5c4a"
+```
+
+The `ConditionalGet` middleware needs no setup. The provider adds it to each middleware group in `api-first.conditional_get.middleware_groups`, which defaults to `['api']`. That key is separate from `api-first.errors.paths`, so a path that keeps the framework's error bodies still answers `304`. It acts on a response only when all of these hold:
+
+- The request is a `GET` or `HEAD`.
+- The response is `200` and carries a representation `ETag`, the tag of a single resource. That tag ends in a digest of the body.
+- The request sends a well-formed `If-None-Match`.
+
+`If-None-Match` matches when it is `*` alone, or when an element of its comma-separated list equals the response `ETag`. The middleware joins every `If-None-Match` line into one list, and it ignores empty elements. Each element must be `"…"` or `W/"…"`. `*` beside a tag or on two lines is malformed, and a malformed list gets no `304`. The comparison is weak, so it ignores a `W/` prefix on either side. It compares the whole tag, digest included, because a changed body must answer `200`. A `304` drops `Content-Length` and `Content-Type`, and it keeps the `ETag`.
+
+A nested index carries a tag such as `"v2.place_assets_order=4"`, but it never gets a `304`. That tag changes when the order changes, and it stays the same when an item changes.
+
+Every other request passes through unchanged: a write, a response without an `ETag` such as a plain list, a nested index, and a response that is not `200`.
+
 ## Request Context
 
 The package adds `actor()` and `subject()` macros to `Illuminate\Http\Request`, providing semantic access to the authenticated user:
@@ -317,6 +461,46 @@ The command prompts for:
 For REST, it prompts for which endpoint to generate (index, show, store, update, delete, search). For Action, it prompts for the action name and scope (instance or resource).
 
 Authorizer and Validator generation can be opted out with `--no-authorizer` and `--no-validator`.
+
+For update, delete, and instance-action endpoints, the command also generates a co-located `Precondition` through `make:precondition`. The controller takes it between the authorizer and the validator, and wraps the write in `guard()`:
+
+```php
+public function __invoke(Authorizer $authorizer, Precondition $precondition, Validator $validator, Order $order)
+{
+    $precondition->guard(function (): void {
+        //
+    });
+}
+```
+
+Index, show, store, search, and resource-action endpoints get no precondition.
+
+A precondition needs an entity that implements `Support\Database\Eloquent\Concurrency\Contracts\Revisioned`. For any other entity, an update, delete, or instance-action endpoint fails. The command then writes no file, and it exits non-zero with a message that names `Revisioned`.
+
+### make:precondition
+
+Generates a precondition that compares the own revision of the route-bound entity:
+
+```bash
+php artisan make:precondition Precondition --namespace='App\Http\Api\V1\Orders\Update' --entity='App\Entities\Orders\Order' --api-version=V1
+```
+
+```php
+final class Precondition extends BasePrecondition
+{
+    public function target(): Target
+    {
+        /** @var Order $order */
+        $order = $this->route('order');
+
+        return EntityTarget::for($order, ApiVersion::V1)->comparingSelf();
+    }
+}
+```
+
+The command prompts for any option you omit. Change the target when the write depends on a named revision. See [What a target compares](#what-a-target-compares).
+
+The entity must implement `Revisioned`. For any other entity, the command writes no file, and it exits non-zero with a message that names `Revisioned`.
 
 ### make:resource
 
@@ -350,12 +534,14 @@ The package supports Postgres only. A cursor encodes an Eloquent date attribute 
 
 This package provides PHPStan rules that enforce API conventions at static analysis time. They are automatically registered when using `aryeo/tooling-laravel`.
 
-| Rule                                    | Enforces                                                              |
-| --------------------------------------- | --------------------------------------------------------------------- |
-| `ControllerMustBeFinal`                 | Controllers must be declared `final`.                                 |
-| `ControllerMustHaveRoute`               | Controllers must define their endpoint with a `#[Route]` attribute.   |
-| `ControllerMustHaveSingleCastableData`  | Controllers must not have more than one `CastableData` parameter.     |
-| `JsonResourceMustImplementSchema`       | JSON resources must implement the `Schema` contract.                  |
-| `RouteMustBeOnInvoke`                   | The `#[Route]` attribute must only appear on the `__invoke()` method. |
-| `SchemaMustHaveId`                      | Schemas must define a public `$id` property.                          |
-| `SchemaMustHaveResourceType`            | Schemas must define a public `$resourceType` property.                |
+| Rule                                               | Enforces                                                                                                                                                     |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ControllerMustBeFinal`                            | Controllers must be declared `final`.                                                                                                                        |
+| `ControllerMustHaveRoute`                          | Controllers must define their endpoint with a `#[Route]` attribute.                                                                                          |
+| `ControllerMustHaveSingleCastableData`             | Controllers must not have more than one `CastableData` parameter.                                                                                            |
+| `JsonResourceMustImplementSchema`                  | JSON resources must implement the `Schema` contract.                                                                                                         |
+| `PreconditionMustSitBetweenAuthorizerAndValidator` | An `__invoke()` that takes a `Precondition` declares it after every authorizer and before the validator.                                                     |
+| `RouteMustBeOnInvoke`                              | The `#[Route]` attribute must only appear on the `__invoke()` method.                                                                                        |
+| `SchemaMustHaveId`                                 | Schemas must define a public `$id` property.                                                                                                                 |
+| `SchemaMustHaveResourceType`                       | Schemas must define a public `$resourceType` property.                                                                                                       |
+| `WriteEndpointMustOfferPrecondition`               | An `__invoke()` routed by `PUT`, `PATCH`, or `DELETE`, by `ANY` to a URI with a `{model}`, or by `POST` to `/{model}/actions/<action>`, takes a required `Precondition`: not nullable, with no default (`controller.precondition.missing`). A `POST` that creates is exempt. An `__invoke()` that takes a `Precondition` calls `guard()` on it (`controller.precondition.unguarded`). |
