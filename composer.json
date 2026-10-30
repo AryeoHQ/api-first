@@ -12,7 +12,7 @@
     },
     "require": {
         "php": "^8.5",
-        "aryeo/api-resource-schema": "0.0.23",
+        "aryeo/api-resource-schema": "0.0.25",
         "laravel/framework": "^12.37 || ^13",
         "laravel/prompts": "^0.3.8",
         "nikic/php-parser": "^5.7",
@@ -25,8 +25,8 @@
         "aryeo/entities": "0.0.23",
         "aryeo/request-casts": "0.0.19",
         "aryeo/request-authorizers-validators": "0.0.16",
-        "aryeo/event-log": "0.0.13",
-        "aryeo/webhooks": "0.0.11"
+        "aryeo/event-log": "0.0.14",
+        "aryeo/webhooks": "0.0.12"
     },
     "require-dev": {
         "nesbot/carbon": "^3.10",
