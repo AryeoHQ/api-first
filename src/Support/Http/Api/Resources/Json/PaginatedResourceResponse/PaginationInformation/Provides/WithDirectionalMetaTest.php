@@ -43,7 +43,7 @@ final class WithDirectionalMetaTest extends TestCase
                 'before' => null,
                 'before_url' => null,
                 'after' => $after,
-                'after_url' => "http://localhost/list-query/rfc3339?paging%5Bsize%5D=1&paging%5Bafter%5D={$after}&sort=created_at&filters%5Bstatus%5D=active",
+                'after_url' => url('list-query/rfc3339')."?paging%5Bsize%5D=1&paging%5Bafter%5D={$after}&sort=created_at&filters%5Bstatus%5D=active",
                 'size' => 1,
             ],
             'sort' => 'created_at',
@@ -80,9 +80,9 @@ final class WithDirectionalMetaTest extends TestCase
 
         $this->assertSame([
             'before' => $before,
-            'before_url' => "http://localhost/list-query/rfc3339?paging%5Bsize%5D=1&paging%5Bbefore%5D={$before}",
+            'before_url' => url('list-query/rfc3339')."?paging%5Bsize%5D=1&paging%5Bbefore%5D={$before}",
             'after' => $after,
-            'after_url' => "http://localhost/list-query/rfc3339?paging%5Bsize%5D=1&paging%5Bafter%5D={$after}",
+            'after_url' => url('list-query/rfc3339')."?paging%5Bsize%5D=1&paging%5Bafter%5D={$after}",
             'size' => 1,
         ], $response->json('meta.paging'));
     }
