@@ -22,6 +22,7 @@ use Support\Database\Eloquent\Concurrency\Exceptions\UndeclaredConcurrencyRevisi
 use Support\Database\Eloquent\Concurrency\Revisions;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Note;
 use Tests\Fixtures\Support\Http\Api\Preconditions\NoteRevision;
+use Tests\Fixtures\Support\Http\Api\Preconditions\NoteWithParentLock;
 use Tests\Fixtures\Support\Http\Api\Preconditions\SecondaryNote;
 use Tests\Fixtures\Support\Http\Api\Preconditions\ShadowingRevision;
 use Tests\Fixtures\Support\Http\Api\Preconditions\UndeclaredRevision;
@@ -319,6 +320,32 @@ final class EntityTargetTest extends TestCase
         });
 
         $this->assertSame("select * from \"notes\" where \"notes\".\"id\" = '{$note->getKey()}' and \"notes\".\"deleted_at\" is null limit 1 for update", $queries[0]['query']);
+    }
+
+    #[Test]
+    public function it_locks_parents_before_the_entity_when_the_model_implements_locks_parents_first(): void
+    {
+        NoteWithParentLock::$lockCalls = [];
+        $entityLocks = [];
+
+        [$low, $middle, $high] = NoteWithParentLock::query()->find([
+            NoteWithParentLock::query()->create(['title' => 'First'])->getKey(),
+            NoteWithParentLock::query()->create(['title' => 'Second'])->getKey(),
+            NoteWithParentLock::query()->create(['title' => 'Third'])->getKey(),
+        ])->sortBy(fn ($note) => $note->getKey())->values()->all();
+
+        Event::listen(function (QueryExecuted $query) use (&$entityLocks): void {
+            $entityLocks[] = $query->bindings[0] ?? null;
+        });
+
+        EntityTarget::for($middle, ApiVersion::V1)->alsoLocking($high, $low)->lock();
+
+        $this->assertSame([$low->getKey(), $middle->getKey(), $high->getKey()], array_slice($entityLocks, -3));
+        $this->assertSame([
+            ['type' => 'parent', 'id' => $low->getKey()],
+            ['type' => 'parent', 'id' => $middle->getKey()],
+            ['type' => 'parent', 'id' => $high->getKey()],
+        ], NoteWithParentLock::$lockCalls);
     }
 
     private function partialNote(): Note
