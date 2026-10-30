@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Support\Http\Api\Preconditions\Targets;
 
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Database\Query\Grammars\PostgresGrammar;
 use Illuminate\Database\Schema\Blueprint;
@@ -310,6 +311,18 @@ final class EntityTargetTest extends TestCase
         EntityTarget::for($note, ApiVersion::V1)->lock();
 
         $this->assertSame('New', $note->parent?->title);
+    }
+
+    #[Test]
+    public function it_keeps_a_pivot_when_it_locks(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+        $pivot = new Pivot;
+        $note->setRelation('pivot', $pivot);
+
+        EntityTarget::for($note, ApiVersion::V1)->lock();
+
+        $this->assertSame($pivot, $note->getRelation('pivot'));
     }
 
     #[Test]

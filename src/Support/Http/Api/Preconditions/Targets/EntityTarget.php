@@ -226,6 +226,10 @@ final class EntityTarget implements Target
         $model->setRawAttributes($locked->getAttributes(), true);
 
         foreach (array_keys($model->getRelations()) as $name) {
+            if (! $model->isRelation($name)) {
+                continue;
+            }
+
             $relation = $model->{$name}();
 
             if ($relation instanceof BelongsTo && in_array($relation->getForeignKeyName(), $changed, true)) {
