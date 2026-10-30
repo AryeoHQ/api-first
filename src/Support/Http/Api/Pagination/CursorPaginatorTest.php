@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace Support\Http\Api\Pagination;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Fixtures\Support\Database\Query\Grammars\Rfc3339Extended\Rfc3339ExtendedTestModel;
+use Tests\Fixtures\Support\Http\Api\Pagination\PagingTitledTestModel;
 use Tests\TestCase;
 
 #[CoversClass(CursorPaginator::class)]
@@ -78,6 +81,28 @@ final class CursorPaginatorTest extends TestCase
         $page = Rfc3339ExtendedTestModel::query()->orderBy('created_at')->cursorPaginate(count($ids));
 
         $this->assertSame([$ids[1]], $page->pluck('id')->all());
+    }
+
+    #[Test]
+    public function it_encodes_the_page_url_cursor_as_its_next_cursor(): void
+    {
+        Schema::create('paging_titled_test_models', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->string('title');
+            $table->timestampsTz();
+        });
+
+        foreach (['AC/DC é', 'Zappa'] as $title) {
+            PagingTitledTestModel::query()->forceCreate(['title' => $title]);
+        }
+
+        $this->app->instance('request', Request::create('/test', 'GET'));
+
+        $page = PagingTitledTestModel::query()->orderBy('title')->orderBy('id')->cursorPaginate(1)->toArray();
+
+        parse_str((string) parse_url((string) $page['next_page_url'], PHP_URL_QUERY), $query);
+
+        $this->assertSame($page['next_cursor'], $query['cursor'] ?? null);
     }
 
     /**

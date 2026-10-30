@@ -176,6 +176,8 @@ final class CursorResolverTest extends TestCase
         app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(ScopedOrderController::class))->getFileName());
         app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(Controller::class))->getFileName());
         app(RouteRegistrar::class)->registerFile((string) (new ReflectionClass(TableController::class))->getFileName());
+
+        $router->get('api/list-query-plain/{model}', PlainController::class);
     }
 
     #[Test]
@@ -579,6 +581,20 @@ final class CursorResolverTest extends TestCase
             ->assertOnlyJsonValidationErrors(['paging.after', 'paging.before']);
 
         $this->assertSame(['The paging.before cannot be sent with paging[after].'], $response->json('errors')['paging.before']);
+    }
+
+    #[Test]
+    public function it_renders_two_invalid_cursors_with_the_prohibits_error_alone_on_paging_before_under_api(): void
+    {
+        $this->getJson('api/list-query-plain/rfc3339?paging[after]=x&paging[before]=y')
+            ->assertUnprocessable()
+            ->assertExactJson([
+                'errors' => [
+                    ['code' => 'validation', 'detail' => 'The paging.after is not a valid cursor for this list.', 'source' => ['parameter' => 'paging[after]']],
+                    ['code' => 'validation', 'detail' => 'The paging.before cannot be sent with paging[after].', 'source' => ['parameter' => 'paging[before]']],
+                ],
+                'meta' => [],
+            ]);
     }
 
     #[Test]

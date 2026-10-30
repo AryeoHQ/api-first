@@ -7,6 +7,7 @@ namespace Support\Http\Api\Pagination;
 use DateTimeInterface;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator as UpstreamCursorPaginator;
+use Illuminate\Support\Arr;
 
 /**
  * @template TKey of array-key
@@ -27,6 +28,20 @@ final class CursorPaginator extends UpstreamCursorPaginator
             'next_cursor' => self::encode($this->nextCursor()),
             'prev_cursor' => self::encode($this->previousCursor()),
         ];
+    }
+
+    /**
+     * @param  Cursor|null  $cursor
+     */
+    #[\Override]
+    public function url($cursor): string
+    {
+        $parameters = $cursor === null ? [] : [$this->cursorName => self::encode($cursor)];
+
+        return $this->path()
+            .(str_contains((string) $this->path(), '?') ? '&' : '?')
+            .Arr::query([...$this->query, ...$parameters])
+            .$this->buildFragment();
     }
 
     #[\Override]
