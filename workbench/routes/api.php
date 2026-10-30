@@ -24,6 +24,7 @@ Route::middleware('api')->prefix('api/errors')->group(function (): void {
     Route::get('articles/{article}', [ErrorsController::class, 'show']);
     Route::get('articles/{article}/hidden', [ErrorsController::class, 'hidden']);
     Route::get('missing-scope', [ErrorsController::class, 'missingScope']);
+    Route::get('missing-ability', [ErrorsController::class, 'missingAbility']);
     Route::get('method-not-allowed', [ErrorsController::class, 'methodNotAllowed']);
     Route::match(['GET', 'POST'], 'validate', [ErrorsController::class, 'validate']);
     Route::match(['GET', 'POST'], 'rules', [ErrorsController::class, 'rules']);
@@ -33,9 +34,18 @@ Route::middleware('api')->prefix('api/errors')->group(function (): void {
     Route::get('unsupported-media-type', [ErrorsController::class, 'unsupportedMediaType']);
     Route::get('unavailable', [ErrorsController::class, 'unavailable']);
     Route::get('abort/{status}', [ErrorsController::class, 'abort']);
+    Route::get('abort/{status}/headers', [ErrorsController::class, 'abortWithHeaders']);
     Route::post('custom-rules', [ErrorsController::class, 'customRules']);
     Route::post('with-messages', [ErrorsController::class, 'withMessages']);
     Route::get('throttled', [ErrorsController::class, 'throttled'])->middleware('throttle:1,1');
+    Route::get('throttled-until', [ErrorsController::class, 'throttledUntil']);
+    Route::get('throttled-until-list', [ErrorsController::class, 'throttledUntilList']);
+    Route::get('throttled-until-rfc850', [ErrorsController::class, 'throttledUntilRfc850']);
+    Route::get('throttled-until-asctime', [ErrorsController::class, 'throttledUntilAsctime']);
+    Route::get('throttled-until-asctime-padded', [ErrorsController::class, 'throttledUntilAsctimePadded']);
+    Route::get('throttled-until-unparseable', [ErrorsController::class, 'throttledUntilUnparseable']);
+    Route::get('throttled-until-rfc850-2070', [ErrorsController::class, 'throttledUntilRfc8502070']);
+    Route::get('throttled-until-rfc850-1977', [ErrorsController::class, 'throttledUntilRfc8501977']);
     Route::post('precondition-failed', [ErrorsController::class, 'preconditionFailed']);
     Route::post('precondition-required', [ErrorsController::class, 'preconditionRequired']);
     Route::post('precondition-failed-with-headers', [ErrorsController::class, 'preconditionFailedWithHeaders']);
@@ -45,6 +55,7 @@ Route::middleware('api')->prefix('api/errors')->group(function (): void {
     Route::post('legacy/validate', [LegacyErrorsController::class, 'validate']);
     Route::post('legacy/precondition-failed', [LegacyErrorsController::class, 'preconditionFailed']);
     Route::post('legacy/symfony/precondition-failed', [LegacyErrorsController::class, 'symfonyPreconditionFailed']);
+    Route::get('legacy/abort/{status}', [LegacyErrorsController::class, 'abort']);
 });
 
 Route::post('errors/outside/validate', [ErrorsController::class, 'validate']);

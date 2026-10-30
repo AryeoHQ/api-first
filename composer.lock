@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "df954d246f103bf6379a383125a96e9e",
+    "content-hash": "97d3f9fd815b2530728d02172b2b42a3",
     "packages": [
         {
             "name": "aryeo/actions",
@@ -309,16 +309,16 @@
         },
         {
             "name": "aryeo/eloquent-concurrency",
-            "version": "dev-main",
+            "version": "dev-feat/2026-10-29t1851-app-revisions-ma",
             "source": {
                 "type": "git",
                 "url": "git@github.com:AryeoHQ/eloquent-concurrency.git",
-                "reference": "0087eafaefdc254c1bccba386503bea6d7a0d91e"
+                "reference": "9a8aa921de70ad6ab50f46cd5cc83c2a75be15e0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/eloquent-concurrency/zipball/0087eafaefdc254c1bccba386503bea6d7a0d91e",
-                "reference": "0087eafaefdc254c1bccba386503bea6d7a0d91e",
+                "url": "https://api.github.com/repos/AryeoHQ/eloquent-concurrency/zipball/9a8aa921de70ad6ab50f46cd5cc83c2a75be15e0",
+                "reference": "9a8aa921de70ad6ab50f46cd5cc83c2a75be15e0",
                 "shasum": ""
             },
             "require": {
@@ -331,7 +331,6 @@
                 "orchestra/testbench-core": "^10.7 || ^11",
                 "phpunit/phpunit": "^12.4.1 || ^13"
             },
-            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -395,12 +394,12 @@
                     "email": "justinsel@zillowgroup.com"
                 }
             ],
-            "description": "Database-maintained concurrency revisions for Eloquent models",
+            "description": "Application-raised concurrency revisions for Eloquent models, with Postgres refusing a missed raise",
             "support": {
-                "source": "https://github.com/AryeoHQ/eloquent-concurrency/tree/0.0.1",
+                "source": "https://github.com/AryeoHQ/eloquent-concurrency/tree/feat/2026-10-29t1851-app-revisions-ma",
                 "issues": "https://github.com/AryeoHQ/eloquent-concurrency/issues"
             },
-            "time": "2026-10-28T12:05:31+00:00"
+            "time": "2026-10-30T05:34:35+00:00"
         },
         {
             "name": "aryeo/eloquent-search",
@@ -13667,7 +13666,14 @@
             "time": "2026-10-05T23:14:19+00:00"
         }
     ],
-    "aliases": [],
+    "aliases": [
+        {
+            "package": "aryeo/eloquent-concurrency",
+            "version": "dev-feat/2026-10-29t1851-app-revisions-ma",
+            "alias": "dev-main",
+            "alias_normalized": "dev-main"
+        }
+    ],
     "minimum-stability": "stable",
     "stability-flags": {
         "aryeo/api-resource-schema": 20,

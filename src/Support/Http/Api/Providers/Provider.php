@@ -19,6 +19,7 @@ use Support\Http\Api\Console\Commands\MakeController\MakeController;
 use Support\Http\Api\Console\Commands\MakePrecondition\MakePrecondition;
 use Support\Http\Api\Console\Commands\MakeResource\Listeners\InjectSchemaProperties;
 use Support\Http\Api\Console\Commands\MakeResource\MakeResource;
+use Support\Http\Api\Errors\Middleware\RejectMalformedJson;
 use Support\Http\Api\Errors\Renderer;
 use Support\Http\Api\Middleware\ConditionalGet;
 use Support\Http\Api\Pagination\CursorPaginator;
@@ -36,6 +37,7 @@ class Provider extends ServiceProvider
         $this->registerMixins();
         $this->registerErrorRenderer();
         $this->registerConditionalGet();
+        $this->registerMalformedJsonMiddleware();
     }
 
     public function boot(): void
@@ -70,6 +72,15 @@ class Provider extends ServiceProvider
                 if (array_key_exists($group, $kernel->getMiddlewareGroups())) {
                     $kernel->appendMiddlewareToGroup($group, ConditionalGet::class);
                 }
+            }
+        });
+    }
+
+    private function registerMalformedJsonMiddleware(): void
+    {
+        $this->callAfterResolving(KernelContract::class, function (KernelContract $kernel): void {
+            if ($kernel instanceof Kernel) {
+                $kernel->pushMiddleware(RejectMalformedJson::class);
             }
         });
     }

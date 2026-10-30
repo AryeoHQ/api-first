@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator as ValidatorFactory;
 use Illuminate\Validation\ValidationException;
 use Laravel\Passport\Exceptions\MissingScopeException;
+use Laravel\Sanctum\Exceptions\MissingAbilityException;
 use RuntimeException;
 use Support\Http\Api\Errors\Exceptions\PreconditionFailed;
 use Support\Http\Api\Errors\Exceptions\PreconditionRequired;
@@ -16,6 +17,7 @@ use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\PreconditionFailedHttpException;
 use Symfony\Component\HttpKernel\Exception\PreconditionRequiredHttpException;
 use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
+use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 use Symfony\Component\HttpKernel\Exception\UnsupportedMediaTypeHttpException;
 use Tests\Fixtures\Support\Articles\Article;
 
@@ -46,6 +48,13 @@ final class ErrorsController
         require_once __DIR__.'/MissingScopeException.php';
 
         throw new MissingScopeException(['articles:write']);
+    }
+
+    public function missingAbility(): never
+    {
+        require_once __DIR__.'/MissingAbilityException.php';
+
+        throw new MissingAbilityException(['articles:write']);
     }
 
     public function methodNotAllowed(): never
@@ -93,6 +102,11 @@ final class ErrorsController
         abort($status, 'Tenant A owns secret X.');
     }
 
+    public function abortWithHeaders(int $status): never
+    {
+        abort($status, 'Tenant A owns secret X.', ['ETag' => '"33a64df5"', 'X-Request-Trace' => 'trace-1']);
+    }
+
     public function customRules(CustomRulesValidator $validator): void
     {
         //
@@ -106,6 +120,57 @@ final class ErrorsController
     public function throttled(): void
     {
         //
+    }
+
+    public function throttledUntil(): never
+    {
+        throw new TooManyRequestsHttpException('Wed, 21 Oct 2026 07:28:00 GMT');
+    }
+
+    public function throttledUntilList(): never
+    {
+        $exception = new class('Wed, 21 Oct 2026 07:28:00 GMT') extends TooManyRequestsHttpException
+        {
+            /**
+             * @return array<string, list<string>>
+             */
+            public function getHeaders(): array
+            {
+                return ['Retry-After' => ['Wed, 21 Oct 2026 07:28:00 GMT']];
+            }
+        };
+
+        throw $exception;
+    }
+
+    public function throttledUntilRfc850(): never
+    {
+        throw new TooManyRequestsHttpException('Wednesday, 21-Oct-26 07:28:00 GMT');
+    }
+
+    public function throttledUntilAsctime(): never
+    {
+        throw new TooManyRequestsHttpException('Wed Oct 21 07:28:00 2026');
+    }
+
+    public function throttledUntilAsctimePadded(): never
+    {
+        throw new TooManyRequestsHttpException('Thu Oct  1 07:28:00 2026');
+    }
+
+    public function throttledUntilUnparseable(): never
+    {
+        throw new TooManyRequestsHttpException('not a date');
+    }
+
+    public function throttledUntilRfc8502070(): never
+    {
+        throw new TooManyRequestsHttpException('Tuesday, 21-Oct-70 07:28:00 GMT');
+    }
+
+    public function throttledUntilRfc8501977(): never
+    {
+        throw new TooManyRequestsHttpException('Friday, 21-Oct-77 07:28:00 GMT');
     }
 
     public function preconditionFailed(): never
