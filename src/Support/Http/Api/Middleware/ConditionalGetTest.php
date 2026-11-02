@@ -7,9 +7,15 @@ namespace Support\Http\Api\Middleware;
 use Closure;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Database\Events\TransactionBeginning;
+use Illuminate\Database\Events\TransactionCommitted;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Orchestra\Testbench\Attributes\WithConfig;
 use Orchestra\Testbench\Concerns\WithWorkbench;
@@ -237,6 +243,31 @@ final class ConditionalGetTest extends TestCase
 
         $this->assertSame($before, $parent->concurrencyRevision(NoteRevision::ChildrenOrder));
         $this->assertSame(['First', 'Second'], $response->collect('data')->pluck('title')->sort()->values()->all());
+    }
+
+    #[Test]
+    public function it_reads_a_nested_index_in_one_snapshot_on_the_connection_of_its_owner(): void
+    {
+        $parent = Note::query()->create(['title' => 'Parent']);
+        Note::query()->create(['title' => 'Child', 'parent_id' => $parent->getKey()]);
+        Route::bind('note', fn (string $id): Note => Note::on('writer')->findOrFail($id));
+        $statements = new Collection;
+
+        Event::listen(function (TransactionBeginning $event) use ($statements): void {
+            $statements->push("begin on {$event->connectionName}");
+        });
+        Event::listen(function (TransactionCommitted $event) use ($statements): void {
+            $statements->push("commit on {$event->connectionName}");
+        });
+        Event::listen(function (QueryExecuted $query) use ($statements): void {
+            if ($query->connection->transactionLevel() > 0) {
+                $statements->push(Str::before($query->sql, ' ')." on {$query->connectionName}");
+            }
+        });
+
+        $this->getJson($this->uri($parent, 'children'))->assertOk()->assertJsonCount(1, 'data');
+
+        $this->assertSame(['begin on writer', 'set on writer', 'select on writer', 'select on writer', 'commit on writer'], $statements->all());
     }
 
     #[Test]

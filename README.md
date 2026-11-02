@@ -295,7 +295,7 @@ On a covered path, these responses to a legacy controller's routes still render 
 
 ## Preconditions
 
-A precondition makes a write endpoint honour `If-Match`. The client sends the `ETag` of a `GET` response, and the write runs only if the revisions that the endpoint names still match. [api-resource-schema](https://github.com/AryeoHQ/api-resource-schema) sets that `ETag`, and [eloquent-concurrency](https://github.com/AryeoHQ/eloquent-concurrency) computes the revisions.
+A precondition makes a write endpoint honour `If-Match`. The client sends the `ETag` of a `GET` response, and the write runs only if the revision that the endpoint names still matches. [api-resource-schema](https://github.com/AryeoHQ/api-resource-schema) sets that `ETag`, and [eloquent-concurrency](https://github.com/AryeoHQ/eloquent-concurrency) computes the revisions.
 
 Extend `Precondition` and return a target. Then resolve the precondition between the authorizer and the validator, and wrap the write in `guard()`:
 
@@ -323,7 +323,7 @@ public function __invoke(Authorizer $authorizer, Precondition $precondition, Val
 }
 ```
 
-`guard($write)` opens one transaction on the target's connection and locks the target's rows. It then compares `If-Match` against the revisions it read under that lock. It runs `$write` only on a match, and returns the closure's result. A concurrent write that lands between the request's start and the lock therefore still fails.
+`guard($write)` opens one transaction on the target's connection and locks the target's rows. It then compares `If-Match` against the revision it read under that lock. It runs `$write` only on a match, and returns the closure's result. A concurrent write that lands between the request's start and the lock therefore still fails.
 
 ### Optional and required
 
@@ -340,7 +340,7 @@ protected bool $required = true;
 | A list in which one tag matches                                      | Runs     | Runs     |
 | A weak tag, an empty value, a malformed list, or no tag that matches | 412      | 412      |
 
-A tag matches when its API version equals the target's, and each compared revision equals the current one. The comparison ignores the body digest and every revision the target does not compare. A `412` carries no `ETag`.
+A tag matches when its API version equals the target's, and the compared revision equals the current one. The comparison ignores the body digest and every revision the target does not compare. A `412` carries no `ETag`.
 
 Each revision is a 32-character hex digest that PostgreSQL computes from stored content, so a compare is a string compare. No column stores a revision, and a write that bypasses Eloquent changes the digest too.
 
@@ -348,21 +348,21 @@ The precondition joins every `If-Match` line into one list. `*` matches only whe
 
 ### What a target compares
 
-`EntityTarget::for($model, $api)` takes a `Revisioned` model and starts with nothing to compare. Each method adds to the set:
+`EntityTarget::for($model, $api)` takes a `Revisioned` model and starts with nothing to compare. Call one of these methods once to name the revision it compares:
 
-| Method                          | Compares                                                    |
-| ------------------------------- | ----------------------------------------------------------- |
-| `comparingSelf()`               | The model's own revision                                    |
-| `comparingNamed(...$revisions)` | Each named revision, such as the order of the model's items |
+| Method                      | Compares                                                   |
+| --------------------------- | ---------------------------------------------------------- |
+| `comparingSelf()`           | The model's own revision                                   |
+| `comparingNamed($revision)` | One named revision, such as the order of the model's items |
 
 - **The own revision** is the digest of the model's row. eloquent-concurrency selects it beside the row, so the target reads it from the model and runs no query.
 - **A named revision** is the digest of the keys of a relation's members, in the order of its declaration's `digestQuery()`. The target runs one query to compute it, each time it compares.
 
-A target that compares nothing throws `LogicException` when the precondition evaluates a request that sends `If-Match`. A named revision that the model does not declare throws `UndeclaredConcurrencyRevision`, and so does an application revision whose value is `self`. A model read without its own digest, such as one read with a select list, throws `UnloadedConcurrencyRevision`, a `LogicException`, when the target compares its own revision.
+A tag carries one revision, so a target compares exactly one. A second call to either method throws `LogicException`, and so does `comparingNamed()` with more or fewer than one revision. A target that compares nothing throws `LogicException` when the precondition evaluates a request that sends `If-Match`. A named revision that the model does not declare throws `UndeclaredConcurrencyRevision`, and so does an application revision whose value is `self`. A model read without its own digest, such as one read with a select list, throws `UnloadedConcurrencyRevision`, a `LogicException`, when the target compares its own revision.
 
 A request without `If-Match` reads no revision. The precondition first compares the route-bound model, before the lock. When that model holds no own digest, the precondition skips that comparison. `guard()` then compares after `lock()`. The locked read selects the own digest beside the row, and a named compare runs its query after the lock, in the transaction that `guard()` opens.
 
-Compare the revisions that the write depends on. A rename compares `comparingSelf()`. A move compares the order it changes, so a client can send the nested index tag `"v2.place_assets_order=5d41402abc4b2a76b9719d911017c592"`:
+Compare the revision that the write depends on. A rename compares `comparingSelf()`. A move compares the order it changes, so a client can send the nested index tag `"v2.place_assets_order=5d41402abc4b2a76b9719d911017c592"`:
 
 ```php
 /** @var PlaceAssetSubsection $placeAssetSubsection */
@@ -386,7 +386,7 @@ A model that implements `Support\Database\Eloquent\Concurrency\Contracts\LocksPa
 
 After the lock, the target reads each model's parents again from the locked row. A model that moved to another parent before the lock gives a `409`, and the write does not run.
 
-The lock re-reads each row, so the write sees the committed attributes. A loaded `BelongsTo` relation whose foreign key changed is dropped, so it loads again from the new key. Other loaded relations stay. A row that another request deleted gives a `404`. Every model and parent must use the target's connection, because the transaction covers that connection only. The target throws `LogicException` for one on another connection.
+The lock re-reads each row, so the write sees the committed attributes. An attribute that the row lacks, such as a `$withCount` count, keeps the value it had before the lock. A loaded `BelongsTo` relation whose foreign key changed is dropped, so it loads again from the new key. Other loaded relations stay. A row that another request deleted gives a `404`. Every model and parent must use the target's connection, because the transaction covers that connection only. The target throws `LogicException` for one on another connection.
 
 ### Answering a move or reorder
 
@@ -439,14 +439,13 @@ The `ConditionalGet` middleware needs no setup. The provider adds it to each mid
 
 A nested index carries a tag such as `"v2.place_assets_order=5d41402abc4b2a76b9719d911017c592"`, but it never gets a `304`. Its digest is computed from the order of the members' keys, so it changes when the order changes, and it stays the same when an item changes.
 
-Read a nested index's tag and its page in one `REPEATABLE READ` transaction:
+Read a nested index's tag and its page in one `REPEATABLE READ` transaction on the owner's connection:
 
 ```php
-use Illuminate\Support\Facades\DB;
 use Support\Http\Resources\Schemas\Tags\EntityTag;
 
-[$tag, $page] = DB::transaction(function () use ($place) {
-    DB::statement('set transaction isolation level repeatable read, read only');
+[$tag, $page] = $place->getConnection()->transaction(function () use ($place) {
+    $place->getConnection()->statement('set transaction isolation level repeatable read, read only');
 
     return [
         EntityTag::forNamedRevision($place, PlaceRevision::PlaceAssetsOrder, ApiVersion::V2),
@@ -457,7 +456,7 @@ use Support\Http\Resources\Schemas\Tags\EntityTag;
 return $page->toSchemaCollection(ApiVersion::V2)->withTag($tag);
 ```
 
-Outside such a transaction, each statement reads its own snapshot, so a write can commit between the two reads. The tag then names one order and the body shows another. A client that sends that tag in `If-Match` can then write against a body it never saw. Inside the transaction, a write that commits between the two reads shows in neither, and a client that sends the tag back gets a `412`.
+Outside such a transaction, each statement reads its own snapshot, so a write can commit between the two reads. The tag then names one order and the body shows another. A client that sends that tag in `If-Match` can then write against a body it never saw. Inside the transaction, a write that commits between the two reads shows in neither, and a client that sends the tag back gets a `412`. Both reads run on the owner's connection, so a transaction on any other connection covers neither of them.
 
 `set transaction` must be the transaction's first statement. Do not open this transaction inside another one, because Laravel then opens a savepoint, and PostgreSQL rejects the statement there. [api-resource-schema](https://github.com/AryeoHQ/api-resource-schema) describes the rule in full.
 

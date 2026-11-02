@@ -25,6 +25,7 @@ use Tests\Fixtures\Support\Http\Api\Preconditions\NoteRevision;
 use Tests\Fixtures\Support\Http\Api\Preconditions\NoteWithParentLock;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Precondition as NotePrecondition;
 use Tests\Fixtures\Support\Http\Api\Preconditions\SecondaryNote;
+use Tests\Fixtures\Support\Http\Api\Preconditions\UpdateNoteWithChildrenCountController;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\TestCase;
 
@@ -527,6 +528,49 @@ final class PreconditionTest extends TestCase
     }
 
     #[Test]
+    public function it_runs_the_write_for_the_current_tag_on_a_model_that_counts_a_relation(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+        Note::query()->create(['title' => 'Child', 'parent_id' => $note->getKey()]);
+        $tag = $this->etag($note);
+        $this->routeNotesWithChildrenCount();
+
+        $this->withHeader('If-Match', $tag)->patchJson("api/preconditions/notes-with-children-count/{$note->getKey()}", ['title' => 'Final'])
+            ->assertOk();
+
+        $this->assertSame('Final', $note->refresh()->title);
+    }
+
+    #[Test]
+    public function it_keeps_the_bind_time_count_of_a_model_that_counts_a_relation_after_the_guard(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+        Note::query()->create(['title' => 'Child', 'parent_id' => $note->getKey()]);
+        $tag = $this->etag($note);
+        $this->routeNotesWithChildrenCount();
+
+        $this->withHeader('If-Match', $tag)->patchJson("api/preconditions/notes-with-children-count/{$note->getKey()}", ['title' => 'Final'])
+            ->assertOk()
+            ->assertExactJson(['title' => 'Final', 'children_count' => 1]);
+    }
+
+    #[Test]
+    public function it_returns_412_for_a_stale_tag_on_a_model_that_counts_a_relation(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+        Note::query()->create(['title' => 'Child', 'parent_id' => $note->getKey()]);
+        $tag = $this->etag($note);
+        $this->writeElsewhere($note);
+        $this->routeNotesWithChildrenCount();
+
+        $this->assertPreconditionFailed(
+            $this->withHeader('If-Match', $tag)->patchJson("api/preconditions/notes-with-children-count/{$note->getKey()}", ['title' => 'Final'])
+        );
+
+        $this->assertSame('Written by another request', $note->refresh()->title);
+    }
+
+    #[Test]
     public function it_returns_412_when_a_concurrent_write_lands_before_the_guard(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);
@@ -680,6 +724,11 @@ final class PreconditionTest extends TestCase
     private function bindNotesWithoutRevisions(): void
     {
         Route::bind('note', fn (string $id): Note => Note::query()->findOrFail($id, ['id', 'title']));
+    }
+
+    private function routeNotesWithChildrenCount(): void
+    {
+        Route::middleware('api')->patch('api/preconditions/notes-with-children-count/{note}', UpdateNoteWithChildrenCountController::class);
     }
 
     private function uri(Note $note, null|string $suffix = null): string

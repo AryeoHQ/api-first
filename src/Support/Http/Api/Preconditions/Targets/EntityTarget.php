@@ -15,6 +15,7 @@ use Support\Database\Eloquent\Concurrency\Contracts\NamesConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Contracts\Revisioned;
 use Support\Database\Eloquent\Concurrency\Exceptions\UnselectedConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Revisions;
+use Support\Database\Eloquent\Concurrency\Scopes\SelectsConcurrencyRevision;
 use Support\Http\Api\Preconditions\Contracts\Target;
 use Support\Http\Api\Preconditions\Exceptions\ParentsChanged;
 use Support\Http\Api\Preconditions\Exceptions\UnloadedConcurrencyRevision;
@@ -26,8 +27,7 @@ final class EntityTarget implements Target
 
     private readonly Version $api;
 
-    /** @var list<NamesConcurrencyRevision> */
-    private array $revisions = [];
+    private null|NamesConcurrencyRevision $revision = null;
 
     /** @var list<Model> */
     private array $locking = [];
@@ -50,7 +50,19 @@ final class EntityTarget implements Target
 
     public function comparingNamed(NamesConcurrencyRevision ...$revisions): static
     {
-        $this->revisions = [...$this->revisions, ...array_values($revisions)];
+        throw_if(
+            count($revisions) !== 1,
+            LogicException::class,
+            sprintf('The target for [%s] cannot compare %d concurrency revisions. A tag carries one revision, so a target compares exactly one.', $this->model::class, count($revisions)),
+        );
+
+        throw_if(
+            $this->revision !== null,
+            LogicException::class,
+            sprintf('The target for [%s] already compares the [%s] concurrency revision. A tag carries one revision, so a target compares exactly one.', $this->model::class, $this->revision?->value),
+        );
+
+        $this->revision = array_values($revisions)[0];
 
         return $this;
     }
@@ -100,24 +112,11 @@ final class EntityTarget implements Target
 
     public function compared(): Revisions
     {
-        throw_if(
-            $this->revisions === [],
-            LogicException::class,
-            sprintf('The target for [%s] compares no concurrency revision.', $this->model::class),
-        );
+        $revision = $this->revision ?? throw new LogicException(sprintf('The target for [%s] compares no concurrency revision.', $this->model::class));
 
-        $own = null;
-        $named = [];
-
-        foreach ($this->revisions as $revision) {
-            if ($revision === ConcurrencyRevision::Self) {
-                $own = $this->revision($revision);
-            } else {
-                $named[(string) $revision->value] = $this->revision($revision);
-            }
-        }
-
-        return Revisions::of($own, $named);
+        return $revision === ConcurrencyRevision::Self
+            ? Revisions::of($this->revision($revision))
+            : Revisions::of(null, [(string) $revision->value => $this->revision($revision)]);
     }
 
     private function revision(NamesConcurrencyRevision $revision): string
@@ -200,7 +199,7 @@ final class EntityTarget implements Target
 
     private function lockRow(Model $model): void
     {
-        $query = $model->newQuery();
+        $query = $model->newQueryWithoutRelationships();
 
         if (method_exists($model, 'trashed') && $model->trashed()) {
             $query->withoutGlobalScope(SoftDeletingScope::class);
@@ -210,7 +209,7 @@ final class EntityTarget implements Target
 
         $changed = array_keys(array_diff_assoc(array_intersect_key($locked->getAttributes(), $model->getRawOriginal()), $model->getRawOriginal()));
 
-        $model->setRawAttributes($locked->getAttributes(), true);
+        $model->setRawAttributes(array_replace(array_diff_key($model->getAttributes(), [SelectsConcurrencyRevision::ATTRIBUTE => true]), $locked->getAttributes()), true);
 
         foreach (array_keys($model->getRelations()) as $name) {
             if (! $model->isRelation($name)) {

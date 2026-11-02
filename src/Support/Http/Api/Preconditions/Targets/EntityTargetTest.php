@@ -85,14 +85,47 @@ final class EntityTargetTest extends TestCase
     }
 
     #[Test]
-    public function it_adds_each_comparison_to_the_set(): void
+    public function it_refuses_to_compare_a_named_revision_beside_the_own_revision(): void
     {
-        $note = $this->noteWithChild();
+        $target = EntityTarget::for(Note::query()->create(['title' => 'Draft']), ApiVersion::V1)->comparingSelf();
 
-        $this->assertEquals(
-            Revisions::of($this->storedOwn($note), ['children_order' => $this->storedChildrenOrder($note)]),
-            EntityTarget::for($note, ApiVersion::V1)->comparingSelf()->comparingNamed(NoteRevision::ChildrenOrder)->compared(),
-        );
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage(sprintf('The target for [%s] already compares the [self] concurrency revision. A tag carries one revision, so a target compares exactly one.', Note::class));
+
+        $target->comparingNamed(NoteRevision::ChildrenOrder);
+    }
+
+    #[Test]
+    public function it_refuses_to_compare_the_own_revision_beside_a_named_revision(): void
+    {
+        $target = EntityTarget::for(Note::query()->create(['title' => 'Draft']), ApiVersion::V1)->comparingNamed(NoteRevision::ChildrenOrder);
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage(sprintf('The target for [%s] already compares the [children_order] concurrency revision. A tag carries one revision, so a target compares exactly one.', Note::class));
+
+        $target->comparingSelf();
+    }
+
+    #[Test]
+    public function it_refuses_to_compare_several_revisions_at_once(): void
+    {
+        $target = EntityTarget::for(Note::query()->create(['title' => 'Draft']), ApiVersion::V1);
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage(sprintf('The target for [%s] cannot compare 2 concurrency revisions. A tag carries one revision, so a target compares exactly one.', Note::class));
+
+        $target->comparingNamed(ConcurrencyRevision::Self, NoteRevision::ChildrenOrder);
+    }
+
+    #[Test]
+    public function it_refuses_to_compare_no_named_revision(): void
+    {
+        $target = EntityTarget::for(Note::query()->create(['title' => 'Draft']), ApiVersion::V1);
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage(sprintf('The target for [%s] cannot compare 0 concurrency revisions. A tag carries one revision, so a target compares exactly one.', Note::class));
+
+        $target->comparingNamed();
     }
 
     #[Test]
@@ -134,7 +167,7 @@ final class EntityTargetTest extends TestCase
         $this->expectException(UnloadedConcurrencyRevision::class);
         $this->expectExceptionMessage(sprintf('The [self] concurrency revision of [%s] is not loaded.', Note::class));
 
-        EntityTarget::for($note, ApiVersion::V1)->comparingSelf()->comparingNamed(NoteRevision::ChildrenOrder)->compared();
+        EntityTarget::for($note, ApiVersion::V1)->comparingSelf()->compared();
     }
 
     #[Test]
@@ -159,23 +192,22 @@ final class EntityTargetTest extends TestCase
     }
 
     #[Test]
-    public function it_compares_the_committed_revisions_once_it_locks(): void
+    public function it_compares_the_committed_own_revision_once_it_locks(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);
-        $target = EntityTarget::for($note, ApiVersion::V1)->comparingSelf()->comparingNamed(NoteRevision::ChildrenOrder);
+        $target = EntityTarget::for($note, ApiVersion::V1)->comparingSelf();
         $read = $this->storedOwn($note);
 
         DB::table('notes')->where('id', $note->getKey())->update(['title' => 'Final']);
 
         $committed = $this->storedOwn($note);
-        $order = $this->storedChildrenOrder($note);
 
         $this->assertNotSame($read, $committed);
-        $this->assertEquals(Revisions::of($read, ['children_order' => $order]), $target->compared());
+        $this->assertEquals(Revisions::of($read), $target->compared());
 
         $target->lock();
 
-        $this->assertEquals(Revisions::of($committed, ['children_order' => $order]), $target->compared());
+        $this->assertEquals(Revisions::of($committed), $target->compared());
         $this->assertSame('Final', $note->title);
         $this->assertFalse($note->isDirty());
     }
