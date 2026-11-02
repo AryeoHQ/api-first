@@ -295,7 +295,7 @@ On a covered path, these responses to a legacy controller's routes still render 
 
 ## Preconditions
 
-A precondition makes a write endpoint honour `If-Match`. The client sends the `ETag` of a `GET` response, and the write runs only if the revisions that the endpoint names still match. [api-resource-schema](https://github.com/AryeoHQ/api-resource-schema) sets that `ETag`, and [eloquent-concurrency](https://github.com/AryeoHQ/eloquent-concurrency) maintains the revisions.
+A precondition makes a write endpoint honour `If-Match`. The client sends the `ETag` of a `GET` response, and the write runs only if the revision that the endpoint names still matches. [api-resource-schema](https://github.com/AryeoHQ/api-resource-schema) sets that `ETag`, and [eloquent-concurrency](https://github.com/AryeoHQ/eloquent-concurrency) computes the revisions.
 
 Extend `Precondition` and return a target. Then resolve the precondition between the authorizer and the validator, and wrap the write in `guard()`:
 
@@ -323,7 +323,7 @@ public function __invoke(Authorizer $authorizer, Precondition $precondition, Val
 }
 ```
 
-`guard($write)` opens one transaction on the target's connection and locks the target's rows. It then compares `If-Match` against the revisions it read under that lock. It runs `$write` only on a match, and returns the closure's result. A concurrent write that lands between the request's start and the lock therefore still fails.
+`guard($write)` opens one transaction on the target's connection and locks the target's rows. It then compares `If-Match` against the revision it read under that lock. It runs `$write` only on a match, and returns the closure's result. A concurrent write that lands between the request's start and the lock therefore still fails.
 
 ### Optional and required
 
@@ -340,33 +340,47 @@ protected bool $required = true;
 | A list in which one tag matches                                      | Runs     | Runs     |
 | A weak tag, an empty value, a malformed list, or no tag that matches | 412      | 412      |
 
-A tag matches when its API version equals the target's, and each compared revision equals the stored one. The comparison ignores the digest and every revision the target does not compare. A `412` carries no `ETag`.
+A tag matches when its API version equals the target's, and the compared revision equals the current one. The comparison ignores the body digest and every revision the target does not compare. A `412` carries no `ETag`.
+
+Each revision is a 32-character hex digest that PostgreSQL computes from stored content, so a compare is a string compare. No column stores a revision, and a write that bypasses Eloquent changes the digest too.
 
 The precondition joins every `If-Match` line into one list. `*` matches only when it stands alone, so `*` beside a tag or on two lines is malformed. A malformed list matches nothing, even when it holds the current tag.
 
 ### What a target compares
 
-`EntityTarget::for($model, $api)` takes a `Revisioned` model and starts with nothing to compare. Each method adds to the set:
+`EntityTarget::for($model, $api)` takes a `Revisioned` model and starts with nothing to compare. Call one of these methods once to name the revision it compares:
 
-| Method                          | Compares                                                    |
-| ------------------------------- | ----------------------------------------------------------- |
-| `comparingSelf()`               | The model's own revision                                    |
-| `comparingNamed(...$revisions)` | Each named revision, such as the order of the model's items |
-| `comparingAll()`                | The own revision and every declared named revision          |
+| Method                      | Compares                                                   |
+| --------------------------- | ---------------------------------------------------------- |
+| `comparingSelf()`           | The model's own revision                                   |
+| `comparingNamed($revision)` | One named revision, such as the order of the model's items |
 
-A target that compares nothing throws `LogicException` when the precondition evaluates a request that sends `If-Match`. A named revision that the model does not declare throws `UndeclaredConcurrencyRevision`, and so does an application revision whose value is `self`. A compared revision whose column the model did not load throws `UnloadedConcurrencyRevision`, a `LogicException`, rather than comparing `0`.
+- **The own revision** is the digest of the model's row. eloquent-concurrency selects it beside the row, so the target reads it from the model and runs no query.
+- **A named revision** is the digest of the keys of a relation's members, in the order of its declaration's `digestQuery()`. The target runs one query to compute it, each time it compares.
 
-A request without `If-Match` reads no revision. The precondition first compares the route-bound model, before the lock. When that model lacks a compared column, the precondition skips that comparison. `guard()` then compares after `lock()`, which loads every column.
+A tag carries one revision, so a target compares exactly one. A second call to either method throws `LogicException`, and so does a call to `comparingNamed()` with more than one argument. A target that compares nothing throws `LogicException` when the precondition evaluates a request that sends `If-Match`. A named revision that the model does not declare throws `UndeclaredConcurrencyRevision`, and so does an application revision whose value is `self`. A model whose own query selects no digest, such as one whose global scope selects a column list, throws `UnloadedConcurrencyRevision`, a `LogicException`, when the target compares its own revision.
 
-Compare the revisions that the write depends on. A rename compares `comparingSelf()`. A move compares the order it changes, so a client can send the nested index tag `"v2.place_assets_order=4"`:
+A request without `If-Match` reads no revision. The precondition first compares the route-bound model, before the lock. When that model holds no own digest, such as one bound with `$withCount` or a select list, the target reads the digest with one keyed query. `guard()` then compares again after `lock()`. The locked read selects the own digest beside the row, and a named compare runs its query after the lock, in the transaction that `guard()` opens.
+
+Compare the revision that the write depends on. A rename compares `comparingSelf()`. A move compares the order it changes, so a client can send the nested index tag `"v2.place_assets_order=5d41402abc4b2a76b9719d911017c592"`:
 
 ```php
-/** @var PlaceAssetSubsection $placeAssetSubsection */
-$placeAssetSubsection = $this->route('place_asset_subsection');
+final class Precondition extends BasePrecondition
+{
+    protected bool $required = true;
 
-EntityTarget::for($placeAssetSubsection, ApiVersion::V2)
-    ->comparingNamed(PlaceAssetSubsectionRevision::PlaceAssetsOrder);
+    public function target(): Target
+    {
+        /** @var PlaceAssetSubsection $placeAssetSubsection */
+        $placeAssetSubsection = $this->route('place_asset_subsection');
+
+        return EntityTarget::for($placeAssetSubsection, ApiVersion::V2)
+            ->comparingNamed(PlaceAssetSubsectionRevision::PlaceAssetsOrder);
+    }
+}
 ```
+
+OCC-07 requires `If-Match` on every action that changes an order, so the precondition of every move and reorder sets `$required`.
 
 `alsoLocking(...$models)` locks more rows in the same transaction, such as the source parent of a move between parents:
 
@@ -380,24 +394,27 @@ The target locks every row in morph class order, then in key order. [eloquent-or
 
 A model that implements `Support\Database\Eloquent\Concurrency\Contracts\LocksParentsFirst` returns from `parentsToLockFirst()` the parents that its write locks. The target first locks those parents, each once, together with every model that lacks the contract, all in the same order. It then locks the rows of the models that have the contract. A write and a reorder of the same parent therefore lock the parent first, and then the items. A move that also locks its destination locks both parents in one order before the item.
 
-After the lock, the target reads each model's parents again from the locked row. A model that moved to another parent before the lock gives a `409`, and the write does not run.
+After the lock, the target reads each model's parents again from the locked row. A model that moved to another parent before the lock gives a `409`, and the write does not run. `guard()` compares `If-Match` first, so a stale tag gives a `412` instead.
 
-The lock re-reads each row, so the write sees the committed attributes. A loaded `BelongsTo` relation whose foreign key changed is dropped, so it loads again from the new key. Other loaded relations stay. A row that another request deleted gives a `404`. Every model and parent must use the target's connection, because the transaction covers that connection only. The target throws `LogicException` for one on another connection.
+The lock re-reads each row, so the write sees the committed attributes. An attribute that the row lacks, such as a `$withCount` count, keeps the value it had before the lock. A loaded `BelongsTo` relation whose foreign key changed is dropped, so it loads again from the new key. Other loaded relations stay. A row that another request deleted gives a `404`. Every model and parent must use the target's connection, because the transaction covers that connection only. The target throws `LogicException` for one on another connection.
 
 ### Answering a move or reorder
 
-A `204` from a move or reorder carries the nested index tag of the order after the write. The route-bound parent holds the revision from before the write, because the lock reads it first. A tag built from that parent is stale, and the client's next request with it gets `412`. Build the tag from a parent that reflects the write:
+A `204` from a move or reorder carries the nested index tag of the order that the write produced. Its precondition sets `protected bool $required = true;`, because OCC-07 requires `If-Match` there. Build the tag inside `guard()`, after the write, and return it from the closure:
 
 ```php
-$change = $precondition->guard(fn () => $asset->move(Placement::last()->in($destination), expected: null));
+$tag = $precondition->guard(function () use ($asset, $destination): EntityTag {
+    $change = $asset->move(Placement::last()->in($destination), expected: null);
 
-return response()->noContent()->header(
-    'ETag',
-    (string) EntityTag::forNamedRevision($change->relation->parent, PlaceAssetSubsectionRevision::PlaceAssetsOrder, ApiVersion::V2),
-);
+    return EntityTag::forNamedRevision($change->relation->parent, PlaceAssetSubsectionRevision::PlaceAssetsOrder, ApiVersion::V2);
+});
+
+return response()->noContent()->header('ETag', (string) $tag);
 ```
 
-The example uses eloquent-ordering. `$change` is the `OrderChange` that `move()` or `reorder()` returns, and `$change->relation->parent` is the parent that package refreshed after the write. api-first does not depend on that package. Any parent instance that reflects the write works.
+`EntityTag::forNamedRevision()` computes the order digest with a query. Inside `guard()`, that query runs in the write's transaction, while the target still holds the parent's lock. A guarded write to the same parent waits for that lock, so the tag names the order this write produced. After `guard()` returns, such a write can commit before the query runs. The `204` then names an order the client never saw, and the client's next `If-Match` passes over that change.
+
+The example uses eloquent-ordering. `$change` is the `OrderChange` that `move()` or `reorder()` returns, and `$change->relation->parent` is its parent. api-first does not depend on that package.
 
 ### Check order
 
@@ -416,21 +433,41 @@ A client that holds the `ETag` of a resource can send it back in `If-None-Match`
 
 ```http
 GET /api/webhook-endpoints/9d8f HTTP/1.1
-If-None-Match: "v2.17.9f2c1a0b7e3d5c4a9f2c1a0b7e3d5c4a"
+If-None-Match: "v2.3f1c0e9a7b2d4c6e8f0a1b3c5d7e9f2a.9f2c1a0b7e3d5c4a9f2c1a0b7e3d5c4a"
 
 HTTP/1.1 304 Not Modified
-ETag: "v2.17.9f2c1a0b7e3d5c4a9f2c1a0b7e3d5c4a"
+ETag: "v2.3f1c0e9a7b2d4c6e8f0a1b3c5d7e9f2a.9f2c1a0b7e3d5c4a9f2c1a0b7e3d5c4a"
 ```
 
 The `ConditionalGet` middleware needs no setup. The provider adds it to each middleware group in `api-first.conditional_get.middleware_groups`, which defaults to `['api']`. That key is separate from `api-first.errors.paths`, so a path that keeps the framework's error bodies still answers `304`. It acts on a response only when all of these hold:
 
 - The request is a `GET` or `HEAD`.
-- The response is `200` and carries a representation `ETag`, the tag of a single resource. That tag ends in a digest of the body.
+- The response is `200` and carries a representation `ETag`, the tag of a single resource. That tag reads `"<api>.<own>.<body>"`: the API version, the own revision, and a digest of the body.
 - The request sends a well-formed `If-None-Match`.
 
 `If-None-Match` matches when it is `*` alone, or when an element of its comma-separated list equals the response `ETag`. The middleware joins every `If-None-Match` line into one list, and it ignores empty elements. Each element must be `"…"` or `W/"…"`. `*` beside a tag or on two lines is malformed, and a malformed list gets no `304`. The comparison is weak, so it ignores a `W/` prefix on either side. It compares the whole tag, digest included, because a changed body must answer `200`. A `304` drops `Content-Length` and `Content-Type`, and it keeps the `ETag`.
 
-A nested index carries a tag such as `"v2.place_assets_order=4"`, but it never gets a `304`. That tag changes when the order changes, and it stays the same when an item changes.
+A nested index carries a tag such as `"v2.place_assets_order=5d41402abc4b2a76b9719d911017c592"`, but it never gets a `304`. Its digest is computed from the order of the members' keys, so it changes when the order changes, and it stays the same when an item changes.
+
+Read a nested index's tag and its page in one `Snapshot::read()` call on the owner's connection. Page it by cursor, with the size from the validator, as [Standards paging](#standards-paging) shows:
+
+```php
+use Support\Http\Resources\Schemas\Tags\EntityTag;
+use Support\Http\Resources\Schemas\Tags\Snapshot;
+
+$size = $validator->safe()->integer('paging.size') ?: 10;
+
+[$tag, $page] = Snapshot::read(fn (): array => [
+    EntityTag::forNamedRevision($place, PlaceRevision::PlaceAssetsOrder, ApiVersion::V2),
+    $place->placeAssets()->cursorPaginate($size),
+], $place->getConnection());
+
+return $page->toSchemaCollection(ApiVersion::V2)->withTag($tag);
+```
+
+Outside one `REPEATABLE READ` transaction, each statement reads its own snapshot, so a write can commit between the two reads. The tag then names one order and the body shows another. A client that sends that tag in `If-Match` can then write against a body it never saw. Inside `Snapshot::read()`, a write that commits between the two reads shows in neither, and a client that sends the tag back gets a `412`.
+
+`Snapshot::read()` throws a `LogicException` when the connection is already in a transaction, so a feature test that uses `RefreshDatabase` cannot call such an endpoint. [api-resource-schema](https://github.com/AryeoHQ/api-resource-schema) describes both rules, and the test setup that replaces `RefreshDatabase`.
 
 Every other request passes through unchanged: a write, a response without an `ETag` such as a plain list, a nested index, and a response that is not `200`.
 

@@ -47,6 +47,10 @@ final class CursorPaginatorTest extends TestCase
     #[Test]
     public function it_truncates_a_sub_millisecond_date_parameter_to_millisecond_precision(): void
     {
+        Schema::table((new Rfc3339ExtendedTestModel)->getTable(), function (Blueprint $table): void {
+            $table->timestampTz('created_at', 6)->nullable()->change();
+        });
+
         $this->insertRowsAt('2026-10-25T21:00:00.123789+00:00', '2026-10-25T21:00:00.400000+00:00');
 
         $this->assertSame('2026-10-25T21:00:00.123+00:00', $this->firstNextCursorParameter());

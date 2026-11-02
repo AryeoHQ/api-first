@@ -70,13 +70,33 @@ jobs:
         os: [ubuntu-latest]
         php: [8.5]
         laravel: [12.*, 13.*]
+        postgres: [14, 16, 18]
         include:
           - laravel: 12.*
             testbench: 10.*
           - laravel: 13.*
             testbench: 11.*
 
-    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.os }}
+    name: P${{ matrix.php }} - L${{ matrix.laravel }} - PG${{ matrix.postgres }} - ${{ matrix.os }}
+
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_DB: testing
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d testing"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      POSTGRES_VERSION: ${{ matrix.postgres }}
 
     steps:
       - name: Checkout ref
@@ -87,6 +107,8 @@ jobs:
         with:
           php_version: ${{ matrix.php }}
           coverage: pcov
+          extensions: pdo_pgsql
+          build_deps: libpq-dev
 
       - name: Install Composer dependencies
         run: php-ci composer install --no-interaction
@@ -98,6 +120,7 @@ jobs:
         run: php-ci ./vendor/bin/testbench package:test --parallel --coverage-cobertura coverage.xml
 
       - name: Code Coverage Report
+        if: matrix.postgres == 16
         uses: irongut/CodeCoverageSummary@v1.3.0
         with:
           filename: coverage.xml
@@ -112,7 +135,7 @@ jobs:
 
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && matrix.postgres == 16
         with:
           recreate: true
           path: code-coverage-results.md

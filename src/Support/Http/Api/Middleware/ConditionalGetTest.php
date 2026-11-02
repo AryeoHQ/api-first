@@ -12,15 +12,20 @@ use Orchestra\Testbench\Concerns\WithWorkbench;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
+use Support\Http\Resources\Schemas\Tags\EntityTag;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Note;
 use Tests\Fixtures\Support\Http\Api\Preconditions\NoteRevision;
+use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\TestCase;
 
 #[CoversClass(ConditionalGet::class)]
 final class ConditionalGetTest extends TestCase
 {
     use WithWorkbench;
+
+    /** @var list<null|string> */
+    protected array $connectionsToTransact = [];
 
     protected function defineDatabaseMigrations(): void
     {
@@ -30,11 +35,15 @@ final class ConditionalGetTest extends TestCase
             $table->uuid('id')->primary();
             $table->foreignUuid('parent_id')->nullable();
             $table->string('title');
-            $table->concurrencyRevision();
-            $table->namedConcurrencyRevision(NoteRevision::ChildrenOrder->value);
             $table->timestampsTz();
             $table->softDeletesTz();
         });
+    }
+
+    protected function destroyDatabaseMigrations(): void
+    {
+        Schema::drop('notes');
+        Schema::drop('rfc3339_extended_test_models');
     }
 
     #[Test]
@@ -61,7 +70,7 @@ final class ConditionalGetTest extends TestCase
         $note = Note::query()->create(['title' => 'Draft']);
         $etag = $this->etag($note);
 
-        $this->getJson($this->uri($note), ['If-None-Match' => '"v1.999.0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"'])
+        $this->getJson($this->uri($note), ['If-None-Match' => '"v1.00000000000000000000000000000000.ffffffffffffffffffffffffffffffff"'])
             ->assertOk()
             ->assertHeader('ETag', $etag)
             ->assertJsonPath('data.title', 'Draft');
@@ -142,7 +151,7 @@ final class ConditionalGetTest extends TestCase
         $etag = $this->etag($note);
 
         $this->notModified(
-            $this->getJson($this->uri($note), ['If-None-Match' => '"v1.999.0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f", W/'.$etag.' ,"other"']),
+            $this->getJson($this->uri($note), ['If-None-Match' => '"v1.00000000000000000000000000000000.ffffffffffffffffffffffffffffffff", W/'.$etag.' ,"other"']),
             $etag,
         );
     }
@@ -174,7 +183,7 @@ final class ConditionalGetTest extends TestCase
         $uri = $this->uri($parent, 'children');
         $etag = $this->getJson($uri)->assertOk()->headers->get('ETag');
 
-        $this->assertSame('"v1.children_order=1"', $etag);
+        $this->assertSame((string) EntityTag::forNamedRevision($parent, NoteRevision::ChildrenOrder, ApiVersion::V1), $etag);
 
         $child->update(['title' => 'Renamed']);
 

@@ -9,7 +9,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Support\Http\Api\Errors\Exceptions\PreconditionFailed;
 use Support\Http\Api\Errors\Exceptions\PreconditionRequired;
 use Support\Http\Api\Preconditions\Contracts\Target;
-use Support\Http\Api\Preconditions\Exceptions\UnloadedConcurrencyRevision;
+use Support\Http\Api\Preconditions\Exceptions\ParentsChanged;
 use Support\Http\Resources\Schemas\Tags\EntityTagList;
 
 abstract class Precondition extends FormRequest
@@ -42,9 +42,19 @@ abstract class Precondition extends FormRequest
         $target = $this->target();
 
         return $target->connection()->transaction(function () use ($target, $write): mixed {
-            $target->lock();
+            $moved = null;
+
+            try {
+                $target->lock();
+            } catch (ParentsChanged $exception) {
+                $moved = $exception;
+            }
 
             $this->evaluate($target);
+
+            if ($moved !== null) {
+                throw $moved;
+            }
 
             return $write();
         });
@@ -52,11 +62,7 @@ abstract class Precondition extends FormRequest
 
     final protected function passedValidation(): void
     {
-        try {
-            $this->evaluate($this->target());
-        } catch (UnloadedConcurrencyRevision) {
-            return;
-        }
+        $this->evaluate($this->target());
     }
 
     private function evaluate(Target $target): void
