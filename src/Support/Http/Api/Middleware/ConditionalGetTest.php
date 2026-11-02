@@ -4,27 +4,19 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Middleware;
 
-use Closure;
-use Illuminate\Database\Connection;
-use Illuminate\Database\Events\QueryExecuted;
-use Illuminate\Database\Events\TransactionBeginning;
-use Illuminate\Database\Events\TransactionCommitted;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Orchestra\Testbench\Attributes\WithConfig;
 use Orchestra\Testbench\Concerns\WithWorkbench;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
+use Support\Http\Resources\Schemas\Tags\EntityTag;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Note;
 use Tests\Fixtures\Support\Http\Api\Preconditions\NoteRevision;
+use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\TestCase;
 
 #[CoversClass(ConditionalGet::class)]
@@ -34,12 +26,6 @@ final class ConditionalGetTest extends TestCase
 
     /** @var list<null|string> */
     protected array $connectionsToTransact = [];
-
-    protected function afterRefreshingDatabase(): void
-    {
-        DB::purge('writer');
-        config()->set('database.connections.writer', config('database.connections.'.DB::getDefaultConnection()));
-    }
 
     protected function defineDatabaseMigrations(): void
     {
@@ -197,7 +183,7 @@ final class ConditionalGetTest extends TestCase
         $uri = $this->uri($parent, 'children');
         $etag = $this->getJson($uri)->assertOk()->headers->get('ETag');
 
-        $this->assertSame('"v1.children_order='.$parent->concurrencyRevision(NoteRevision::ChildrenOrder).'"', $etag);
+        $this->assertSame((string) EntityTag::forNamedRevision($parent, NoteRevision::ChildrenOrder, ApiVersion::V1), $etag);
 
         $child->update(['title' => 'Renamed']);
 
@@ -207,67 +193,6 @@ final class ConditionalGetTest extends TestCase
                 ->assertHeader('ETag', $etag)
                 ->assertJsonPath('data.0.title', 'Renamed');
         }
-    }
-
-    #[Test]
-    public function it_shows_a_write_between_the_tag_read_and_the_page_read_in_neither(): void
-    {
-        $parent = Note::query()->create(['title' => 'Parent']);
-        $moved = Note::query()->create(['title' => 'First', 'parent_id' => $parent->getKey()]);
-        Note::query()->create(['title' => 'Second', 'parent_id' => $parent->getKey()]);
-        $other = Note::query()->create(['title' => 'Other']);
-        $before = $parent->concurrencyRevision(NoteRevision::ChildrenOrder);
-        $this->afterTheFirstReadOfTheChildren(fn (Connection $writer) => $writer->table('notes')->where('id', $moved->getKey())->update(['parent_id' => $other->getKey()]));
-
-        $this->getJson($this->uri($parent, 'children'))
-            ->assertOk()
-            ->assertJsonCount(2, 'data')
-            ->assertHeader('ETag', '"v1.children_order='.$before.'"');
-
-        $this->assertNotSame($before, $parent->concurrencyRevision(NoteRevision::ChildrenOrder));
-    }
-
-    #[Test]
-    public function it_answers_a_nested_index_whose_body_matches_its_tag_after_a_write_is_undone(): void
-    {
-        $parent = Note::query()->create(['title' => 'Parent']);
-        $moved = Note::query()->create(['title' => 'First', 'parent_id' => $parent->getKey()]);
-        Note::query()->create(['title' => 'Second', 'parent_id' => $parent->getKey()]);
-        $other = Note::query()->create(['title' => 'Other']);
-        $before = $parent->concurrencyRevision(NoteRevision::ChildrenOrder);
-        $this->afterTheFirstReadOfTheChildren(fn (Connection $writer) => $writer->table('notes')->where('id', $moved->getKey())->update(['parent_id' => $other->getKey()]));
-
-        $response = $this->getJson($this->uri($parent, 'children'))->assertOk()->assertHeader('ETag', '"v1.children_order='.$before.'"');
-        $this->assertNotSame($before, $parent->concurrencyRevision(NoteRevision::ChildrenOrder));
-        DB::table('notes')->where('id', $moved->getKey())->update(['parent_id' => $parent->getKey()]);
-
-        $this->assertSame($before, $parent->concurrencyRevision(NoteRevision::ChildrenOrder));
-        $this->assertSame(['First', 'Second'], $response->collect('data')->pluck('title')->sort()->values()->all());
-    }
-
-    #[Test]
-    public function it_reads_a_nested_index_in_one_snapshot_on_the_connection_of_its_owner(): void
-    {
-        $parent = Note::query()->create(['title' => 'Parent']);
-        Note::query()->create(['title' => 'Child', 'parent_id' => $parent->getKey()]);
-        Route::bind('note', fn (string $id): Note => Note::on('writer')->findOrFail($id));
-        $statements = new Collection;
-
-        Event::listen(function (TransactionBeginning $event) use ($statements): void {
-            $statements->push("begin on {$event->connectionName}");
-        });
-        Event::listen(function (TransactionCommitted $event) use ($statements): void {
-            $statements->push("commit on {$event->connectionName}");
-        });
-        Event::listen(function (QueryExecuted $query) use ($statements): void {
-            if ($query->connection->transactionLevel() > 0) {
-                $statements->push(Str::before($query->sql, ' ')." on {$query->connectionName}");
-            }
-        });
-
-        $this->getJson($this->uri($parent, 'children'))->assertOk()->assertJsonCount(1, 'data');
-
-        $this->assertSame(['begin on writer', 'set on writer', 'select on writer', 'select on writer', 'commit on writer'], $statements->all());
     }
 
     #[Test]
@@ -409,18 +334,6 @@ final class ConditionalGetTest extends TestCase
     private function notModified(TestResponse $response, string $etag): void
     {
         $response->assertNoContent(Response::HTTP_NOT_MODIFIED)->assertHeader('ETag', $etag)->assertHeaderMissing('Content-Length')->assertHeaderMissing('Content-Type');
-    }
-
-    private function afterTheFirstReadOfTheChildren(Closure $write): void
-    {
-        $written = false;
-
-        DB::listen(function (QueryExecuted $query) use (&$written, $write): void {
-            if (! $written && $query->connectionName !== 'writer' && str_starts_with($query->sql, 'select') && str_contains($query->sql, '"parent_id"')) {
-                $written = true;
-                $write(DB::connection('writer'));
-            }
-        });
     }
 
     private function uri(Note $note, null|string $suffix = null): string

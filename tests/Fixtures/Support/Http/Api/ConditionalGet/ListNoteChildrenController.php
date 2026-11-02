@@ -6,6 +6,7 @@ namespace Tests\Fixtures\Support\Http\Api\ConditionalGet;
 
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Support\Http\Resources\Schemas\Tags\EntityTag;
+use Support\Http\Resources\Schemas\Tags\Snapshot;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Note;
 use Tests\Fixtures\Support\Http\Api\Preconditions\NoteRevision;
 use Tests\Fixtures\Support\Schemas\ApiVersion;
@@ -14,12 +15,11 @@ final class ListNoteChildrenController
 {
     public function __invoke(Note $note): ResourceCollection
     {
-        return $note->getConnection()->transaction(function () use ($note): ResourceCollection {
-            $note->getConnection()->statement('set transaction isolation level repeatable read, read only');
+        [$tag, $children] = Snapshot::read(fn (): array => [
+            EntityTag::forNamedRevision($note, NoteRevision::ChildrenOrder, ApiVersion::V1),
+            $note->children()->get(),
+        ], $note->getConnection());
 
-            $tag = EntityTag::forNamedRevision($note, NoteRevision::ChildrenOrder, ApiVersion::V1);
-
-            return $note->children()->get()->toSchemaCollection(ApiVersion::V1)->withTag($tag);
-        });
+        return $children->toSchemaCollection(ApiVersion::V1)->withTag($tag);
     }
 }

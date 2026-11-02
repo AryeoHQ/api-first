@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Support\Http\Api\Preconditions\Targets;
 
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -48,21 +49,15 @@ final class EntityTarget implements Target
         return $this->comparingNamed(ConcurrencyRevision::Self);
     }
 
-    public function comparingNamed(NamesConcurrencyRevision ...$revisions): static
+    public function comparingNamed(NamesConcurrencyRevision $revision): static
     {
-        throw_if(
-            count($revisions) !== 1,
-            LogicException::class,
-            sprintf('The target for [%s] cannot compare %d concurrency revisions. A tag carries one revision, so a target compares exactly one.', $this->model::class, count($revisions)),
-        );
-
         throw_if(
             $this->revision !== null,
             LogicException::class,
             sprintf('The target for [%s] already compares the [%s] concurrency revision. A tag carries one revision, so a target compares exactly one.', $this->model::class, $this->revision?->value),
         );
 
-        $this->revision = array_values($revisions)[0];
+        $this->revision = $revision;
 
         return $this;
     }
@@ -123,9 +118,21 @@ final class EntityTarget implements Target
     {
         try {
             return $this->model->concurrencyRevision($revision);
+        } catch (UnselectedConcurrencyRevision) {
+            return $this->storedOwnRevision();
+        }
+    }
+
+    private function storedOwnRevision(): string
+    {
+        /** @var Model&Revisioned $stored */
+        $stored = $this->storedRow($this->model)->firstOrFail();
+
+        try {
+            return $stored->concurrencyRevision(ConcurrencyRevision::Self);
         } catch (UnselectedConcurrencyRevision $exception) {
             throw new UnloadedConcurrencyRevision(
-                sprintf('The [%s] concurrency revision of [%s] is not loaded.', $revision->value, $this->model::class),
+                sprintf('The [%s] concurrency revision of [%s] is not loaded.', ConcurrencyRevision::Self->value, $this->model::class),
                 previous: $exception,
             );
         }
@@ -197,7 +204,10 @@ final class EntityTarget implements Target
         return [$model->getMorphClass(), is_scalar($key) ? (string) $key : $key];
     }
 
-    private function lockRow(Model $model): void
+    /**
+     * @return Builder<Model>
+     */
+    private function storedRow(Model $model): Builder
     {
         $query = $model->newQueryWithoutRelationships();
 
@@ -205,17 +215,18 @@ final class EntityTarget implements Target
             $query->withoutGlobalScope(SoftDeletingScope::class);
         }
 
-        $locked = $query->whereKey($model->getKey())->lockForUpdate()->firstOrFail();
+        return $query->whereKey($model->getKey());
+    }
+
+    private function lockRow(Model $model): void
+    {
+        $locked = $this->storedRow($model)->lockForUpdate()->firstOrFail();
 
         $changed = array_keys(array_diff_assoc(array_intersect_key($locked->getAttributes(), $model->getRawOriginal()), $model->getRawOriginal()));
 
         $model->setRawAttributes(array_replace(array_diff_key($model->getAttributes(), [SelectsConcurrencyRevision::ATTRIBUTE => true]), $locked->getAttributes()), true);
 
-        foreach (array_keys($model->getRelations()) as $name) {
-            if (! $model->isRelation($name)) {
-                continue;
-            }
-
+        foreach (array_filter(array_keys($model->getRelations()), $model->isRelation(...)) as $name) {
             $relation = $model->{$name}();
 
             if ($relation instanceof BelongsTo && in_array($relation->getForeignKeyName(), $changed, true)) {

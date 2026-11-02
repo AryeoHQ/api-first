@@ -571,6 +571,20 @@ final class PreconditionTest extends TestCase
     }
 
     #[Test]
+    public function it_returns_412_before_422_for_a_stale_tag_on_a_model_that_counts_a_relation(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+        Note::query()->create(['title' => 'Child', 'parent_id' => $note->getKey()]);
+        $tag = $this->etag($note);
+        $this->writeElsewhere($note);
+        $this->routeNotesWithChildrenCount();
+
+        $this->assertPreconditionFailed(
+            $this->withHeader('If-Match', $tag)->patchJson("api/preconditions/notes-with-children-count/{$note->getKey()}", [])
+        );
+    }
+
+    #[Test]
     public function it_returns_412_when_a_concurrent_write_lands_before_the_guard(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);
@@ -647,6 +661,25 @@ final class PreconditionTest extends TestCase
                 ],
                 'meta' => [],
             ]);
+
+        $this->assertNotSoftDeleted($note);
+    }
+
+    #[Test]
+    public function it_returns_412_before_409_when_the_entity_moves_to_another_parent_before_the_guard(): void
+    {
+        $source = Note::query()->create(['title' => 'Source']);
+        $destination = Note::query()->create(['title' => 'Destination']);
+        $note = Note::query()->create(['title' => 'Child', 'parent_id' => $source->getKey()]);
+        $tag = $this->etag($note);
+
+        $this->app->afterResolving(NotePrecondition::class, function () use ($note, $destination): void {
+            DB::table('notes')->where('id', $note->getKey())->update(['parent_id' => $destination->getKey()]);
+        });
+
+        $this->assertPreconditionFailed(
+            $this->withHeader('If-Match', $tag)->deleteJson("api/preconditions/notes-with-parent-lock/{$note->getKey()}")
+        );
 
         $this->assertNotSoftDeleted($note);
     }

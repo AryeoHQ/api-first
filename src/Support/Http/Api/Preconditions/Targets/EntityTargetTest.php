@@ -25,6 +25,7 @@ use Support\Http\Api\Preconditions\Exceptions\UnloadedConcurrencyRevision;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Note;
 use Tests\Fixtures\Support\Http\Api\Preconditions\NoteRevision;
 use Tests\Fixtures\Support\Http\Api\Preconditions\NoteWithParentLock;
+use Tests\Fixtures\Support\Http\Api\Preconditions\NoteWithSelectedColumns;
 use Tests\Fixtures\Support\Http\Api\Preconditions\SecondaryNote;
 use Tests\Fixtures\Support\Http\Api\Preconditions\ShadowingRevision;
 use Tests\Fixtures\Support\Http\Api\Preconditions\UndeclaredRevision;
@@ -107,28 +108,6 @@ final class EntityTargetTest extends TestCase
     }
 
     #[Test]
-    public function it_refuses_to_compare_several_revisions_at_once(): void
-    {
-        $target = EntityTarget::for(Note::query()->create(['title' => 'Draft']), ApiVersion::V1);
-
-        $this->expectException(LogicException::class);
-        $this->expectExceptionMessage(sprintf('The target for [%s] cannot compare 2 concurrency revisions. A tag carries one revision, so a target compares exactly one.', Note::class));
-
-        $target->comparingNamed(ConcurrencyRevision::Self, NoteRevision::ChildrenOrder);
-    }
-
-    #[Test]
-    public function it_refuses_to_compare_no_named_revision(): void
-    {
-        $target = EntityTarget::for(Note::query()->create(['title' => 'Draft']), ApiVersion::V1);
-
-        $this->expectException(LogicException::class);
-        $this->expectExceptionMessage(sprintf('The target for [%s] cannot compare 0 concurrency revisions. A tag carries one revision, so a target compares exactly one.', Note::class));
-
-        $target->comparingNamed();
-    }
-
-    #[Test]
     public function it_refuses_a_revision_the_model_does_not_declare(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);
@@ -160,12 +139,20 @@ final class EntityTargetTest extends TestCase
     }
 
     #[Test]
-    public function it_refuses_to_compare_the_own_revision_of_a_note_read_without_its_digest(): void
+    public function it_compares_the_stored_own_revision_of_a_note_read_without_its_digest(): void
     {
         $note = $this->partialNote();
 
+        $this->assertEquals(Revisions::of($this->storedOwn($note)), EntityTarget::for($note, ApiVersion::V1)->comparingSelf()->compared());
+    }
+
+    #[Test]
+    public function it_refuses_to_compare_the_own_revision_of_a_note_whose_query_selects_no_digest(): void
+    {
+        $note = NoteWithSelectedColumns::query()->findOrFail($this->noteWithChild()->getKey());
+
         $this->expectException(UnloadedConcurrencyRevision::class);
-        $this->expectExceptionMessage(sprintf('The [self] concurrency revision of [%s] is not loaded.', Note::class));
+        $this->expectExceptionMessage(sprintf('The [self] concurrency revision of [%s] is not loaded.', NoteWithSelectedColumns::class));
 
         EntityTarget::for($note, ApiVersion::V1)->comparingSelf()->compared();
     }
