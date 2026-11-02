@@ -18,11 +18,14 @@ use Illuminate\Testing\TestResponse;
 use Orchestra\Testbench\Concerns\WithWorkbench;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use Support\Http\Resources\Schemas\Tags\EntityTag;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Note;
+use Tests\Fixtures\Support\Http\Api\Preconditions\NoteRevision;
 use Tests\Fixtures\Support\Http\Api\Preconditions\NoteWithParentLock;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Precondition as NotePrecondition;
 use Tests\Fixtures\Support\Http\Api\Preconditions\SecondaryNote;
+use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\TestCase;
 
 #[CoversClass(Precondition::class)]
@@ -385,7 +388,29 @@ final class PreconditionTest extends TestCase
 
         $this->withHeader('If-Match', $tag)->patchJson($this->uri($note, 'children-order'), ['title' => 'Final'])->assertNoContent();
 
-        $this->assertSame(["order at {$level}", "lock at {$inner}", "order at {$inner}", "order at {$level}"], $statements->all());
+        $this->assertSame(["order at {$level}", "lock at {$inner}", "order at {$inner}", "order at {$inner}"], $statements->all());
+    }
+
+    #[Test]
+    public function it_answers_a_reorder_with_the_tag_of_its_own_write_when_another_write_commits_before_the_answer(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+        $sent = $this->nestedIndexTag($note);
+        $written = null;
+
+        Event::listen(function (TransactionCommitted $event) use ($note, &$written): void {
+            if ($written === null) {
+                $written = $this->nestedIndexTag($note);
+
+                Note::query()->create(['title' => 'Interloper', 'parent_id' => $note->getKey()]);
+            }
+        });
+
+        $response = $this->withHeader('If-Match', $sent)->patchJson($this->uri($note, 'children-order'), ['title' => 'Final'])->assertNoContent();
+
+        $this->assertIsString($written);
+        $this->assertNotSame($written, $this->nestedIndexTag($note));
+        $response->assertHeader('ETag', $written);
     }
 
     #[Test]
@@ -440,6 +465,17 @@ final class PreconditionTest extends TestCase
         $note = Note::query()->create(['title' => 'Draft']);
 
         $this->assertPreconditionFailed($this->withHeader('If-Match', self::STALE)->patchJson($this->uri($note)));
+    }
+
+    #[Test]
+    public function it_returns_412_before_422_for_a_stale_named_revision(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+        $tag = $this->nestedIndexTag($note);
+
+        Note::query()->create(['title' => 'Child', 'parent_id' => $note->getKey()]);
+
+        $this->assertPreconditionFailed($this->withHeader('If-Match', $tag)->patchJson($this->uri($note, 'children-order'), []));
     }
 
     #[Test]
@@ -662,11 +698,7 @@ final class PreconditionTest extends TestCase
 
     private function nestedIndexTag(Note $note): string
     {
-        $etag = $this->getJson("api/conditional-get/notes/{$note->getKey()}/children")->assertOk()->headers->get('ETag');
-
-        $this->assertIsString($etag);
-
-        return $etag;
+        return (string) EntityTag::forNamedRevision($note, NoteRevision::ChildrenOrder, ApiVersion::V1);
     }
 
     /**

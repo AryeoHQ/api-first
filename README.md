@@ -390,18 +390,21 @@ The lock re-reads each row, so the write sees the committed attributes. A loaded
 
 ### Answering a move or reorder
 
-A `204` from a move or reorder carries the nested index tag of the order after the write. `EntityTag::forNamedRevision()` computes the order digest with a query, so build the tag after `guard()` returns, once the write commits:
+A `204` from a move or reorder carries the nested index tag of the order that the write produced. Build the tag inside `guard()`, after the write, and return it from the closure:
 
 ```php
-$change = $precondition->guard(fn () => $asset->move(Placement::last()->in($destination), expected: null));
+$tag = $precondition->guard(function () use ($asset, $destination): EntityTag {
+    $change = $asset->move(Placement::last()->in($destination), expected: null);
 
-return response()->noContent()->header(
-    'ETag',
-    (string) EntityTag::forNamedRevision($change->relation->parent, PlaceAssetSubsectionRevision::PlaceAssetsOrder, ApiVersion::V2),
-);
+    return EntityTag::forNamedRevision($change->relation->parent, PlaceAssetSubsectionRevision::PlaceAssetsOrder, ApiVersion::V2);
+});
+
+return response()->noContent()->header('ETag', (string) $tag);
 ```
 
-The example uses eloquent-ordering. `$change` is the `OrderChange` that `move()` or `reorder()` returns, and `$change->relation->parent` is its parent. api-first does not depend on that package. Any instance of the parent works, the route-bound one included, because the tag reads the order from the database.
+`EntityTag::forNamedRevision()` computes the order digest with a query. Inside `guard()`, that query runs in the write's transaction, while the target still holds the parent's lock. A guarded write to the same parent waits for that lock, so the tag names the order this write produced. After `guard()` returns, such a write can commit before the query runs. The `204` then names an order the client never saw, and the client's next `If-Match` passes over that change.
+
+The example uses eloquent-ordering. `$change` is the `OrderChange` that `move()` or `reorder()` returns, and `$change->relation->parent` is its parent. api-first does not depend on that package.
 
 ### Check order
 
@@ -435,6 +438,28 @@ The `ConditionalGet` middleware needs no setup. The provider adds it to each mid
 `If-None-Match` matches when it is `*` alone, or when an element of its comma-separated list equals the response `ETag`. The middleware joins every `If-None-Match` line into one list, and it ignores empty elements. Each element must be `"…"` or `W/"…"`. `*` beside a tag or on two lines is malformed, and a malformed list gets no `304`. The comparison is weak, so it ignores a `W/` prefix on either side. It compares the whole tag, digest included, because a changed body must answer `200`. A `304` drops `Content-Length` and `Content-Type`, and it keeps the `ETag`.
 
 A nested index carries a tag such as `"v2.place_assets_order=5d41402abc4b2a76b9719d911017c592"`, but it never gets a `304`. Its digest is computed from the order of the members' keys, so it changes when the order changes, and it stays the same when an item changes.
+
+Read a nested index's tag and its page in one `REPEATABLE READ` transaction:
+
+```php
+use Illuminate\Support\Facades\DB;
+use Support\Http\Resources\Schemas\Tags\EntityTag;
+
+[$tag, $page] = DB::transaction(function () use ($place) {
+    DB::statement('set transaction isolation level repeatable read, read only');
+
+    return [
+        EntityTag::forNamedRevision($place, PlaceRevision::PlaceAssetsOrder, ApiVersion::V2),
+        $place->placeAssets()->paginate(15),
+    ];
+});
+
+return $page->toSchemaCollection(ApiVersion::V2)->withTag($tag);
+```
+
+Outside such a transaction, each statement reads its own snapshot, so a write can commit between the two reads. The tag then names one order and the body shows another. A client that sends that tag in `If-Match` can then write against a body it never saw. Inside the transaction, a write that commits between the two reads shows in neither, and a client that sends the tag back gets a `412`.
+
+`set transaction` must be the transaction's first statement. Do not open this transaction inside another one, because Laravel then opens a savepoint, and PostgreSQL rejects the statement there. [api-resource-schema](https://github.com/AryeoHQ/api-resource-schema) describes the rule in full.
 
 Every other request passes through unchanged: a write, a response without an `ETag` such as a plain list, a nested index, and a response that is not `200`.
 

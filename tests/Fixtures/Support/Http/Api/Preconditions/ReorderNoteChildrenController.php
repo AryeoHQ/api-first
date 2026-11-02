@@ -12,12 +12,14 @@ final class ReorderNoteChildrenController
 {
     public function __invoke(Authorizer $authorizer, ChildrenOrderPrecondition $precondition, Validator $validator, Note $note): Response
     {
-        $precondition->guard(function () use ($note, $validator): void {
+        $tag = $precondition->guard(function () use ($note, $validator): EntityTag {
             $note->update($validator->validated());
 
             $note->children()->create(['title' => 'Appended']);
+
+            return EntityTag::forNamedRevision($note, NoteRevision::ChildrenOrder, ApiVersion::V1);
         });
 
-        return response()->noContent()->header('ETag', (string) EntityTag::forNamedRevision($note, NoteRevision::ChildrenOrder, ApiVersion::V1));
+        return response()->noContent()->header('ETag', (string) $tag);
     }
 }

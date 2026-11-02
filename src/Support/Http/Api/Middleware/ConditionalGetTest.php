@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Support\Http\Api\Middleware;
 
+use Closure;
+use Illuminate\Database\Connection;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
 use Orchestra\Testbench\Attributes\WithConfig;
@@ -22,6 +26,15 @@ final class ConditionalGetTest extends TestCase
 {
     use WithWorkbench;
 
+    /** @var list<null|string> */
+    protected array $connectionsToTransact = [];
+
+    protected function afterRefreshingDatabase(): void
+    {
+        DB::purge('writer');
+        config()->set('database.connections.writer', config('database.connections.'.DB::getDefaultConnection()));
+    }
+
     protected function defineDatabaseMigrations(): void
     {
         parent::defineDatabaseMigrations();
@@ -33,6 +46,12 @@ final class ConditionalGetTest extends TestCase
             $table->timestampsTz();
             $table->softDeletesTz();
         });
+    }
+
+    protected function destroyDatabaseMigrations(): void
+    {
+        Schema::drop('notes');
+        Schema::drop('rfc3339_extended_test_models');
     }
 
     #[Test]
@@ -185,6 +204,42 @@ final class ConditionalGetTest extends TestCase
     }
 
     #[Test]
+    public function it_shows_a_write_between_the_tag_read_and_the_page_read_in_neither(): void
+    {
+        $parent = Note::query()->create(['title' => 'Parent']);
+        $moved = Note::query()->create(['title' => 'First', 'parent_id' => $parent->getKey()]);
+        Note::query()->create(['title' => 'Second', 'parent_id' => $parent->getKey()]);
+        $other = Note::query()->create(['title' => 'Other']);
+        $before = $parent->concurrencyRevision(NoteRevision::ChildrenOrder);
+        $this->afterTheFirstReadOfTheChildren(fn (Connection $writer) => $writer->table('notes')->where('id', $moved->getKey())->update(['parent_id' => $other->getKey()]));
+
+        $this->getJson($this->uri($parent, 'children'))
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertHeader('ETag', '"v1.children_order='.$before.'"');
+
+        $this->assertNotSame($before, $parent->concurrencyRevision(NoteRevision::ChildrenOrder));
+    }
+
+    #[Test]
+    public function it_answers_a_nested_index_whose_body_matches_its_tag_after_a_write_is_undone(): void
+    {
+        $parent = Note::query()->create(['title' => 'Parent']);
+        $moved = Note::query()->create(['title' => 'First', 'parent_id' => $parent->getKey()]);
+        Note::query()->create(['title' => 'Second', 'parent_id' => $parent->getKey()]);
+        $other = Note::query()->create(['title' => 'Other']);
+        $before = $parent->concurrencyRevision(NoteRevision::ChildrenOrder);
+        $this->afterTheFirstReadOfTheChildren(fn (Connection $writer) => $writer->table('notes')->where('id', $moved->getKey())->update(['parent_id' => $other->getKey()]));
+
+        $response = $this->getJson($this->uri($parent, 'children'))->assertOk()->assertHeader('ETag', '"v1.children_order='.$before.'"');
+        $this->assertNotSame($before, $parent->concurrencyRevision(NoteRevision::ChildrenOrder));
+        DB::table('notes')->where('id', $moved->getKey())->update(['parent_id' => $parent->getKey()]);
+
+        $this->assertSame($before, $parent->concurrencyRevision(NoteRevision::ChildrenOrder));
+        $this->assertSame(['First', 'Second'], $response->collect('data')->pluck('title')->sort()->values()->all());
+    }
+
+    #[Test]
     public function it_matches_a_tag_on_a_later_if_none_match_line(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);
@@ -323,6 +378,18 @@ final class ConditionalGetTest extends TestCase
     private function notModified(TestResponse $response, string $etag): void
     {
         $response->assertNoContent(Response::HTTP_NOT_MODIFIED)->assertHeader('ETag', $etag)->assertHeaderMissing('Content-Length')->assertHeaderMissing('Content-Type');
+    }
+
+    private function afterTheFirstReadOfTheChildren(Closure $write): void
+    {
+        $written = false;
+
+        DB::listen(function (QueryExecuted $query) use (&$written, $write): void {
+            if (! $written && $query->connectionName !== 'writer' && str_starts_with($query->sql, 'select') && str_contains($query->sql, '"parent_id"')) {
+                $written = true;
+                $write(DB::connection('writer'));
+            }
+        });
     }
 
     private function uri(Note $note, null|string $suffix = null): string
