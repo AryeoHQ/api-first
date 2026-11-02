@@ -114,12 +114,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AryeoHQ/api-resource-schema.git",
-                "reference": "3d5539c42ead68fe45a00e7d831e9a81c69d0195"
+                "reference": "a89cfbfedcd8cde79491d867bb8f02c027b02507"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/api-resource-schema/zipball/3d5539c42ead68fe45a00e7d831e9a81c69d0195",
-                "reference": "3d5539c42ead68fe45a00e7d831e9a81c69d0195",
+                "url": "https://api.github.com/repos/AryeoHQ/api-resource-schema/zipball/a89cfbfedcd8cde79491d867bb8f02c027b02507",
+                "reference": "a89cfbfedcd8cde79491d867bb8f02c027b02507",
                 "shasum": ""
             },
             "require": {
@@ -207,7 +207,7 @@
                 "source": "https://github.com/AryeoHQ/api-resource-schema/tree/feat/2026-11-01t1728-digest-migration-m2",
                 "issues": "https://github.com/AryeoHQ/api-resource-schema/issues"
             },
-            "time": "2026-11-02T05:01:54+00:00"
+            "time": "2026-11-02T06:10:03+00:00"
         },
         {
             "name": "aryeo/attribute-routing",
@@ -313,12 +313,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:AryeoHQ/eloquent-concurrency.git",
-                "reference": "55f858a78d6c5fc34b9bdbf2681b8d9d606dc1b4"
+                "reference": "92e1f4d3f5c3a4f9f6fdbb12665e9a5f2f2d8dd7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AryeoHQ/eloquent-concurrency/zipball/55f858a78d6c5fc34b9bdbf2681b8d9d606dc1b4",
-                "reference": "55f858a78d6c5fc34b9bdbf2681b8d9d606dc1b4",
+                "url": "https://api.github.com/repos/AryeoHQ/eloquent-concurrency/zipball/92e1f4d3f5c3a4f9f6fdbb12665e9a5f2f2d8dd7",
+                "reference": "92e1f4d3f5c3a4f9f6fdbb12665e9a5f2f2d8dd7",
                 "shasum": ""
             },
             "require": {
@@ -399,7 +399,7 @@
                 "source": "https://github.com/AryeoHQ/eloquent-concurrency/tree/feat/2026-11-01t1728-digest-migration-m1",
                 "issues": "https://github.com/AryeoHQ/eloquent-concurrency/issues"
             },
-            "time": "2026-11-02T05:15:08+00:00"
+            "time": "2026-11-02T06:08:56+00:00"
         },
         {
             "name": "aryeo/eloquent-search",
