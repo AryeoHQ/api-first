@@ -108,6 +108,17 @@ final class EntityTargetTest extends TestCase
     }
 
     #[Test]
+    public function it_refuses_to_compare_two_named_revisions_in_one_call(): void
+    {
+        $target = EntityTarget::for(Note::query()->create(['title' => 'Draft']), ApiVersion::V1);
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage(sprintf('The target for [%s] received 2 revisions to compare. A tag carries one revision, so a target compares exactly one.', Note::class));
+
+        call_user_func([$target, 'comparingNamed'], NoteRevision::ChildrenOrder, ConcurrencyRevision::Self);
+    }
+
+    #[Test]
     public function it_refuses_a_revision_the_model_does_not_declare(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);

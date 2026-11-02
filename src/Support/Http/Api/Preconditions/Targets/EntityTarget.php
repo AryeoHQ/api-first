@@ -52,6 +52,12 @@ final class EntityTarget implements Target
     public function comparingNamed(NamesConcurrencyRevision $revision): static
     {
         throw_if(
+            func_num_args() > 1,
+            LogicException::class,
+            sprintf('The target for [%s] received %d revisions to compare. A tag carries one revision, so a target compares exactly one.', $this->model::class, func_num_args()),
+        );
+
+        throw_if(
             $this->revision !== null,
             LogicException::class,
             sprintf('The target for [%s] already compares the [%s] concurrency revision. A tag carries one revision, so a target compares exactly one.', $this->model::class, $this->revision?->value),
