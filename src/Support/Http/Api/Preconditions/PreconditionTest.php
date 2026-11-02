@@ -15,28 +15,25 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
-use Orchestra\Testbench\Attributes\WithConfig;
 use Orchestra\Testbench\Concerns\WithWorkbench;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
-use Support\Database\Eloquent\Concurrency\ConcurrencyRevision;
-use Support\Http\Resources\Schemas\Tags\EntityTag;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Note;
-use Tests\Fixtures\Support\Http\Api\Preconditions\NoteRevision;
 use Tests\Fixtures\Support\Http\Api\Preconditions\NoteWithParentLock;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Precondition as NotePrecondition;
 use Tests\Fixtures\Support\Http\Api\Preconditions\SecondaryNote;
-use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\TestCase;
 
 #[CoversClass(Precondition::class)]
-#[WithConfig('database.connections.secondary', ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''])]
 final class PreconditionTest extends TestCase
 {
     use WithWorkbench;
 
-    private const string STALE = '"v1.999.0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"';
+    private const string STALE = '"v1.00000000000000000000000000000000.ffffffffffffffffffffffffffffffff"';
+
+    /** @var list<null|string> */
+    protected array $connectionsToTransact = [null, 'secondary'];
 
     protected function defineDatabaseMigrations(): void
     {
@@ -46,8 +43,6 @@ final class PreconditionTest extends TestCase
             $table->uuid('id')->primary();
             $table->foreignUuid('parent_id')->nullable();
             $table->string('title');
-            $table->concurrencyRevision();
-            $table->namedConcurrencyRevision(NoteRevision::ChildrenOrder->value);
             $table->timestampsTz();
             $table->softDeletesTz();
         });
@@ -55,7 +50,6 @@ final class PreconditionTest extends TestCase
         Schema::connection('secondary')->create('secondary_notes', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->string('title');
-            $table->concurrencyRevision();
             $table->timestampsTz();
         });
     }
@@ -208,7 +202,7 @@ final class PreconditionTest extends TestCase
         $note = Note::query()->create(['title' => 'Draft']);
 
         $this->assertPreconditionFailed(
-            $this->withHeader('If-Match', self::STALE.', "v1.998.0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"')->patchJson($this->uri($note), ['title' => 'Final'])
+            $this->withHeader('If-Match', self::STALE.', "v1.11111111111111111111111111111111.ffffffffffffffffffffffffffffffff"')->patchJson($this->uri($note), ['title' => 'Final'])
         );
 
         $this->assertSame('Draft', $note->refresh()->title);
@@ -242,13 +236,13 @@ final class PreconditionTest extends TestCase
         $note = Note::query()->create(['title' => 'Draft']);
         $tag = $this->etag($note);
 
-        $this->revise($note, ConcurrencyRevision::COLUMN, 2);
+        $this->writeElsewhere($note);
 
         $this->assertPreconditionFailed(
             $this->withHeader('If-Match', $tag)->patchJson($this->uri($note), ['title' => 'Final'])
         );
 
-        $this->assertSame('Draft', $note->refresh()->title);
+        $this->assertSame('Written by another request', $note->refresh()->title);
     }
 
     #[Test]
@@ -268,9 +262,9 @@ final class PreconditionTest extends TestCase
     public function it_compares_only_the_named_revision_where_the_target_compares_a_named_revision(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);
-        $tag = $this->etag($note);
+        $tag = $this->nestedIndexTag($note);
 
-        $this->revise($note, ConcurrencyRevision::COLUMN, 2);
+        $this->writeElsewhere($note);
 
         $this->withHeader('If-Match', $tag)->patchJson($this->uri($note, 'children-order'), ['title' => 'Final'])
             ->assertNoContent();
@@ -283,7 +277,7 @@ final class PreconditionTest extends TestCase
     {
         $note = Note::query()->create(['title' => 'Draft']);
 
-        $this->withHeader('If-Match', '"v1.children_order=1"')->patchJson($this->uri($note, 'children-order'), ['title' => 'Final'])
+        $this->withHeader('If-Match', $this->nestedIndexTag($note))->patchJson($this->uri($note, 'children-order'), ['title' => 'Final'])
             ->assertNoContent();
 
         $this->assertSame('Final', $note->refresh()->title);
@@ -293,12 +287,12 @@ final class PreconditionTest extends TestCase
     public function it_answers_a_reorder_with_the_nested_index_tag_that_reflects_the_write(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);
-        $sent = '"v1.children_order=1"';
+        $sent = $this->nestedIndexTag($note);
 
         $response = $this->withHeader('If-Match', $sent)->patchJson($this->uri($note, 'children-order'), ['title' => 'Final'])
             ->assertNoContent();
 
-        $current = (string) EntityTag::forNamedRevision($note->refresh(), NoteRevision::ChildrenOrder, ApiVersion::V1);
+        $current = $this->nestedIndexTag($note);
 
         $this->assertNotSame($sent, $current);
         $response->assertHeader('ETag', $current);
@@ -309,7 +303,7 @@ final class PreconditionTest extends TestCase
     {
         $note = Note::query()->create(['title' => 'Draft']);
 
-        $tag = $this->withHeader('If-Match', '"v1.children_order=1"')->patchJson($this->uri($note, 'children-order'), ['title' => 'First'])
+        $tag = $this->withHeader('If-Match', $this->nestedIndexTag($note))->patchJson($this->uri($note, 'children-order'), ['title' => 'First'])
             ->assertNoContent()
             ->headers->get('ETag');
 
@@ -325,9 +319,9 @@ final class PreconditionTest extends TestCase
     public function it_returns_412_for_a_stale_named_revision(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);
-        $tag = $this->etag($note);
+        $tag = $this->nestedIndexTag($note);
 
-        $this->revise($note, ConcurrencyRevision::namedColumn(NoteRevision::ChildrenOrder->value), 2);
+        Note::query()->create(['title' => 'Child', 'parent_id' => $note->getKey()]);
 
         $this->assertPreconditionFailed(
             $this->withHeader('If-Match', $tag)->patchJson($this->uri($note, 'children-order'), ['title' => 'Final'])
@@ -337,7 +331,7 @@ final class PreconditionTest extends TestCase
     }
 
     #[Test]
-    public function it_runs_the_write_where_the_target_compares_every_revision_and_all_match(): void
+    public function it_runs_a_delete_whose_own_revision_matches(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);
 
@@ -347,12 +341,12 @@ final class PreconditionTest extends TestCase
     }
 
     #[Test]
-    public function it_returns_412_where_the_target_compares_every_revision_and_the_own_revision_is_stale(): void
+    public function it_returns_412_for_a_delete_whose_own_revision_is_stale(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);
         $tag = $this->etag($note);
 
-        $this->revise($note, ConcurrencyRevision::COLUMN, 2);
+        $this->writeElsewhere($note);
 
         $this->assertPreconditionFailed($this->withHeader('If-Match', $tag)->deleteJson($this->uri($note)));
 
@@ -360,16 +354,38 @@ final class PreconditionTest extends TestCase
     }
 
     #[Test]
-    public function it_returns_412_where_the_target_compares_every_revision_and_a_named_revision_is_stale(): void
+    public function it_runs_a_delete_whose_own_revision_matches_after_the_order_of_its_children_changes(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);
         $tag = $this->etag($note);
 
-        $this->revise($note, ConcurrencyRevision::namedColumn(NoteRevision::ChildrenOrder->value), 2);
+        Note::query()->create(['title' => 'Child', 'parent_id' => $note->getKey()]);
 
-        $this->assertPreconditionFailed($this->withHeader('If-Match', $tag)->deleteJson($this->uri($note)));
+        $this->withHeader('If-Match', $tag)->deleteJson($this->uri($note))->assertNoContent();
 
-        $this->assertNotSoftDeleted($note);
+        $this->assertSoftDeleted($note);
+    }
+
+    #[Test]
+    public function it_reads_the_named_revision_again_under_the_lock(): void
+    {
+        $note = Note::query()->create(['title' => 'Draft']);
+        $tag = $this->nestedIndexTag($note);
+        $level = DB::transactionLevel();
+        $inner = $level + 1;
+        $statements = new Collection;
+
+        Event::listen(function (QueryExecuted $query) use ($statements): void {
+            if (str_ends_with($query->sql, 'for update')) {
+                $statements->push('lock at '.$query->connection->transactionLevel());
+            } elseif (str_contains($query->sql, 'string_agg')) {
+                $statements->push('order at '.$query->connection->transactionLevel());
+            }
+        });
+
+        $this->withHeader('If-Match', $tag)->patchJson($this->uri($note, 'children-order'), ['title' => 'Final'])->assertNoContent();
+
+        $this->assertSame(["order at {$level}", "lock at {$inner}", "order at {$inner}", "order at {$level}"], $statements->all());
     }
 
     #[Test]
@@ -464,14 +480,14 @@ final class PreconditionTest extends TestCase
     {
         $note = Note::query()->create(['title' => 'Draft']);
         $tag = $this->etag($note);
-        $this->revise($note, ConcurrencyRevision::COLUMN, 2);
+        $this->writeElsewhere($note);
         $this->bindNotesWithoutRevisions();
 
         $this->assertPreconditionFailed(
             $this->withHeader('If-Match', $tag)->patchJson($this->uri($note), ['title' => 'Final'])
         );
 
-        $this->assertSame('Draft', $note->refresh()->title);
+        $this->assertSame('Written by another request', $note->refresh()->title);
     }
 
     #[Test]
@@ -481,7 +497,7 @@ final class PreconditionTest extends TestCase
         $tag = $this->etag($note);
 
         $this->app->afterResolving(NotePrecondition::class, function () use ($note): void {
-            DB::table('notes')->where('id', $note->getKey())->update(['title' => 'Written by another request', ConcurrencyRevision::COLUMN => 2]);
+            $this->writeElsewhere($note);
         });
 
         $this->assertPreconditionFailed(
@@ -571,11 +587,13 @@ final class PreconditionTest extends TestCase
     {
         $note = SecondaryNote::query()->create(['title' => 'Draft']);
         $statements = $this->recordStatements('secondary');
+        $level = DB::connection('secondary')->transactionLevel();
+        $inner = $level + 1;
 
         $this->withHeader('If-Match', '*')->patchJson("api/preconditions/secondary-notes/{$note->getKey()}", ['title' => 'Final'])
             ->assertOk();
 
-        $this->assertSame(['select at 0', 'begin', 'select at 1', 'update at 1', 'select at 1', 'commit'], $statements->all());
+        $this->assertSame(["select at {$level}", 'begin', "select at {$inner}", "update at {$inner}", "select at {$inner}", 'commit'], $statements->all());
         $this->assertSame('Final', $note->refresh()->title);
     }
 
@@ -618,9 +636,9 @@ final class PreconditionTest extends TestCase
         return $statements;
     }
 
-    private function revise(Note $note, string $column, int $revision): void
+    private function writeElsewhere(Note $note): void
     {
-        DB::table('notes')->where('id', $note->getKey())->update([$column => $revision]);
+        DB::table('notes')->where('id', $note->getKey())->update(['title' => 'Written by another request']);
     }
 
     private function bindNotesWithoutRevisions(): void
@@ -636,6 +654,15 @@ final class PreconditionTest extends TestCase
     private function etag(Note $note): string
     {
         $etag = $this->getJson($this->uri($note))->assertOk()->headers->get('ETag');
+
+        $this->assertIsString($etag);
+
+        return $etag;
+    }
+
+    private function nestedIndexTag(Note $note): string
+    {
+        $etag = $this->getJson("api/conditional-get/notes/{$note->getKey()}/children")->assertOk()->headers->get('ETag');
 
         $this->assertIsString($etag);
 

@@ -30,8 +30,6 @@ final class ConditionalGetTest extends TestCase
             $table->uuid('id')->primary();
             $table->foreignUuid('parent_id')->nullable();
             $table->string('title');
-            $table->concurrencyRevision();
-            $table->namedConcurrencyRevision(NoteRevision::ChildrenOrder->value);
             $table->timestampsTz();
             $table->softDeletesTz();
         });
@@ -61,7 +59,7 @@ final class ConditionalGetTest extends TestCase
         $note = Note::query()->create(['title' => 'Draft']);
         $etag = $this->etag($note);
 
-        $this->getJson($this->uri($note), ['If-None-Match' => '"v1.999.0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"'])
+        $this->getJson($this->uri($note), ['If-None-Match' => '"v1.00000000000000000000000000000000.ffffffffffffffffffffffffffffffff"'])
             ->assertOk()
             ->assertHeader('ETag', $etag)
             ->assertJsonPath('data.title', 'Draft');
@@ -142,7 +140,7 @@ final class ConditionalGetTest extends TestCase
         $etag = $this->etag($note);
 
         $this->notModified(
-            $this->getJson($this->uri($note), ['If-None-Match' => '"v1.999.0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f", W/'.$etag.' ,"other"']),
+            $this->getJson($this->uri($note), ['If-None-Match' => '"v1.00000000000000000000000000000000.ffffffffffffffffffffffffffffffff", W/'.$etag.' ,"other"']),
             $etag,
         );
     }
@@ -174,7 +172,7 @@ final class ConditionalGetTest extends TestCase
         $uri = $this->uri($parent, 'children');
         $etag = $this->getJson($uri)->assertOk()->headers->get('ETag');
 
-        $this->assertSame('"v1.children_order=1"', $etag);
+        $this->assertSame('"v1.children_order='.$parent->concurrencyRevision(NoteRevision::ChildrenOrder).'"', $etag);
 
         $child->update(['title' => 'Renamed']);
 

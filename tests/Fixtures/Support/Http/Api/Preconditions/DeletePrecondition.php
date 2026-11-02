@@ -18,6 +18,6 @@ final class DeletePrecondition extends BasePrecondition
         /** @var Note $note */
         $note = $this->route('note');
 
-        return EntityTarget::for($note, ApiVersion::V1)->comparingAll();
+        return EntityTarget::for($note, ApiVersion::V1)->comparingSelf();
     }
 }

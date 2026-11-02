@@ -74,6 +74,7 @@ runs:
           -e COMPOSER_HOME=/tmp/composer -e COMPOSER_CACHE_DIR=/composer-cache \\
           -e PHP_MEMORY_LIMIT=-1 -e PHP_DATE_TIMEZONE=UTC -e DD_TRACE_ENABLED=false \\
           -e PHP_PCOV_ENABLED=$PCOV_ENABLED \\
+          -e DB_CONNECTION -e DB_HOST -e POSTGRES_VERSION --network host \\
           -v "\$RUNNER_TEMP/php-ci/composer-cache:/composer-cache" \\
           -v "\$GITHUB_WORKSPACE:\$GITHUB_WORKSPACE" -w "\$PWD" \\
           php-ci "\$@"

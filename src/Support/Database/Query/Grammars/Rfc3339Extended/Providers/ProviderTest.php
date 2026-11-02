@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Event;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Support\Database\Query\Grammars\Rfc3339Extended\Listeners\SwapGrammar;
-use Support\Database\Query\Grammars\Rfc3339Extended\SQLiteGrammar;
+use Support\Database\Query\Grammars\Rfc3339Extended\PostgresGrammar;
 use Tests\Fixtures\Support\Database\Query\Grammars\Rfc3339Extended\Rfc3339ExtendedTestModel;
 use Tests\TestCase;
 
@@ -32,7 +32,7 @@ final class ProviderTest extends TestCase
     public function it_registers_the_listener_before_the_default_connection_is_established(): void
     {
         $this->assertInstanceOf(
-            SQLiteGrammar::class,
+            PostgresGrammar::class,
             DB::connection()->getQueryGrammar(),
         );
     }
@@ -63,7 +63,7 @@ final class ProviderTest extends TestCase
             $model = Rfc3339ExtendedTestModel::factory()->create();
             $raw = DB::table('rfc3339_extended_test_models')->where('id', $model->getKey())->first();
 
-            $this->assertSame($timestamp, $raw->created_at);
+            $this->assertSame($timestamp, Date::parse($raw->created_at)->format('Y-m-d\TH:i:s.vP'));
         });
     }
 

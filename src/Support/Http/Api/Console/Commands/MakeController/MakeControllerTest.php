@@ -13,6 +13,7 @@ use Orchestra\Testbench\Attributes\WithConfig;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
+use Support\Database\Eloquent\Concurrency\ConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Contracts\Revisioned;
 use Support\Entities\References\Entity;
 use Support\Http\Api\Console\Commands\MakeController\Concerns\GeneratesActionTestCases;
@@ -77,7 +78,6 @@ class MakeControllerTest extends TestCase
 
         Schema::create('widgets', function (Blueprint $table): void {
             $table->uuid('id')->primary();
-            $table->concurrencyRevision();
             $table->timestampsTz();
         });
     }
@@ -203,10 +203,11 @@ class MakeControllerTest extends TestCase
 
         $widget = Widget::query()->create();
         $uri = str_replace('{'.$controller->route->routeParameterName.'}', (string) $widget->getKey(), $controller->route->uri->toString());
+        $current = Widget::query()->findOrFail($widget->getKey())->concurrencyRevision(ConcurrencyRevision::Self);
 
-        $this->json($controller->route->method->value, $uri, [], ['If-Match' => '"v1.999.0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"'])
+        $this->json($controller->route->method->value, $uri, [], ['If-Match' => '"v1.00000000000000000000000000000000.ffffffffffffffffffffffffffffffff"'])
             ->assertStatus(412);
-        $this->json($controller->route->method->value, $uri, [], ['If-Match' => '"v1.1.0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"'])
+        $this->json($controller->route->method->value, $uri, [], ['If-Match' => '"v1.'.$current.'.ffffffffffffffffffffffffffffffff"'])
             ->assertSuccessful();
     }
 

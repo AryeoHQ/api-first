@@ -7,14 +7,12 @@ namespace Support\Http\Api\Preconditions\Targets;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Events\QueryExecuted;
-use Illuminate\Database\Query\Grammars\PostgresGrammar;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use LogicException;
-use Orchestra\Testbench\Attributes\WithConfig;
 use Orchestra\Testbench\Concerns\WithWorkbench;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -23,6 +21,7 @@ use Support\Database\Eloquent\Concurrency\ConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Exceptions\UndeclaredConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Revisions;
 use Support\Http\Api\Preconditions\Exceptions\ParentsChanged;
+use Support\Http\Api\Preconditions\Exceptions\UnloadedConcurrencyRevision;
 use Tests\Fixtures\Support\Http\Api\Preconditions\Note;
 use Tests\Fixtures\Support\Http\Api\Preconditions\NoteRevision;
 use Tests\Fixtures\Support\Http\Api\Preconditions\NoteWithParentLock;
@@ -33,7 +32,6 @@ use Tests\Fixtures\Support\Schemas\ApiVersion;
 use Tests\TestCase;
 
 #[CoversClass(EntityTarget::class)]
-#[WithConfig('database.connections.secondary', ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''])]
 final class EntityTargetTest extends TestCase
 {
     use WithWorkbench;
@@ -46,8 +44,6 @@ final class EntityTargetTest extends TestCase
             $table->uuid('id')->primary();
             $table->foreignUuid('parent_id')->nullable();
             $table->string('title');
-            $table->concurrencyRevision();
-            $table->namedConcurrencyRevision(NoteRevision::ChildrenOrder->value);
             $table->timestampsTz();
             $table->softDeletesTz();
         });
@@ -55,7 +51,6 @@ final class EntityTargetTest extends TestCase
         Schema::create('secondary_notes', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->string('title');
-            $table->concurrencyRevision();
             $table->timestampsTz();
         });
     }
@@ -73,36 +68,31 @@ final class EntityTargetTest extends TestCase
     #[Test]
     public function it_compares_the_own_revision(): void
     {
-        $note = $this->note(self: 3, childrenOrder: 5);
+        $note = $this->noteWithChild();
 
-        $this->assertEquals(Revisions::of(3), EntityTarget::for($note, ApiVersion::V1)->comparingSelf()->compared());
+        $this->assertEquals(Revisions::of($this->storedOwn($note)), EntityTarget::for($note, ApiVersion::V1)->comparingSelf()->compared());
     }
 
     #[Test]
     public function it_compares_only_the_named_revisions(): void
     {
-        $note = $this->note(self: 3, childrenOrder: 5);
+        $note = $this->noteWithChild();
 
-        $this->assertEquals(Revisions::of(null, ['children_order' => 5]), EntityTarget::for($note, ApiVersion::V1)->comparingNamed(NoteRevision::ChildrenOrder)->compared());
+        $this->assertEquals(
+            Revisions::of(null, ['children_order' => $this->storedChildrenOrder($note)]),
+            EntityTarget::for($note, ApiVersion::V1)->comparingNamed(NoteRevision::ChildrenOrder)->compared(),
+        );
     }
 
     #[Test]
     public function it_adds_each_comparison_to_the_set(): void
     {
-        $note = $this->note(self: 3, childrenOrder: 5);
+        $note = $this->noteWithChild();
 
         $this->assertEquals(
-            Revisions::of(3, ['children_order' => 5]),
+            Revisions::of($this->storedOwn($note), ['children_order' => $this->storedChildrenOrder($note)]),
             EntityTarget::for($note, ApiVersion::V1)->comparingSelf()->comparingNamed(NoteRevision::ChildrenOrder)->compared(),
         );
-    }
-
-    #[Test]
-    public function it_compares_every_declared_revision(): void
-    {
-        $note = $this->note(self: 3, childrenOrder: 5);
-
-        $this->assertEquals(Revisions::of(3, ['children_order' => 5]), EntityTarget::for($note, ApiVersion::V1)->comparingAll()->compared());
     }
 
     #[Test]
@@ -126,33 +116,36 @@ final class EntityTargetTest extends TestCase
     }
 
     #[Test]
-    public function it_refuses_to_compare_a_named_revision_whose_column_is_not_loaded(): void
+    public function it_compares_a_named_revision_of_a_note_read_without_its_digest(): void
     {
         $note = $this->partialNote();
 
-        $this->expectException(LogicException::class);
-        $this->expectExceptionMessage('is not loaded');
-
-        EntityTarget::for($note, ApiVersion::V1)->comparingNamed(NoteRevision::ChildrenOrder)->compared();
+        $this->assertEquals(
+            Revisions::of(null, ['children_order' => $this->storedChildrenOrder($note)]),
+            EntityTarget::for($note, ApiVersion::V1)->comparingNamed(NoteRevision::ChildrenOrder)->compared(),
+        );
     }
 
     #[Test]
-    public function it_refuses_to_compare_every_revision_when_a_column_is_not_loaded(): void
+    public function it_refuses_to_compare_the_own_revision_of_a_note_read_without_its_digest(): void
     {
         $note = $this->partialNote();
 
-        $this->expectException(LogicException::class);
-        $this->expectExceptionMessage('are not loaded');
+        $this->expectException(UnloadedConcurrencyRevision::class);
+        $this->expectExceptionMessage(sprintf('The [self] concurrency revision of [%s] is not loaded.', Note::class));
 
-        EntityTarget::for($note, ApiVersion::V1)->comparingAll()->compared();
+        EntityTarget::for($note, ApiVersion::V1)->comparingSelf()->comparingNamed(NoteRevision::ChildrenOrder)->compared();
     }
 
     #[Test]
-    public function it_compares_a_revision_whose_column_is_loaded_when_another_is_not(): void
+    public function it_compares_the_own_revision_of_a_note_read_without_its_digest_once_it_locks(): void
     {
         $note = $this->partialNote();
+        $target = EntityTarget::for($note, ApiVersion::V1)->comparingSelf();
 
-        $this->assertEquals(Revisions::of(1), EntityTarget::for($note, ApiVersion::V1)->comparingSelf()->compared());
+        $target->lock();
+
+        $this->assertEquals(Revisions::of($this->storedOwn($note)), $target->compared());
     }
 
     #[Test]
@@ -169,15 +162,20 @@ final class EntityTargetTest extends TestCase
     public function it_compares_the_committed_revisions_once_it_locks(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);
-        $target = EntityTarget::for($note, ApiVersion::V1)->comparingAll();
+        $target = EntityTarget::for($note, ApiVersion::V1)->comparingSelf()->comparingNamed(NoteRevision::ChildrenOrder);
+        $read = $this->storedOwn($note);
 
-        DB::table('notes')->where('id', $note->getKey())->update(['title' => 'Final', ConcurrencyRevision::COLUMN => 2]);
+        DB::table('notes')->where('id', $note->getKey())->update(['title' => 'Final']);
 
-        $this->assertEquals(Revisions::of(1, ['children_order' => 1]), $target->compared());
+        $committed = $this->storedOwn($note);
+        $order = $this->storedChildrenOrder($note);
+
+        $this->assertNotSame($read, $committed);
+        $this->assertEquals(Revisions::of($read, ['children_order' => $order]), $target->compared());
 
         $target->lock();
 
-        $this->assertEquals(Revisions::of(2, ['children_order' => 1]), $target->compared());
+        $this->assertEquals(Revisions::of($committed, ['children_order' => $order]), $target->compared());
         $this->assertSame('Final', $note->title);
         $this->assertFalse($note->isDirty());
     }
@@ -240,12 +238,15 @@ final class EntityTargetTest extends TestCase
         $note = Note::query()->create(['title' => 'Destination']);
         $source = Note::query()->create(['title' => 'Source']);
 
-        DB::table('notes')->where('id', $source->getKey())->update(['title' => 'Renamed', ConcurrencyRevision::COLUMN => 4]);
+        $read = $this->storedOwn($source);
+
+        DB::table('notes')->where('id', $source->getKey())->update(['title' => 'Renamed']);
 
         EntityTarget::for($note, ApiVersion::V1)->alsoLocking($source)->lock();
 
         $this->assertSame('Renamed', $source->title);
-        $this->assertSame(4, $source->concurrencyRevision());
+        $this->assertNotSame($read, $source->concurrencyRevision(ConcurrencyRevision::Self));
+        $this->assertSame($this->storedOwn($source), $source->concurrencyRevision(ConcurrencyRevision::Self));
         $this->assertFalse($source->isDirty());
     }
 
@@ -341,14 +342,15 @@ final class EntityTargetTest extends TestCase
     public function it_selects_the_row_for_update_when_it_locks(): void
     {
         $note = Note::query()->create(['title' => 'Draft']);
-        $connection = DB::connection();
-        $connection->setQueryGrammar(new PostgresGrammar($connection));
 
-        $queries = $connection->pretend(function () use ($note): void {
+        $queries = DB::connection()->pretend(function () use ($note): void {
             rescue(fn () => EntityTarget::for($note, ApiVersion::V1)->lock(), report: false);
         });
 
-        $this->assertSame("select * from \"notes\" where \"notes\".\"id\" = '{$note->getKey()}' and \"notes\".\"deleted_at\" is null limit 1 for update", $queries[0]['query']);
+        $this->assertSame(
+            "select \"notes\".*, concurrency_digest(\"notes\".*, '{\"updated_at\"}'::text[]) as \"concurrency_revision\" from \"notes\" where \"notes\".\"id\" = '{$note->getKey()}' and \"notes\".\"deleted_at\" is null limit 1 for update",
+            $queries[0]['query'],
+        );
     }
 
     #[Test]
@@ -458,7 +460,7 @@ final class EntityTargetTest extends TestCase
 
         EntityTarget::for($other, ApiVersion::V1)->alsoLocking($note)->lock();
 
-        $sql = 'select * from "notes" where "notes"."id" = ? and "notes"."deleted_at" is null limit 1';
+        $sql = 'select "notes".*, concurrency_digest("notes".*, \'{"updated_at"}\'::text[]) as "concurrency_revision" from "notes" where "notes"."id" = ? and "notes"."deleted_at" is null limit 1 for update';
 
         $this->assertSame([['sql' => $sql, 'key' => $this->key(1)], ['sql' => $sql, 'key' => $this->key(2)]], $locked->all());
     }
@@ -500,20 +502,27 @@ final class EntityTargetTest extends TestCase
 
     private function partialNote(): Note
     {
-        $key = Note::query()->create(['title' => 'Draft'])->getKey();
+        $key = $this->noteWithChild()->getKey();
 
-        return Note::query()->findOrFail($key, ['id', 'title', ConcurrencyRevision::COLUMN]);
+        return Note::query()->findOrFail($key, ['id', 'title']);
     }
 
-    private function note(int $self, int $childrenOrder): Note
+    private function noteWithChild(): Note
     {
         $note = Note::query()->create(['title' => 'Draft']);
 
-        DB::table('notes')->where('id', $note->getKey())->update([
-            ConcurrencyRevision::COLUMN => $self,
-            ConcurrencyRevision::namedColumn(NoteRevision::ChildrenOrder->value) => $childrenOrder,
-        ]);
+        Note::query()->create(['title' => 'Child', 'parent_id' => $note->getKey()]);
 
-        return $note->refresh();
+        return $note;
+    }
+
+    private function storedOwn(Note $note): string
+    {
+        return Note::query()->findOrFail($note->getKey())->concurrencyRevision(ConcurrencyRevision::Self);
+    }
+
+    private function storedChildrenOrder(Note $note): string
+    {
+        return Note::query()->findOrFail($note->getKey())->concurrencyRevision(NoteRevision::ChildrenOrder);
     }
 }

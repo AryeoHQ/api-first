@@ -26,7 +26,6 @@ use Support\Http\Resources\Schemas\Contracts\Schemable;
  * @property string $title
  */
 #[CollectedBy(Notes::class)]
-#[NamedConcurrencyRevision(NoteRevision::ChildrenOrder)]
 #[UseEloquentBuilder(NoteBuilder::class)]
 #[UseFactory(NoteFactory::class)]
 #[UsePolicy(NotePolicy::class)]
@@ -60,6 +59,7 @@ final class Note extends Model implements Entity, Revisioned, Schemable
     /**
      * @return HasMany<self, $this>
      */
+    #[NamedConcurrencyRevision(NoteRevision::ChildrenOrder)]
     public function children(): HasMany
     {
         return $this->hasMany(self::class, 'parent_id');

@@ -13,6 +13,7 @@ use Support\Database\Eloquent\Concurrency\ConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Contracts\LocksParentsFirst;
 use Support\Database\Eloquent\Concurrency\Contracts\NamesConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Contracts\Revisioned;
+use Support\Database\Eloquent\Concurrency\Exceptions\UnselectedConcurrencyRevision;
 use Support\Database\Eloquent\Concurrency\Revisions;
 use Support\Http\Api\Preconditions\Contracts\Target;
 use Support\Http\Api\Preconditions\Exceptions\ParentsChanged;
@@ -27,8 +28,6 @@ final class EntityTarget implements Target
 
     /** @var list<NamesConcurrencyRevision> */
     private array $revisions = [];
-
-    private bool $all = false;
 
     /** @var list<Model> */
     private array $locking = [];
@@ -52,13 +51,6 @@ final class EntityTarget implements Target
     public function comparingNamed(NamesConcurrencyRevision ...$revisions): static
     {
         $this->revisions = [...$this->revisions, ...array_values($revisions)];
-
-        return $this;
-    }
-
-    public function comparingAll(): static
-    {
-        $this->all = true;
 
         return $this;
     }
@@ -109,7 +101,7 @@ final class EntityTarget implements Target
     public function compared(): Revisions
     {
         throw_if(
-            ! $this->all && $this->revisions === [],
+            $this->revisions === [],
             LogicException::class,
             sprintf('The target for [%s] compares no concurrency revision.', $this->model::class),
         );
@@ -125,24 +117,19 @@ final class EntityTarget implements Target
             }
         }
 
-        if (! $this->all) {
-            return Revisions::of($own, $named);
-        }
-
-        return $this->model->concurrencyRevisions() ?? throw new UnloadedConcurrencyRevision(
-            sprintf('The concurrency revisions of [%s] are not loaded.', $this->model::class),
-        );
+        return Revisions::of($own, $named);
     }
 
-    private function revision(NamesConcurrencyRevision $revision): int
+    private function revision(NamesConcurrencyRevision $revision): string
     {
-        throw_unless(
-            array_key_exists($this->model->concurrencyRevisionColumn($revision), $this->model->getAttributes()),
-            UnloadedConcurrencyRevision::class,
-            sprintf('The [%s] concurrency revision of [%s] is not loaded.', $revision->value, $this->model::class),
-        );
-
-        return $this->model->concurrencyRevision($revision);
+        try {
+            return $this->model->concurrencyRevision($revision);
+        } catch (UnselectedConcurrencyRevision $exception) {
+            throw new UnloadedConcurrencyRevision(
+                sprintf('The [%s] concurrency revision of [%s] is not loaded.', $revision->value, $this->model::class),
+                previous: $exception,
+            );
+        }
     }
 
     /**

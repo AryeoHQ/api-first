@@ -14,7 +14,8 @@ final class ListNoteChildrenController
 {
     public function __invoke(Note $note): ResourceCollection
     {
-        return $note->children()->get()->toSchemaCollection(ApiVersion::V1)
-            ->withTag(EntityTag::forNamedRevision($note, NoteRevision::ChildrenOrder, ApiVersion::V1));
+        $tag = EntityTag::forNamedRevision($note, NoteRevision::ChildrenOrder, ApiVersion::V1);
+
+        return $note->children()->get()->toSchemaCollection(ApiVersion::V1)->withTag($tag);
     }
 }
