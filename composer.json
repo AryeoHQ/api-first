@@ -15,7 +15,7 @@
     },
     "require": {
         "php": "^8.5",
-        "aryeo/api-resource-schema": "0.0.25",
+        "aryeo/api-resource-schema": "0.0.26",
         "aryeo/eloquent-concurrency": "0.0.4",
         "laravel/framework": "^12.37 || ^13",
         "laravel/prompts": "^0.3.8",
